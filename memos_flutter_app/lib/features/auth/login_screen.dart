@@ -7,14 +7,10 @@ import '../../core/app_localization.dart';
 import '../../core/memoflow_palette.dart';
 import '../../core/top_toast.dart';
 import '../../core/url.dart';
-import '../../data/api/memo_api_facade.dart';
-import '../../data/api/memo_api_probe.dart';
-import '../../data/api/memo_api_version.dart';
 import '../../i18n/strings.g.dart';
 import '../../state/login_draft_provider.dart';
-import '../../state/sync_coordinator_provider.dart';
-import '../../application/sync/sync_request.dart';
 import '../../state/home_loading_overlay_provider.dart';
+import '../../state/memos/login_provider.dart';
 import '../../state/preferences_provider.dart';
 import '../../state/session_provider.dart';
 
@@ -189,14 +185,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   String _normalizeServerVersion(String raw) {
-    return normalizeMemoApiVersion(raw);
+    return ref.read(loginControllerProvider).normalizeServerVersion(raw);
   }
 
-  MemoApiVersion? _selectedProbeVersion() {
-    return parseMemoApiVersion(_normalizeServerVersion(_selectedServerVersion));
+  LoginApiVersion? _selectedProbeVersion() {
+    final controller = ref.read(loginControllerProvider);
+    return controller.parseVersion(
+      _normalizeServerVersion(_selectedServerVersion),
+    );
   }
 
-  Future<void> _showProbeSuccessDialog(MemoApiVersion version) async {
+  Future<void> _showProbeSuccessDialog(LoginApiVersion version) async {
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -215,8 +214,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  Future<void> _showProbeFailureDialog(MemoApiProbeSummary summary) async {
-    final diagnostics = summary.buildDiagnostics();
+  Future<void> _showProbeFailureDialog(String diagnostics) async {
     await showDialog<void>(
       context: context,
       builder: (context) {
@@ -260,20 +258,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
-  Future<MemoApiVersionProbeReport?> _probeSingleVersion({
+  Future<LoginProbeReport?> _probeSingleVersion({
     required Uri baseUrl,
     required String personalAccessToken,
-    required MemoApiVersion version,
+    required LoginApiVersion version,
   }) async {
     setState(() => _probing = true);
     try {
-      return await const MemoApiProbeService().probeSingle(
-        baseUrl: baseUrl,
-        personalAccessToken: personalAccessToken,
-        version: version,
-        probeMemoNotice: context.t.strings.legacy.msg_probe_memo_can_delete,
-        deferCleanup: true,
-      );
+      return await ref.read(loginControllerProvider).probeSingleVersion(
+            baseUrl: baseUrl,
+            personalAccessToken: personalAccessToken,
+            version: version,
+            probeMemoNotice: context.t.strings.legacy.msg_probe_memo_can_delete,
+          );
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -288,72 +285,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
-  bool _supportsForceDeleteMemo(MemoApiVersion version) {
-    return switch (version) {
-      MemoApiVersion.v025 || MemoApiVersion.v026 => true,
-      MemoApiVersion.v021 ||
-      MemoApiVersion.v022 ||
-      MemoApiVersion.v023 ||
-      MemoApiVersion.v024 => false,
-    };
-  }
-
   Future<void> _cleanupProbeArtifactsAfterSync({
-    required MemoApiVersion version,
-    required MemoApiVersionProbeReport report,
+    required LoginApiVersion version,
+    required LoginProbeCleanup cleanup,
     required Uri baseUrl,
     required String personalAccessToken,
   }) async {
-    final deferred = report.deferredCleanup;
-    if (!deferred.hasPending) return;
-
-    try {
-      await ref.read(syncCoordinatorProvider.notifier).requestSync(
-            const SyncRequest(
-              kind: SyncRequestKind.memos,
-              reason: SyncRequestReason.manual,
-            ),
-          );
-    } catch (_) {
-      return;
-    }
-
-    final api = MemoApiFacade.authenticated(
-      baseUrl: baseUrl,
-      personalAccessToken: personalAccessToken,
-      version: version,
-    );
-
-    final attachmentName = deferred.attachmentName?.trim() ?? '';
-    if (attachmentName.isNotEmpty) {
-      try {
-        await api.deleteAttachment(attachmentName: attachmentName);
-      } catch (_) {}
-    }
-
-    final memoUid = deferred.memoUid?.trim() ?? '';
-    if (memoUid.isNotEmpty) {
-      try {
-        await api.deleteMemo(
-          memoUid: memoUid,
-          force: _supportsForceDeleteMemo(version),
+    await ref.read(loginControllerProvider).cleanupProbeArtifactsAfterSync(
+          version: version,
+          cleanup: cleanup,
+          baseUrl: baseUrl,
+          personalAccessToken: personalAccessToken,
         );
-      } catch (_) {}
-    }
-
-    try {
-      await ref.read(syncCoordinatorProvider.notifier).requestSync(
-            const SyncRequest(
-              kind: SyncRequestKind.memos,
-              reason: SyncRequestReason.manual,
-            ),
-          );
-    } catch (_) {}
   }
 
   Future<bool> _runSelectedVersionProbeGate({
     required AppSessionController sessionController,
-    required MemoApiVersion version,
+    required LoginApiVersion version,
     required String? previousCurrentKey,
     required Set<String> previousAccountKeys,
   }) async {
@@ -394,9 +342,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
     if (!report.passed) {
       if (mounted) {
-        await _showProbeFailureDialog(
-          MemoApiProbeSummary(reports: <MemoApiVersionProbeReport>[report]),
-        );
+        await _showProbeFailureDialog(report.diagnostics);
       }
       await _rollbackProbeFailure(
         sessionController: sessionController,
@@ -412,7 +358,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
     await _cleanupProbeArtifactsAfterSync(
       version: version,
-      report: report,
+      cleanup: report.cleanup,
       baseUrl: currentAccount.baseUrl,
       personalAccessToken: currentAccount.personalAccessToken,
     );
@@ -476,9 +422,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (probeReport == null) return;
     if (!mounted) return;
     if (!probeReport.passed) {
-      await _showProbeFailureDialog(
-        MemoApiProbeSummary(reports: <MemoApiVersionProbeReport>[probeReport]),
-      );
+      await _showProbeFailureDialog(probeReport.diagnostics);
       return;
     }
 
@@ -507,7 +451,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (currentAccount != null) {
       await _cleanupProbeArtifactsAfterSync(
         version: selectedVersion,
-        report: probeReport,
+        cleanup: probeReport.cleanup,
         baseUrl: currentAccount.baseUrl,
         personalAccessToken: currentAccount.personalAccessToken,
       );
@@ -516,7 +460,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (!mounted) return;
     await _showProbeSuccessDialog(selectedVersion);
     if (!mounted) return;
-    if (selectedVersion == MemoApiVersion.v025) {
+    if (selectedVersion.isV025) {
       _requestHomeLoadingOverlayForNextEntry();
     }
     _navigateAfterLogin();
@@ -567,7 +511,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     // The full probe suite is expensive on 0.23 and significantly delays login.
     // For an explicitly selected 0.23 target, proceed after successful sign-in.
-    if (selectedVersion == MemoApiVersion.v023) {
+    if (selectedVersion.isV023) {
       _navigateAfterLogin();
       return;
     }
@@ -580,7 +524,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
     if (!ready) return;
     if (!mounted) return;
-    if (selectedVersion == MemoApiVersion.v025) {
+    if (selectedVersion.isV025) {
       _requestHomeLoadingOverlayForNextEntry();
     }
     _navigateAfterLogin();
