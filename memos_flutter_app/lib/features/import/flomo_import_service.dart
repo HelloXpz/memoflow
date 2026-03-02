@@ -15,9 +15,9 @@ import '../../core/hash.dart';
 import '../../core/tags.dart';
 import '../../core/uid.dart';
 import '../../core/url.dart';
-import '../../data/db/app_database.dart';
 import '../../data/models/account.dart';
 import '../../data/models/attachment.dart';
+import '../../state/memos/flomo_import_provider.dart';
 import '../../state/preferences_provider.dart';
 
 typedef ImportProgressCallback = void Function(ImportProgressUpdate update);
@@ -74,7 +74,7 @@ class FlomoImportService {
     this.importScopeKey,
   });
 
-  final AppDatabase db;
+  final FlomoImportDatabase db;
   final Account? account;
   final String? importScopeKey;
   final AppLanguage language;
