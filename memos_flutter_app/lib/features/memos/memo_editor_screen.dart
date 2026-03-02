@@ -28,12 +28,11 @@ import '../../data/models/memo_relation.dart';
 import '../../data/models/memo_location.dart';
 import '../../data/models/memo_template_settings.dart';
 import '../../data/models/location_settings.dart';
-import '../../state/database_provider.dart';
 import '../../state/location_settings_provider.dart';
 import '../../state/logging_provider.dart';
 import '../../state/memo_editor_draft_provider.dart';
 import '../../state/memo_template_settings_provider.dart';
-import '../../state/memo_timeline_provider.dart';
+import '../../state/memos/memo_editor_providers.dart';
 import '../../state/memos_providers.dart';
 import '../../state/network_log_provider.dart';
 import '../../state/session_provider.dart';
@@ -492,19 +491,9 @@ class _MemoEditorScreenState extends ConsumerState<MemoEditorScreen> {
         return;
       }
 
-      final api = ref.read(memosApiProvider);
+      final controller = ref.read(memoEditorControllerProvider);
       final memoName = 'memos/$uid';
-      final items = <MemoRelation>[];
-      String? pageToken;
-      do {
-        final (relations, nextToken) = await api.listMemoRelations(
-          memoUid: uid,
-          pageSize: 200,
-          pageToken: pageToken,
-        );
-        items.addAll(relations);
-        pageToken = nextToken.trim().isEmpty ? null : nextToken;
-      } while (pageToken != null);
+      final items = await controller.listMemoRelationsAll(memoUid: uid);
 
       final linked = <_LinkedMemo>[];
       final seen = <String>{};
@@ -640,95 +629,40 @@ class _MemoEditorScreenState extends ConsumerState<MemoEditorScreen> {
         }),
       ];
       final tags = extractTags(content);
+      final pendingUploads = pendingAttachments
+          .map(
+            (attachment) => MemoEditorPendingAttachment(
+              uid: attachment.uid,
+              filePath: attachment.filePath,
+              filename: attachment.filename,
+              mimeType: attachment.mimeType,
+              size: attachment.size,
+            ),
+          )
+          .toList(growable: false);
 
-      final db = ref.read(databaseProvider);
-      final timelineService = ref.read(memoTimelineServiceProvider);
-      if (existing != null && hasPrimaryChanges) {
-        await timelineService.captureMemoVersion(existing);
-      }
-      if (existing != null && _attachmentsToDelete.isNotEmpty) {
-        for (final attachment in _attachmentsToDelete) {
-          final index = existing.attachments.indexWhere(
-            (candidate) =>
-                candidate.name == attachment.name ||
-                candidate.uid == attachment.uid,
+      await ref.read(memoEditorControllerProvider).saveMemo(
+            existing: existing,
+            uid: uid,
+            content: content,
+            visibility: _visibility,
+            pinned: _pinned,
+            state: state,
+            createTime: createTime,
+            now: now,
+            tags: tags,
+            attachments: attachments,
+            location: location,
+            locationChanged: locationChanged,
+            relationCount: existing?.relationCount ?? 0,
+            hasPrimaryChanges: hasPrimaryChanges,
+            attachmentsToDelete: _attachmentsToDelete,
+            includeRelations: includeRelations,
+            relations: relations,
+            shouldSyncAttachments: shouldSyncAttachments,
+            hasPendingAttachments: hasPendingAttachments,
+            pendingAttachments: pendingUploads,
           );
-          await timelineService.moveAttachmentToRecycleBin(
-            memo: existing,
-            attachment: attachment,
-            index: index < 0 ? 0 : index,
-          );
-        }
-      }
-      await db.upsertMemo(
-        uid: uid,
-        content: content,
-        visibility: _visibility,
-        pinned: _pinned,
-        state: state,
-        createTimeSec: createTime.toUtc().millisecondsSinceEpoch ~/ 1000,
-        updateTimeSec: now.toUtc().millisecondsSinceEpoch ~/ 1000,
-        tags: tags,
-        attachments: attachments,
-        location: location,
-        relationCount: existing?.relationCount ?? 0,
-        syncState: 1,
-        lastError: null,
-      );
-
-      if (existing == null) {
-        await db.enqueueOutbox(
-          type: 'create_memo',
-          payload: {
-            'uid': uid,
-            'content': content,
-            'visibility': _visibility,
-            'pinned': _pinned,
-            'has_attachments': attachments.isNotEmpty,
-            if (location != null) 'location': location.toJson(),
-            if (includeRelations) 'relations': relations,
-          },
-        );
-      } else {
-        await db.enqueueOutbox(
-          type: 'update_memo',
-          payload: {
-            'uid': uid,
-            'content': content,
-            'visibility': _visibility,
-            'pinned': _pinned,
-            if (locationChanged) 'location': location?.toJson(),
-            if (includeRelations) 'relations': relations,
-            if (shouldSyncAttachments) 'sync_attachments': true,
-            if (hasPendingAttachments) 'has_pending_attachments': true,
-          },
-        );
-      }
-
-      for (final attachment in pendingAttachments) {
-        await db.enqueueOutbox(
-          type: 'upload_attachment',
-          payload: {
-            'uid': attachment.uid,
-            'memo_uid': uid,
-            'file_path': attachment.filePath,
-            'filename': attachment.filename,
-            'mime_type': attachment.mimeType,
-          },
-        );
-      }
-      if (hasPendingAttachments) {
-        for (final attachment in _attachmentsToDelete) {
-          final name = attachment.name.isNotEmpty
-              ? attachment.name
-              : attachment.uid;
-          if (name.isEmpty) continue;
-          await db.enqueueOutbox(
-            type: 'delete_attachment',
-            payload: {'attachment_name': name, 'memo_uid': uid},
-          );
-        }
-      }
 
       unawaited(
         ref.read(syncCoordinatorProvider.notifier).requestSync(
