@@ -2,34 +2,16 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../data/db/app_database.dart';
 import '../../data/local_library/local_attachment_store.dart';
 import '../../data/local_library/local_library_fs.dart';
-import '../../data/models/local_library.dart';
 import '../../data/models/webdav_export_status.dart';
 import '../../data/models/webdav_sync_meta.dart';
 import '../../data/models/webdav_settings.dart';
-import '../../data/logs/sync_queue_progress_tracker.dart';
-import '../../data/logs/sync_status_tracker.dart';
-import '../../state/database_provider.dart';
-import '../../state/local_library_provider.dart';
-import '../../state/memos_providers.dart';
-import '../../state/session_provider.dart';
-import '../../state/webdav_backup_provider.dart'
-    show
-        webDavBackupPasswordRepositoryProvider,
-        webDavBackupProgressTrackerProvider,
-        webDavBackupStateRepositoryProvider;
-import '../../state/webdav_log_provider.dart';
-import '../../state/webdav_settings_provider.dart';
-import '../../state/webdav_sync_provider.dart' show webDavDeviceIdRepositoryProvider, webDavSyncStateRepositoryProvider;
-import '../../state/webdav_vault_provider.dart';
 import 'local_library_scan_service.dart';
-import 'memo_sync_service.dart';
+import 'sync_dependencies.dart';
 import 'sync_error.dart';
 import 'sync_request.dart';
 import 'sync_types.dart';
-import 'webdav_local_adapter.dart';
 import 'webdav_backup_service.dart';
 import 'webdav_sync_service.dart';
 
@@ -91,15 +73,14 @@ class SyncCoordinatorState {
 }
 
 class SyncCoordinator extends StateNotifier<SyncCoordinatorState> {
-  SyncCoordinator(
-    this._ref,
-    this._webDavSyncService,
-    this._webDavBackupService,
-  ) : super(SyncCoordinatorState.initial) {
+  SyncCoordinator(this._deps)
+    : _webDavSyncService = _deps.webDavSyncService,
+      _webDavBackupService = _deps.webDavBackupService,
+      super(SyncCoordinatorState.initial) {
     _loadBackupState();
   }
 
-  final Ref _ref;
+  final SyncDependencies _deps;
   final WebDavSyncService _webDavSyncService;
   final WebDavBackupService _webDavBackupService;
 
@@ -130,7 +111,7 @@ class SyncCoordinator extends StateNotifier<SyncCoordinatorState> {
   ];
 
   Future<void> _loadBackupState() async {
-    final snapshot = await _ref.read(webDavBackupStateRepositoryProvider).read();
+    final snapshot = await _deps.webDavBackupStateRepository.read();
     final parsed = _parseIso(snapshot.lastBackupAt);
     if (parsed == null) return;
     state = state.copyWith(webDavLastBackupAt: parsed);
@@ -205,8 +186,8 @@ class SyncCoordinator extends StateNotifier<SyncCoordinatorState> {
   }
 
   Future<WebDavSyncMeta?> fetchWebDavSyncMeta() async {
-    final settings = _ref.read(webDavSettingsProvider);
-    final accountKey = _ref.read(appSessionProvider).valueOrNull?.currentKey;
+    final settings = _deps.readWebDavSettings();
+    final accountKey = _deps.readCurrentAccountKey();
     return _webDavSyncService.fetchRemoteMeta(
       settings: settings,
       accountKey: accountKey,
@@ -214,8 +195,8 @@ class SyncCoordinator extends StateNotifier<SyncCoordinatorState> {
   }
 
   Future<WebDavSyncMeta?> cleanWebDavDeprecatedPlainFiles() async {
-    final settings = _ref.read(webDavSettingsProvider);
-    final accountKey = _ref.read(appSessionProvider).valueOrNull?.currentKey;
+    final settings = _deps.readWebDavSettings();
+    final accountKey = _deps.readCurrentAccountKey();
     return _webDavSyncService.cleanDeprecatedRemotePlainFiles(
       settings: settings,
       accountKey: accountKey,
@@ -226,8 +207,8 @@ class SyncCoordinator extends StateNotifier<SyncCoordinatorState> {
     required String password,
     required bool deep,
   }) async {
-    final settings = _ref.read(webDavSettingsProvider);
-    final accountKey = _ref.read(appSessionProvider).valueOrNull?.currentKey;
+    final settings = _deps.readWebDavSettings();
+    final accountKey = _deps.readCurrentAccountKey();
     return _webDavBackupService.verifyBackup(
       settings: settings,
       accountKey: accountKey,
@@ -237,9 +218,9 @@ class SyncCoordinator extends StateNotifier<SyncCoordinatorState> {
   }
 
   Future<WebDavExportStatus> fetchWebDavExportStatus() async {
-    final settings = _ref.read(webDavSettingsProvider);
-    final accountKey = _ref.read(appSessionProvider).valueOrNull?.currentKey;
-    final localLibrary = _ref.read(currentLocalLibraryProvider);
+    final settings = _deps.readWebDavSettings();
+    final accountKey = _deps.readCurrentAccountKey();
+    final localLibrary = _deps.readCurrentLocalLibrary();
     return _webDavBackupService.fetchExportStatus(
       settings: settings,
       accountKey: accountKey,
@@ -248,9 +229,9 @@ class SyncCoordinator extends StateNotifier<SyncCoordinatorState> {
   }
 
   Future<WebDavExportCleanupStatus> cleanWebDavPlainExport() async {
-    final settings = _ref.read(webDavSettingsProvider);
-    final accountKey = _ref.read(appSessionProvider).valueOrNull?.currentKey;
-    final localLibrary = _ref.read(currentLocalLibraryProvider);
+    final settings = _deps.readWebDavSettings();
+    final accountKey = _deps.readCurrentAccountKey();
+    final localLibrary = _deps.readCurrentLocalLibrary();
     return _webDavBackupService.cleanPlainExport(
       settings: settings,
       accountKey: accountKey,
@@ -294,9 +275,9 @@ class SyncCoordinator extends StateNotifier<SyncCoordinatorState> {
   }
 
   void _scheduleWebDavAuto(SyncRequest request) {
-    final accountKey = _ref.read(appSessionProvider).valueOrNull?.currentKey;
+    final accountKey = _deps.readCurrentAccountKey();
     if (accountKey == null || accountKey.trim().isEmpty) return;
-    final settings = _ref.read(webDavSettingsProvider);
+    final settings = _deps.readWebDavSettings();
     if (!_canSyncWebDav(settings)) return;
     _webDavAutoTimer?.cancel();
     _webDavAutoTimer = Timer(_webDavAutoDelay, () {
@@ -379,9 +360,9 @@ class SyncCoordinator extends StateNotifier<SyncCoordinatorState> {
   }
 
   Future<SyncRunResult> _runMemosSync(SyncRequest request) async {
-    final session = _ref.read(appSessionProvider).valueOrNull;
-    final localLibrary = _ref.read(currentLocalLibraryProvider);
-    final hasWorkspace = session?.currentAccount != null || localLibrary != null;
+    final account = _deps.readCurrentAccount();
+    final localLibrary = _deps.readCurrentLocalLibrary();
+    final hasWorkspace = account != null || localLibrary != null;
     if (!hasWorkspace) {
       return const SyncRunSkipped();
     }
@@ -389,8 +370,7 @@ class SyncCoordinator extends StateNotifier<SyncCoordinatorState> {
     state = state.copyWith(
       memos: state.memos.copyWith(running: true, lastError: null),
     );
-    final controller = _ref.read(syncControllerProvider.notifier);
-    final result = await controller.syncNow();
+    final result = await _deps.runMemosSync();
     final now = DateTime.now();
     if (result is MemoSyncSuccess) {
       state = state.copyWith(
@@ -428,7 +408,7 @@ class SyncCoordinator extends StateNotifier<SyncCoordinatorState> {
   }
 
   Future<void> _scheduleMemosRetryIfNeeded(MemoSyncResult result) async {
-    final db = _ref.read(databaseProvider);
+    final db = _deps.readDatabase();
     final retryable = await db.countOutboxRetryable();
     final hasPendingOutbox = retryable > 0;
     final syncFailed = result is MemoSyncFailure;
@@ -480,12 +460,12 @@ class SyncCoordinator extends StateNotifier<SyncCoordinatorState> {
   }
 
   bool _isLocalWorkspace() {
-    return _ref.read(currentLocalLibraryProvider) != null;
+    return _deps.readCurrentLocalLibrary() != null;
   }
 
   Future<SyncRunResult> _runWebDavSync(SyncRequest request) async {
-    final settings = _ref.read(webDavSettingsProvider);
-    final accountKey = _ref.read(appSessionProvider).valueOrNull?.currentKey;
+    final settings = _deps.readWebDavSettings();
+    final accountKey = _deps.readCurrentAccountKey();
     final conflictResolutions = _pendingWebDavConflictResolutions;
     _pendingWebDavConflictResolutions = null;
 
@@ -562,10 +542,10 @@ class SyncCoordinator extends StateNotifier<SyncCoordinatorState> {
   }
 
   Future<SyncRunResult> _runWebDavBackup(SyncRequest request) async {
-    final settings = _ref.read(webDavSettingsProvider);
-    final account = _ref.read(appSessionProvider).valueOrNull?.currentAccount;
+    final settings = _deps.readWebDavSettings();
+    final account = _deps.readCurrentAccount();
     final accountKey = account?.key;
-    final localLibrary = _ref.read(currentLocalLibraryProvider);
+    final localLibrary = _deps.readCurrentLocalLibrary();
     final token = (account?.personalAccessToken ?? '').trim();
     final manual = request.reason == SyncRequestReason.manual;
     final resolvedPassword = manual ? _pendingWebDavBackupPassword : null;
@@ -641,12 +621,12 @@ class SyncCoordinator extends StateNotifier<SyncCoordinatorState> {
   }
 
   Future<SyncRunResult> _runLocalScan(SyncRequest request) async {
-    final localLibrary = _ref.read(currentLocalLibraryProvider);
+    final localLibrary = _deps.readCurrentLocalLibrary();
     if (localLibrary == null) {
       return const SyncRunSkipped();
     }
     final scanService = LocalLibraryScanService(
-      db: _ref.read(databaseProvider),
+      db: _deps.readDatabase(),
       fileSystem: LocalLibraryFileSystem(localLibrary),
       attachmentStore: LocalAttachmentStore(),
     );
@@ -703,7 +683,7 @@ class SyncCoordinator extends StateNotifier<SyncCoordinatorState> {
   }
 
   void _queueBackupIfDue({required SyncRequestReason reason}) {
-    final settings = _ref.read(webDavSettingsProvider);
+    final settings = _deps.readWebDavSettings();
     if (!settings.isBackupEnabled) return;
     if (settings.backupSchedule == WebDavBackupSchedule.manual) return;
     if (settings.backupConfigScope == WebDavBackupConfigScope.none &&
@@ -782,31 +762,3 @@ class SyncCoordinator extends StateNotifier<SyncCoordinatorState> {
     super.dispose();
   }
 }
-
-final syncCoordinatorProvider =
-    StateNotifierProvider<SyncCoordinator, SyncCoordinatorState>((ref) {
-      final db = ref.watch(databaseProvider);
-      final attachmentStore = LocalAttachmentStore();
-      final webDavSyncService = WebDavSyncService(
-        syncStateRepository: ref.watch(webDavSyncStateRepositoryProvider),
-        deviceIdRepository: ref.watch(webDavDeviceIdRepositoryProvider),
-        localAdapter: RiverpodWebDavSyncLocalAdapter(ref),
-        vaultService: ref.watch(webDavVaultServiceProvider),
-        vaultPasswordRepository: ref.watch(webDavVaultPasswordRepositoryProvider),
-        logWriter: (entry) =>
-            unawaited(ref.read(webDavLogStoreProvider).add(entry)),
-      );
-      final webDavBackupService = WebDavBackupService(
-        db: db,
-        attachmentStore: attachmentStore,
-        stateRepository: ref.watch(webDavBackupStateRepositoryProvider),
-        passwordRepository: ref.watch(webDavBackupPasswordRepositoryProvider),
-        vaultService: ref.watch(webDavVaultServiceProvider),
-        vaultPasswordRepository: ref.watch(webDavVaultPasswordRepositoryProvider),
-        configAdapter: RiverpodWebDavSyncLocalAdapter(ref),
-        progressTracker: ref.watch(webDavBackupProgressTrackerProvider),
-        logWriter: (entry) =>
-            unawaited(ref.read(webDavLogStoreProvider).add(entry)),
-      );
-      return SyncCoordinator(ref, webDavSyncService, webDavBackupService);
-    });

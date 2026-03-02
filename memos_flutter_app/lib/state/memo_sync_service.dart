@@ -1,8 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../state/local_sync_controller.dart';
-import '../../state/memos_providers.dart'
-    show RemoteSyncController, syncControllerProvider;
+import 'local_sync_controller.dart';
+import 'memos_providers.dart' show RemoteSyncController, syncControllerProvider;
 
 /// Application-facing memo sync runners.
 typedef LocalMemoSyncRunner = LocalSyncController;

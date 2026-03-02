@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-import '../../application/sync/sync_coordinator.dart';
-import '../../application/sync/memo_sync_service.dart';
+import '../../state/sync_coordinator_provider.dart';
+import '../../state/memo_sync_service.dart';
 import '../../application/sync/sync_request.dart';
 import '../../application/sync/sync_types.dart';
 import '../../core/app_localization.dart';

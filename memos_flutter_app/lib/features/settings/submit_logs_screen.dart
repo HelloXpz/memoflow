@@ -9,7 +9,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import '../../data/api/memo_api_version.dart';
-import '../../application/sync/sync_coordinator.dart';
+import '../../state/sync_coordinator_provider.dart';
 import '../../application/sync/sync_request.dart';
 import '../../core/memoflow_palette.dart';
 import '../../core/top_toast.dart';

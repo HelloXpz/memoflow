@@ -13,7 +13,7 @@ import '../../core/app_localization.dart';
 import '../../core/desktop_quick_input_channel.dart';
 import '../../core/memoflow_palette.dart';
 import '../../core/top_toast.dart';
-import '../../application/sync/sync_coordinator.dart';
+import '../../state/sync_coordinator_provider.dart';
 import '../../application/sync/sync_request.dart';
 import '../../state/database_provider.dart';
 import '../../state/home_loading_overlay_provider.dart';

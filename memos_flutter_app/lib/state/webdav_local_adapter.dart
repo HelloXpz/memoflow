@@ -1,20 +1,20 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../data/settings/ai_settings_repository.dart';
-import '../../data/models/webdav_settings.dart';
-import '../../data/models/image_bed_settings.dart';
-import '../../data/models/location_settings.dart';
-import '../../data/models/memo_template_settings.dart';
-import '../../state/ai_settings_provider.dart';
-import '../../state/app_lock_provider.dart';
-import '../../state/image_bed_settings_provider.dart';
-import '../../state/location_settings_provider.dart';
-import '../../state/memo_template_settings_provider.dart';
-import '../../state/note_draft_provider.dart';
-import '../../state/preferences_provider.dart';
-import '../../state/reminder_settings_provider.dart';
-import '../../state/webdav_settings_provider.dart';
-import 'webdav_sync_service.dart';
+import '../application/sync/webdav_sync_service.dart';
+import '../data/models/image_bed_settings.dart';
+import '../data/models/location_settings.dart';
+import '../data/models/memo_template_settings.dart';
+import '../data/models/webdav_settings.dart';
+import '../data/settings/ai_settings_repository.dart';
+import 'ai_settings_provider.dart';
+import 'app_lock_provider.dart';
+import 'image_bed_settings_provider.dart';
+import 'location_settings_provider.dart';
+import 'memo_template_settings_provider.dart';
+import 'note_draft_provider.dart';
+import 'preferences_provider.dart';
+import 'reminder_settings_provider.dart';
+import 'webdav_settings_provider.dart';
 
 class RiverpodWebDavSyncLocalAdapter implements WebDavSyncLocalAdapter {
   RiverpodWebDavSyncLocalAdapter(this._ref);

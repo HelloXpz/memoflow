@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../application/sync/sync_coordinator.dart';
+import '../state/sync_coordinator_provider.dart';
 import '../application/sync/sync_request.dart';
 import '../core/webdav_url.dart';
 import '../data/models/webdav_settings.dart';

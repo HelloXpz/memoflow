@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../application/sync/webdav_backup_service.dart';
-import '../application/sync/webdav_local_adapter.dart';
+import 'webdav_local_adapter.dart';
 import '../data/local_library/local_attachment_store.dart';
 import '../data/logs/webdav_backup_progress_tracker.dart';
 import '../data/settings/webdav_backup_password_repository.dart';

@@ -14,7 +14,7 @@ import 'package:image_editor_plus/image_editor_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import 'application/app/app_sync_orchestrator.dart';
-import 'application/sync/sync_coordinator.dart';
+import 'state/sync_coordinator_provider.dart';
 import 'application/sync/sync_request.dart';
 import 'core/app_localization.dart';
 import 'core/desktop_quick_input_channel.dart';

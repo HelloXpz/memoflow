@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 
 import '../../core/memoflow_palette.dart';
 import '../../core/top_toast.dart';
-import '../../application/sync/sync_coordinator.dart';
+import '../../state/sync_coordinator_provider.dart';
 import '../../application/sync/sync_request.dart';
 import '../../data/api/memo_api_facade.dart';
 import '../../data/api/memo_api_probe.dart';

@@ -7,7 +7,7 @@ import '../../data/logs/log_manager.dart';
 import '../../state/local_library_provider.dart';
 import '../../state/preferences_provider.dart';
 import '../../state/session_provider.dart';
-import '../sync/sync_coordinator.dart';
+import '../../state/sync_coordinator_provider.dart';
 import '../sync/sync_request.dart';
 
 typedef _StatsWidgetUpdater = Future<void> Function({required bool force});

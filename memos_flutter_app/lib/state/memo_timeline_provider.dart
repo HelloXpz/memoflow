@@ -7,7 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import 'package:saf_stream/saf_stream.dart';
 
-import '../application/sync/sync_coordinator.dart';
+import '../state/sync_coordinator_provider.dart';
 import '../application/sync/sync_request.dart';
 import '../core/debug_ephemeral_storage.dart';
 import '../core/tags.dart';

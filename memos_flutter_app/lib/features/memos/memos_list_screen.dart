@@ -15,7 +15,7 @@ import 'package:just_audio/just_audio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:window_manager/window_manager.dart';
 
-import '../../application/sync/sync_coordinator.dart';
+import '../../state/sync_coordinator_provider.dart';
 import '../../application/sync/sync_error.dart';
 import '../../application/sync/sync_request.dart';
 import '../../application/sync/sync_types.dart';

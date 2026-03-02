@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 
+import '../data/models/app_preferences.dart';
 import '../i18n/strings.g.dart';
-import '../state/preferences_provider.dart';
 
 AppLanguage appLanguageFromLocale(Locale locale) {
   switch (locale.languageCode.toLowerCase()) {

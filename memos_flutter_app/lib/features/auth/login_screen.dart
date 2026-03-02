@@ -12,7 +12,7 @@ import '../../data/api/memo_api_probe.dart';
 import '../../data/api/memo_api_version.dart';
 import '../../i18n/strings.g.dart';
 import '../../state/login_draft_provider.dart';
-import '../../application/sync/sync_coordinator.dart';
+import '../../state/sync_coordinator_provider.dart';
 import '../../application/sync/sync_request.dart';
 import '../../state/home_loading_overlay_provider.dart';
 import '../../state/preferences_provider.dart';

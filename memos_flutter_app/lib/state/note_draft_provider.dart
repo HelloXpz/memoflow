@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-import '../application/sync/sync_coordinator.dart';
+import '../state/sync_coordinator_provider.dart';
 import '../application/sync/sync_request.dart';
 import 'session_provider.dart';
 
