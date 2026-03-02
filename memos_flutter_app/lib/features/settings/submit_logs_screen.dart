@@ -8,16 +8,11 @@ import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
-import '../../data/api/memo_api_version.dart';
-import '../../state/sync_coordinator_provider.dart';
-import '../../application/sync/sync_request.dart';
 import '../../core/memoflow_palette.dart';
 import '../../core/top_toast.dart';
-import '../../state/database_provider.dart';
 import '../../state/logging_provider.dart';
-import '../../state/local_library_provider.dart';
+import '../../state/memos/submit_logs_providers.dart';
 import '../../state/preferences_provider.dart';
-import '../../state/session_provider.dart';
 import '../../i18n/strings.g.dart';
 
 class SubmitLogsScreen extends ConsumerStatefulWidget {
@@ -120,55 +115,12 @@ class _SubmitLogsScreenState extends ConsumerState<SubmitLogsScreen> {
     required String reportText,
     required String reportPath,
   }) async {
-    final report = reportText.trim();
-    if (report.isEmpty) return;
-    if (ref.read(currentLocalLibraryProvider) != null) return;
-
-    final session = ref.read(appSessionProvider).valueOrNull;
-    final account = session?.currentAccount;
-    if (account == null) return;
-
-    final sessionController = ref.read(appSessionProvider.notifier);
-    final versionRaw = sessionController
-        .resolveEffectiveServerVersionForAccount(account: account);
-    final version = parseMemoApiVersion(versionRaw);
-    if (version == null) return;
-
-    final now = DateTime.now().toUtc();
-    final submissionId = now.microsecondsSinceEpoch.toString();
-    final payload = <String, dynamic>{
-      'title': 'MemoFlow Log Report (${version.versionString})',
-      'submission_id': submissionId,
-      'report': report,
-      'report_path': reportPath,
-      'api_version': version.versionString,
-      'created_time': now.toIso8601String(),
-      'include_errors': _includeErrors,
-      'include_outbox': _includeOutbox,
-    };
-
-    await ref
-        .read(databaseProvider)
-        .enqueueOutbox(type: 'submit_log_report', payload: payload);
-
-    ref
-        .read(logManagerProvider)
-        .info(
-          'Queued log report submission',
-          context: <String, Object?>{
-            'apiVersion': version.versionString,
-            'reportLength': report.length,
-          },
+    await ref.read(submitLogsControllerProvider).queueServerLogSubmission(
+          reportText: reportText,
+          reportPath: reportPath,
+          includeErrors: _includeErrors,
+          includeOutbox: _includeOutbox,
         );
-
-    unawaited(
-      ref.read(syncCoordinatorProvider.notifier).requestSync(
-            const SyncRequest(
-              kind: SyncRequestKind.memos,
-              reason: SyncRequestReason.manual,
-            ),
-          ),
-    );
   }
 
   @override
