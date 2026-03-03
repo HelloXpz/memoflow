@@ -4,10 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/logs/log_manager.dart';
-import '../../state/local_library_provider.dart';
-import '../../state/preferences_provider.dart';
-import '../../state/session_provider.dart';
-import '../../state/sync_coordinator_provider.dart';
+import '../../data/models/app_preferences.dart';
+import '../../state/memos/app_sync_adapter_provider.dart';
 import '../sync/sync_request.dart';
 
 typedef _StatsWidgetUpdater = Future<void> Function({required bool force});
@@ -34,6 +32,8 @@ class AppSyncOrchestrator {
   bool _autoSyncRunning = false;
 
   static const Duration _resumeAutoSyncCooldown = Duration(seconds: 45);
+
+  AppSyncAdapter get _adapter => _ref.read(appSyncAdapterProvider);
 
   void resetResumeCooldown() {
     _lastResumeAutoSyncAt = null;
@@ -95,7 +95,7 @@ class AppSyncOrchestrator {
       }
       return;
     }
-    final prefs = _ref.read(appPreferencesProvider);
+    final prefs = _adapter.readPreferences();
     if (!prefs.autoSyncOnStartAndResume) {
       if (kDebugMode) {
         LogManager.instance.info(
@@ -167,9 +167,9 @@ class AppSyncOrchestrator {
       );
       return;
     }
-    var session = _ref.read(appSessionProvider).valueOrNull;
+    var session = _adapter.readSession();
     var hasAccount = session?.currentAccount != null;
-    var hasLocalLibrary = _ref.read(currentLocalLibraryProvider) != null;
+    var hasLocalLibrary = _adapter.hasLocalLibrary();
     var hasWorkspace = hasAccount || hasLocalLibrary;
     if (!hasWorkspace) {
       if (kDebugMode) {
@@ -199,10 +199,10 @@ class AppSyncOrchestrator {
     try {
       try {
         if (refreshCurrentUserBeforeSync && hasAccount) {
-          await _ref.read(appSessionProvider.notifier).refreshCurrentUser();
-          session = _ref.read(appSessionProvider).valueOrNull;
+          await _adapter.refreshCurrentUser();
+          session = _adapter.readSession();
           hasAccount = session?.currentAccount != null;
-          hasLocalLibrary = _ref.read(currentLocalLibraryProvider) != null;
+          hasLocalLibrary = _adapter.hasLocalLibrary();
           hasWorkspace = hasAccount || hasLocalLibrary;
           if (!hasWorkspace) {
             LogManager.instance.info(
@@ -212,7 +212,7 @@ class AppSyncOrchestrator {
             return;
           }
         }
-        await _ref.read(syncCoordinatorProvider.notifier).requestSync(
+        await _adapter.requestSync(
               SyncRequest(kind: requestKind, reason: requestReason),
             );
       } catch (error, stackTrace) {
@@ -251,16 +251,16 @@ class AppSyncOrchestrator {
   }
 
   bool _hasActiveWorkspace() {
-    final session = _ref.read(appSessionProvider).valueOrNull;
+    final session = _adapter.readSession();
     final hasAccount = session?.currentAccount != null;
-    final hasLocalLibrary = _ref.read(currentLocalLibraryProvider) != null;
+    final hasLocalLibrary = _adapter.hasLocalLibrary();
     return hasAccount || hasLocalLibrary;
   }
 
   String _resolveActiveWorkspaceMode() {
-    final session = _ref.read(appSessionProvider).valueOrNull;
+    final session = _adapter.readSession();
     final hasAccount = session?.currentAccount != null;
-    final hasLocalLibrary = _ref.read(currentLocalLibraryProvider) != null;
+    final hasLocalLibrary = _adapter.hasLocalLibrary();
     if (hasAccount && hasLocalLibrary) return 'hybrid';
     if (hasAccount) return 'remote';
     if (hasLocalLibrary) return 'local';
