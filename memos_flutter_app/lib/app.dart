@@ -14,7 +14,6 @@ import 'package:image_editor_plus/image_editor_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import 'application/app/app_sync_orchestrator.dart';
-import 'state/sync_coordinator_provider.dart';
 import 'application/sync/sync_request.dart';
 import 'core/app_localization.dart';
 import 'core/desktop_quick_input_channel.dart';
@@ -40,24 +39,13 @@ import 'features/share/share_handler.dart';
 import 'features/settings/widgets_service.dart';
 import 'features/updates/notice_dialog.dart';
 import 'features/updates/update_announcement_dialog.dart';
-import 'data/models/account.dart';
 import 'data/models/attachment.dart';
+import 'data/models/app_preferences.dart';
 import 'data/models/memo_location.dart';
 import 'data/logs/log_manager.dart';
 import 'data/updates/update_config.dart';
-import 'state/database_provider.dart';
-import 'state/debug_screenshot_mode_provider.dart';
-import 'state/home_loading_overlay_provider.dart';
-import 'state/logging_provider.dart';
-import 'state/local_library_provider.dart';
-import 'state/memos_providers.dart';
-import 'state/preferences_provider.dart';
-import 'state/reminder_scheduler.dart';
-import 'state/reminder_settings_provider.dart';
-import 'state/session_provider.dart';
-import 'state/update_config_provider.dart';
-import 'state/user_settings_provider.dart';
-import 'state/webdav_backup_provider.dart';
+import 'state/memos/app_bootstrap_adapter_provider.dart';
+import 'state/memos/app_bootstrap_controller.dart';
 import 'presentation/navigation/app_navigator.dart';
 import 'presentation/reminders/reminder_tap_handler.dart';
 
@@ -95,16 +83,11 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
   Future<void>? _pendingShareLoad;
   bool _statsWidgetUpdating = false;
   String? _statsWidgetAccountKey;
-  ProviderSubscription<AsyncValue<AppSessionState>>? _sessionSubscription;
-  ProviderSubscription<AppPreferences>? _prefsSubscription;
-  ProviderSubscription<ReminderSettings>? _reminderSettingsSubscription;
-  ProviderSubscription<bool>? _prefsLoadedSubscription;
-  ProviderSubscription<bool>? _debugScreenshotModeSubscription;
+  late final AppBootstrapAdapter _bootstrapAdapter;
+  late final AppBootstrapController _bootstrapController;
   late final AppSyncOrchestrator _syncOrchestrator;
-  DateTime? _lastReminderRescheduleAt;
   bool _updateAnnouncementChecked = false;
   Future<String?>? _appVersionFuture;
-  String? _pendingThemeAccountKey;
   AppLocale? _activeLocale;
   static const UpdateAnnouncementConfig _fallbackUpdateConfig =
       UpdateAnnouncementConfig(
@@ -422,6 +405,8 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    _bootstrapAdapter = ref.read(appBootstrapAdapterProvider);
+    _bootstrapController = AppBootstrapController(_bootstrapAdapter);
     WidgetsBinding.instance.addObserver(this);
     _bindDesktopMultiWindowHandler();
     setDesktopSettingsWindowVisibilityListener(({
@@ -430,7 +415,7 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
     }) {
       _setDesktopSubWindowVisibility(windowId: windowId, visible: visible);
     });
-    ref.read(logManagerProvider);
+    _bootstrapAdapter.readLogManager(ref);
     _syncOrchestrator = AppSyncOrchestrator(
       ref: ref,
       updateStatsWidgetIfNeeded:
@@ -443,150 +428,17 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
     _pendingWidgetActionLoad = _loadPendingWidgetAction();
     ShareHandlerService.setShareHandler(_handleShareLaunch);
     _pendingShareLoad = _loadPendingShare();
-    _sessionSubscription = ref.listenManual<AsyncValue<AppSessionState>>(
-      appSessionProvider,
-      (prev, next) {
-        final prevState = prev?.valueOrNull;
-        final nextState = next.valueOrNull;
-        final prevKey = prevState?.currentKey;
-        final nextKey = nextState?.currentKey;
-        final prevAccount = prevState?.currentAccount;
-        final nextAccount = nextState?.currentAccount;
-        if (kDebugMode) {
-          LogManager.instance.info(
-            'RouteGate: session_changed',
-            context: <String, Object?>{
-              'previousKey': prevKey,
-              'nextKey': nextKey,
-              'hasPreviousAccount': prevAccount != null,
-              'hasNextAccount': nextAccount != null,
-              'currentLocalLibraryKey': ref
-                  .read(currentLocalLibraryProvider)
-                  ?.key,
-            },
-          );
-        }
-        final shouldTriggerPostLoginSync = _didSessionAuthContextChange(
-          prevKey: prevKey,
-          nextKey: nextKey,
-          prevAccount: prevAccount,
-          nextAccount: nextAccount,
-        );
-        if (shouldTriggerPostLoginSync) {
-          _scheduleStatsWidgetUpdate();
-          _syncOrchestrator.resetResumeCooldown();
-          _syncOrchestrator.triggerLifecycleSync(
-            isResume: true,
-            refreshCurrentUserBeforeSync: false,
-            showFeedbackToast: false,
-          );
-          unawaited(
-            ref.read(reminderSchedulerProvider).rescheduleAll(force: true),
-          );
-        }
-        if (nextKey != null) {
-          if (ref.read(appPreferencesLoadedProvider)) {
-            ref
-                .read(appPreferencesProvider.notifier)
-                .ensureAccountThemeDefaults(nextKey);
-          } else {
-            _pendingThemeAccountKey = nextKey;
-          }
-        }
-        if (nextAccount != null) {
-          _scheduleShareHandling();
-        }
-      },
+    _bootstrapController.bind(
+      ref: ref,
+      syncOrchestrator: _syncOrchestrator,
+      scheduleStatsWidgetUpdate: _scheduleStatsWidgetUpdate,
+      scheduleShareHandling: _scheduleShareHandling,
+      ensureFontLoaded: _ensureFontLoaded,
+      registerDesktopQuickInputHotKey: _registerDesktopQuickInputHotKey,
+      applyDebugScreenshotMode: _applyDebugScreenshotMode,
+      reminderTapHandler: ReminderTapHandlerImpl(_navigatorKey).handle,
+      scheduleDesktopSubWindowPrewarm: _scheduleDesktopSubWindowPrewarm,
     );
-    _prefsSubscription = ref.listenManual<AppPreferences>(
-      appPreferencesProvider,
-      (prev, next) {
-        if (kDebugMode) {
-          final hasOnboardingChanged =
-              prev?.hasSelectedLanguage != next.hasSelectedLanguage ||
-              prev?.language != next.language;
-          if (hasOnboardingChanged) {
-            LogManager.instance.info(
-              'RouteGate: prefs_changed',
-              context: <String, Object?>{
-                'previousLanguage': prev?.language.name,
-                'nextLanguage': next.language.name,
-                'previousHasSelectedLanguage': prev?.hasSelectedLanguage,
-                'nextHasSelectedLanguage': next.hasSelectedLanguage,
-              },
-            );
-          }
-        }
-        if (prev?.fontFamily != next.fontFamily ||
-            prev?.fontFile != next.fontFile) {
-          unawaited(_ensureFontLoaded(next));
-        }
-        if (isDesktopShortcutEnabled() &&
-            prev?.desktopShortcutBindings != next.desktopShortcutBindings) {
-          unawaited(_registerDesktopQuickInputHotKey(next));
-        }
-      },
-    );
-    _prefsLoadedSubscription = ref.listenManual<bool>(
-      appPreferencesLoadedProvider,
-      (prev, next) {
-        if (kDebugMode) {
-          LogManager.instance.info(
-            'RouteGate: prefs_loaded_changed',
-            context: <String, Object?>{
-              'previous': prev,
-              'next': next,
-              'sessionKey': ref
-                  .read(appSessionProvider)
-                  .valueOrNull
-                  ?.currentKey,
-              'hasSelectedLanguage': ref
-                  .read(appPreferencesProvider)
-                  .hasSelectedLanguage,
-            },
-          );
-        }
-        if (!next) return;
-        final key =
-            _pendingThemeAccountKey ??
-            ref.read(appSessionProvider).valueOrNull?.currentKey;
-        if (key != null) {
-          ref
-              .read(appPreferencesProvider.notifier)
-              .ensureAccountThemeDefaults(key);
-        }
-        _pendingThemeAccountKey = null;
-      },
-    );
-    final reminderScheduler = ref.read(reminderSchedulerProvider);
-    reminderScheduler.setTapHandler(
-      ReminderTapHandlerImpl(_navigatorKey).handle,
-    );
-    unawaited(reminderScheduler.initialize());
-    _reminderSettingsSubscription = ref.listenManual<ReminderSettings>(
-      reminderSettingsProvider,
-      (prev, next) {
-        if (!ref.read(reminderSettingsLoadedProvider)) return;
-        unawaited(reminderScheduler.rescheduleAll());
-      },
-    );
-    if (kDebugMode) {
-      _debugScreenshotModeSubscription = ref.listenManual<bool>(
-        debugScreenshotModeProvider,
-        (prev, next) {
-          unawaited(_applyDebugScreenshotMode(next));
-        },
-      );
-      unawaited(
-        _applyDebugScreenshotMode(ref.read(debugScreenshotModeProvider)),
-      );
-    }
-    if (isDesktopShortcutEnabled()) {
-      unawaited(
-        _registerDesktopQuickInputHotKey(ref.read(appPreferencesProvider)),
-      );
-      _scheduleDesktopSubWindowPrewarm();
-    }
     if (DesktopTrayController.instance.supported) {
       DesktopTrayController.instance.configureActions(
         onOpenSettings: _handleOpenSettingsFromTray,
@@ -819,13 +671,11 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
     try {
       await _ensureDesktopQuickInputWindowReady();
     } catch (error, stackTrace) {
-      ref
-          .read(logManagerProvider)
-          .warn(
-            'Desktop sub-window prewarm failed',
-            error: error,
-            stackTrace: stackTrace,
-          );
+      _bootstrapAdapter.readLogManager(ref).warn(
+        'Desktop sub-window prewarm failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
     prewarmDesktopSettingsWindowIfSupported();
   }
@@ -862,27 +712,23 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
       await hotKeyManager.register(
         nextHotKey,
         keyDownHandler: (_) {
-          ref
-              .read(logManagerProvider)
-              .info(
-                'Desktop shortcut matched',
-                context: const <String, Object?>{
-                  'action': 'quickRecord',
-                  'source': 'system_hotkey',
-                },
-              );
+          _bootstrapAdapter.readLogManager(ref).info(
+            'Desktop shortcut matched',
+            context: const <String, Object?>{
+              'action': 'quickRecord',
+              'source': 'system_hotkey',
+            },
+          );
           unawaited(_handleDesktopQuickInputHotKey());
         },
       );
       _desktopQuickInputHotKey = nextHotKey;
     } catch (error, stackTrace) {
-      ref
-          .read(logManagerProvider)
-          .error(
-            'Register desktop quick input hotkey failed',
-            error: error,
-            stackTrace: stackTrace,
-          );
+      _bootstrapAdapter.readLogManager(ref).error(
+        'Register desktop quick input hotkey failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
   }
 
@@ -930,13 +776,11 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
           }
           return true;
         } catch (error, stackTrace) {
-          ref
-              .read(logManagerProvider)
-              .error(
-                'Desktop quick input submit from sub-window failed',
-                error: error,
-                stackTrace: stackTrace,
-              );
+          _bootstrapAdapter.readLogManager(ref).error(
+            'Desktop quick input submit from sub-window failed',
+            error: error,
+            stackTrace: stackTrace,
+          );
           if (!mounted) return false;
           final context = _resolveDesktopUiContext();
           if (context?.mounted == true) {
@@ -1010,7 +854,7 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
           }
         }
         try {
-          final stats = await ref.read(tagStatsProvider.future);
+          final stats = await _bootstrapAdapter.readTagStats(ref);
           final tags = <String>[];
           for (final stat in stats) {
             final tag = stat.tag.trim();
@@ -1035,25 +879,25 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
         return true;
       case desktopSettingsReopenOnboardingMethod:
         try {
-          await ref.read(appSessionProvider.notifier).reloadFromStorage();
+          await _bootstrapAdapter.reloadSessionFromStorage(ref);
         } catch (_) {}
         try {
-          await ref.read(localLibrariesProvider.notifier).reloadFromStorage();
+          await _bootstrapAdapter.reloadLocalLibrariesFromStorage(ref);
         } catch (_) {}
-        final session = ref.read(appSessionProvider).valueOrNull;
+        final session = _bootstrapAdapter.readSession(ref);
         if (session?.currentAccount == null && session?.currentKey != null) {
           try {
-            await ref.read(appSessionProvider.notifier).setCurrentKey(null);
+            await _bootstrapAdapter.setCurrentSessionKey(ref, null);
           } catch (_) {}
         }
-        ref.read(appPreferencesProvider.notifier).setHasSelectedLanguage(false);
+        _bootstrapAdapter.setHasSelectedLanguage(ref, false);
         final navigator = _navigatorKey.currentState;
         if (navigator != null) {
           navigator.pushNamedAndRemoveUntil('/', (route) => false);
         }
         return true;
       case desktopHomeShowLoadingOverlayMethod:
-        ref.read(homeLoadingOverlayForceProvider.notifier).state = true;
+        _bootstrapAdapter.forceHomeLoadingOverlay(ref);
         return true;
       case desktopQuickInputPingMethod:
         return true;
@@ -1081,7 +925,7 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
       await _handleDesktopQuickInputHotKey();
       return;
     }
-    final prefs = ref.read(appPreferencesProvider);
+    final prefs = _bootstrapAdapter.readPreferences(ref);
     _openQuickInput(autoFocus: prefs.quickInputAutoFocus);
   }
 
@@ -1090,8 +934,8 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
     if (_desktopQuickInputWindowOpening) return;
     _bindDesktopMultiWindowHandler();
 
-    final session = ref.read(appSessionProvider).valueOrNull;
-    final localLibrary = ref.read(currentLocalLibraryProvider);
+    final session = _bootstrapAdapter.readSession(ref);
+    final localLibrary = _bootstrapAdapter.readCurrentLocalLibrary(ref);
     if (session?.currentAccount == null && localLibrary == null) {
       await DesktopTrayController.instance.showFromTray();
       return;
@@ -1120,13 +964,11 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
         await _focusDesktopQuickInputWindow(window.windowId);
       }
     } catch (error, stackTrace) {
-      ref
-          .read(logManagerProvider)
-          .error(
-            'Desktop quick input hotkey action failed',
-            error: error,
-            stackTrace: stackTrace,
-          );
+      _bootstrapAdapter.readLogManager(ref).error(
+        'Desktop quick input hotkey action failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
       if (!mounted) return;
       final context = _resolveDesktopUiContext();
       if (context?.mounted == true) {
@@ -1209,7 +1051,7 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
   }
 
   String _resolveDesktopQuickInputVisibility() {
-    final settings = ref.read(userGeneralSettingProvider).valueOrNull;
+    final settings = _bootstrapAdapter.readUserGeneralSetting(ref);
     final value = (settings?.memoVisibility ?? '').trim().toUpperCase();
     if (value == 'PUBLIC' || value == 'PROTECTED' || value == 'PRIVATE') {
       return value;
@@ -1272,7 +1114,7 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
     final nowSec = now.toUtc().millisecondsSinceEpoch ~/ 1000;
     final uid = generateUid();
     final visibility = _resolveDesktopQuickInputVisibility();
-    final db = ref.read(databaseProvider);
+    final db = _bootstrapAdapter.readDatabase(ref);
     final tags = extractTags(content);
     final attachments = <Map<String, dynamic>>[];
     final uploadPayloads = <Map<String, dynamic>>[];
@@ -1343,12 +1185,13 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
     }
 
     unawaited(
-      ref.read(syncCoordinatorProvider.notifier).requestSync(
-            const SyncRequest(
-              kind: SyncRequestKind.memos,
-              reason: SyncRequestReason.manual,
-            ),
-          ),
+      _bootstrapAdapter.requestSync(
+        ref,
+        const SyncRequest(
+          kind: SyncRequestKind.memos,
+          reason: SyncRequestReason.manual,
+        ),
+      ),
     );
   }
 
@@ -1422,7 +1265,7 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
     if (!_hasActiveWorkspace()) return;
 
     _launchActionHandled = true;
-    final prefs = ref.read(appPreferencesProvider);
+    final prefs = _bootstrapAdapter.readPreferences(ref);
     final hasPendingUiAction =
         _pendingSharePayload != null || _pendingWidgetAction != null;
 
@@ -1447,9 +1290,10 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
   }
 
   bool _hasActiveWorkspace() {
-    final session = ref.read(appSessionProvider).valueOrNull;
+    final session = _bootstrapAdapter.readSession(ref);
     final hasAccount = session?.currentAccount != null;
-    final hasLocalLibrary = ref.read(currentLocalLibraryProvider) != null;
+    final hasLocalLibrary = _bootstrapAdapter.readCurrentLocalLibrary(ref) !=
+        null;
     return hasAccount || hasLocalLibrary;
   }
 
@@ -1523,10 +1367,10 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
     var version = await _resolveAppVersion();
     if (!mounted || version == null || version.isEmpty) return;
 
-    final prefs = ref.read(appPreferencesProvider);
+    final prefs = _bootstrapAdapter.readPreferences(ref);
     if (!prefs.hasSelectedLanguage) return;
 
-    final config = await ref.read(updateConfigServiceProvider).fetchLatest();
+    final config = await _bootstrapAdapter.fetchLatestUpdateConfig(ref);
     if (!mounted) return;
     final effectiveConfig = config ?? _fallbackUpdateConfig;
 
@@ -1579,12 +1423,11 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
     if (!mounted || isForce) return;
     if (action == AnnouncementAction.update ||
         action == AnnouncementAction.later) {
-      ref
-          .read(appPreferencesProvider.notifier)
-          .setLastSeenAnnouncement(
-            version: currentVersion,
-            announcementId: config.announcement.id,
-          );
+      _bootstrapAdapter.setLastSeenAnnouncement(
+        ref: ref,
+        version: currentVersion,
+        announcementId: config.announcement.id,
+      );
     }
   }
 
@@ -1605,7 +1448,7 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
 
     final acknowledged = await NoticeDialog.show(dialogContext, notice: notice);
     if (!mounted || acknowledged != true) return;
-    ref.read(appPreferencesProvider.notifier).setLastSeenNoticeHash(noticeHash);
+    _bootstrapAdapter.setLastSeenNoticeHash(ref, noticeHash);
   }
 
   String _hashNotice(UpdateNotice notice) {
@@ -1634,17 +1477,17 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
 
   Future<void> _updateStatsWidgetIfNeeded({bool force = false}) async {
     if (_statsWidgetUpdating) return;
-    final session = ref.read(appSessionProvider).valueOrNull;
+    final session = _bootstrapAdapter.readSession(ref);
     final account = session?.currentAccount;
     if (account == null) return;
     if (!force && _statsWidgetAccountKey == account.key) return;
 
     _statsWidgetUpdating = true;
     try {
-      final api = ref.read(memosApiProvider);
+      final api = _bootstrapAdapter.readMemosApi(ref);
       final stats = await api.getUserStatsSummary(userName: account.user.name);
       final days = _buildHeatmapDays(stats.memoDisplayTimes, dayCount: 14);
-      final language = ref.read(appPreferencesProvider).language;
+      final language = _bootstrapAdapter.readPreferences(ref).language;
       await HomeWidgetService.updateStatsWidget(
         total: stats.totalMemoCount,
         days: days,
@@ -1670,7 +1513,7 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
   }
 
   void _showAutoSyncFeedbackToast({required bool succeeded}) {
-    final language = ref.read(appPreferencesProvider).language;
+    final language = _bootstrapAdapter.readPreferences(ref).language;
     final message = buildAutoSyncFeedbackMessage(
       language: language,
       succeeded: succeeded,
@@ -1742,7 +1585,7 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
   }
 
   void _showAutoSyncProgressToast() {
-    final language = ref.read(appPreferencesProvider).language;
+    final language = _bootstrapAdapter.readPreferences(ref).language;
     final message = buildAutoSyncProgressMessage(language: language);
     final homeContext = _mainHomePageKey.currentContext;
     final navigatorContext = _navigatorKey.currentContext;
@@ -1791,57 +1634,22 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
     );
   }
 
-  bool _didSessionAuthContextChange({
-    required String? prevKey,
-    required String? nextKey,
-    required Account? prevAccount,
-    required Account? nextAccount,
-  }) {
-    if (nextKey == null || nextAccount == null) return false;
-    if (prevKey != nextKey) return true;
-    if (prevAccount == null) return true;
-    if (prevAccount.baseUrl.toString() != nextAccount.baseUrl.toString()) {
-      return true;
-    }
-    if (prevAccount.personalAccessToken != nextAccount.personalAccessToken) {
-      return true;
-    }
-    if ((prevAccount.serverVersionOverride ?? '').trim() !=
-        (nextAccount.serverVersionOverride ?? '').trim()) {
-      return true;
-    }
-    if (prevAccount.useLegacyApiOverride != nextAccount.useLegacyApiOverride) {
-      return true;
-    }
-    return false;
-  }
-
-  void _rescheduleRemindersIfNeeded() {
-    final now = DateTime.now();
-    final last = _lastReminderRescheduleAt;
-    if (last != null && now.difference(last) < const Duration(minutes: 1)) {
-      return;
-    }
-    _lastReminderRescheduleAt = now;
-    unawaited(ref.read(reminderSchedulerProvider).rescheduleAll());
-  }
-
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     switch (state) {
       case AppLifecycleState.resumed:
-        ref.read(webDavBackupProgressTrackerProvider).resume();
+        _bootstrapAdapter.resumeWebDavBackupProgress(ref);
         _bindDesktopMultiWindowHandler();
         _syncOrchestrator.triggerLifecycleSync(isResume: true);
-        _rescheduleRemindersIfNeeded();
+        _bootstrapController.rescheduleRemindersIfNeeded(ref: ref);
         break;
       case AppLifecycleState.paused:
       case AppLifecycleState.hidden:
       case AppLifecycleState.detached:
-        ref.read(webDavBackupProgressTrackerProvider).pauseIfRunning();
+        _bootstrapAdapter.pauseWebDavBackupProgress(ref);
         break;
       case AppLifecycleState.inactive:
-        ref.read(webDavBackupProgressTrackerProvider).pauseIfRunning();
+        _bootstrapAdapter.pauseWebDavBackupProgress(ref);
         break;
     }
   }
@@ -1870,7 +1678,7 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
   void _handlePendingWidgetAction() {
     final type = _pendingWidgetAction;
     if (type == null) return;
-    final session = ref.read(appSessionProvider).valueOrNull;
+    final session = _bootstrapAdapter.readSession(ref);
     if (session?.currentAccount == null) return;
     final navigator = _navigatorKey.currentState;
     final context = _navigatorKey.currentContext;
@@ -1886,9 +1694,8 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           final sheetContext = _navigatorKey.currentContext;
           if (sheetContext != null) {
-            final autoFocus = ref
-                .read(appPreferencesProvider)
-                .quickInputAutoFocus;
+            final autoFocus =
+                _bootstrapAdapter.readPreferences(ref).quickInputAutoFocus;
             NoteInputSheet.show(sheetContext, autoFocus: autoFocus);
           }
         });
@@ -1902,17 +1709,17 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
   void _handlePendingShare() {
     final payload = _pendingSharePayload;
     if (payload == null) return;
-    if (!ref.read(appPreferencesLoadedProvider)) {
+    if (!_bootstrapAdapter.readPreferencesLoaded(ref)) {
       _scheduleShareHandling();
       return;
     }
-    final prefs = ref.read(appPreferencesProvider);
+    final prefs = _bootstrapAdapter.readPreferences(ref);
     if (!prefs.thirdPartyShareEnabled) {
       _pendingSharePayload = null;
       _notifyShareDisabled();
       return;
     }
-    final session = ref.read(appSessionProvider).valueOrNull;
+    final session = _bootstrapAdapter.readSession(ref);
     if (session?.currentAccount == null) return;
     final navigator = _navigatorKey.currentState;
     final context = _navigatorKey.currentContext;
@@ -1973,22 +1780,22 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    final prefs = ref.watch(appPreferencesProvider);
-    final prefsLoaded = ref.watch(appPreferencesLoadedProvider);
-    final session = ref.watch(appSessionProvider).valueOrNull;
+    final prefs = _bootstrapAdapter.watchPreferences(ref);
+    final prefsLoaded = _bootstrapAdapter.watchPreferencesLoaded(ref);
+    final session = _bootstrapAdapter.watchSession(ref).valueOrNull;
     final accountKey = session?.currentKey;
     final themeColor = prefs.resolveThemeColor(accountKey);
     final customTheme = prefs.resolveCustomTheme(accountKey);
     MemoFlowPalette.applyThemeColor(themeColor, customTheme: customTheme);
     final themeMode = _themeModeFor(prefs.themeMode);
-    final loggerService = ref.watch(loggerServiceProvider);
+    final loggerService = _bootstrapAdapter.watchLoggerService(ref);
     final appLocale = _appLocaleFor(prefs.language);
     if (_activeLocale != appLocale) {
       LocaleSettings.setLocale(appLocale);
       _activeLocale = appLocale;
     }
     final screenshotModeEnabled = kDebugMode
-        ? ref.watch(debugScreenshotModeProvider)
+        ? _bootstrapAdapter.watchDebugScreenshotMode(ref)
         : false;
     final scale = _textScaleFor(prefs.fontSize);
     final blurDesktopMainWindow = _shouldBlurDesktopMainWindow;
@@ -2006,7 +1813,7 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
     if (prefsLoaded) {
       _scheduleUpdateAnnouncementIfNeeded();
     }
-    final localLibrary = ref.watch(currentLocalLibraryProvider);
+    final localLibrary = _bootstrapAdapter.watchCurrentLocalLibrary(ref);
     if (prefsLoaded &&
         (session?.currentAccount != null || localLibrary != null)) {
       _scheduleLaunchActionHandling();
@@ -2103,11 +1910,7 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
     if (kDebugMode) {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     }
-    _sessionSubscription?.close();
-    _prefsSubscription?.close();
-    _prefsLoadedSubscription?.close();
-    _reminderSettingsSubscription?.close();
-    _debugScreenshotModeSubscription?.close();
+    _bootstrapController.dispose();
     if (!kIsWeb) {
       DesktopMultiWindow.setMethodHandler(null);
     }
@@ -2158,11 +1961,12 @@ class _MainHomePageState extends ConsumerState<MainHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final prefsLoaded = ref.watch(appPreferencesLoadedProvider);
-    final prefs = ref.watch(appPreferencesProvider);
-    final sessionAsync = ref.watch(appSessionProvider);
+    final adapter = ref.read(appBootstrapAdapterProvider);
+    final prefsLoaded = adapter.watchPreferencesLoaded(ref);
+    final prefs = adapter.watchPreferences(ref);
+    final sessionAsync = adapter.watchSession(ref);
     final session = sessionAsync.valueOrNull;
-    final localLibrary = ref.watch(currentLocalLibraryProvider);
+    final localLibrary = adapter.watchCurrentLocalLibrary(ref);
 
     if (!prefsLoaded) {
       _logRouteDecision(
