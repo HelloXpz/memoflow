@@ -2,20 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-import '../../state/sync_coordinator_provider.dart';
-import '../../state/memo_sync_service.dart';
+import '../../state/sync/sync_coordinator_provider.dart';
+import '../../state/sync/memo_sync_service.dart';
 import '../../application/sync/sync_types.dart';
 import '../../core/app_localization.dart';
 import '../../core/memoflow_palette.dart';
 import '../../core/sync_error_presenter.dart';
-import '../../core/sync_feedback.dart';
+import '../../application/sync/sync_feedback_presenter.dart';
 import '../../core/top_toast.dart';
-import '../../state/memoflow_bridge_settings_provider.dart';
+import '../../state/settings/memoflow_bridge_settings_provider.dart';
 import '../../state/memos/sync_queue_controller.dart';
 import '../../state/memos/sync_queue_models.dart';
 import '../../state/memos/sync_queue_provider.dart';
-import '../../state/logging_provider.dart';
-import '../../state/preferences_provider.dart';
+import '../../state/system/logging_provider.dart';
+import '../../state/settings/preferences_provider.dart';
 import '../memos/memos_list_screen.dart';
 import '../../i18n/strings.g.dart';
 

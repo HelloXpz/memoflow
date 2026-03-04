@@ -2,7 +2,7 @@ import '../../data/db/app_database.dart';
 import '../../data/models/account.dart';
 import '../../data/models/local_library.dart';
 import '../../data/models/webdav_settings.dart';
-import '../../data/settings/webdav_backup_state_repository.dart';
+import '../../data/repositories/webdav_backup_state_repository.dart';
 import 'sync_types.dart';
 import 'webdav_backup_service.dart';
 import 'webdav_sync_service.dart';

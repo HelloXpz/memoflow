@@ -5,7 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/app_localization.dart';
 import '../../core/memoflow_palette.dart';
-import '../../state/preferences_provider.dart';
+import '../../state/settings/preferences_provider.dart';
 import '../../i18n/strings.g.dart';
 
 class UserGuideScreen extends ConsumerWidget {

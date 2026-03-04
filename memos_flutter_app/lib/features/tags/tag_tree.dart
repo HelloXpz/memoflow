@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/memoflow_palette.dart';
-import '../../state/memos_providers.dart';
-
+import '../../state/memos/memos_providers.dart';
 class TagTreeNode {
   TagTreeNode({
     required this.key,

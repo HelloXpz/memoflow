@@ -7,9 +7,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/desktop_quick_input_channel.dart';
-import '../../core/desktop_settings_window.dart';
-import '../../core/desktop_shortcuts.dart';
-import '../../core/desktop_tray_controller.dart';
+import 'desktop_settings_window.dart';
+import '../../core/desktop/shortcuts.dart';
+import 'desktop_tray_controller.dart';
 import '../../state/memos/app_bootstrap_adapter_provider.dart';
 import 'desktop_quick_input_controller.dart';
 

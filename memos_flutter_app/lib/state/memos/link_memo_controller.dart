@@ -4,10 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/models/local_memo.dart';
 import '../../data/models/memo.dart';
-import '../database_provider.dart';
-import '../memos_providers.dart';
-import '../session_provider.dart';
-
+import '../system/database_provider.dart';
+import 'memos_providers.dart';
+import '../system/session_provider.dart';
 class LinkMemoController {
   LinkMemoController(this._ref);
 

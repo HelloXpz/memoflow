@@ -9,14 +9,13 @@ import '../../data/db/app_database.dart';
 import '../../data/models/local_memo.dart';
 import '../../data/models/memo_location.dart';
 import '../../data/models/shortcut.dart';
-import '../database_provider.dart';
-import '../logging_provider.dart';
-import '../memo_timeline_provider.dart';
-import '../memos_providers.dart';
-import '../reminder_scheduler.dart';
-import '../session_provider.dart';
-import '../user_settings_provider.dart';
-
+import '../system/database_provider.dart';
+import '../system/logging_provider.dart';
+import 'memo_timeline_provider.dart';
+import 'memos_providers.dart';
+import '../system/reminder_scheduler.dart';
+import '../system/session_provider.dart';
+import '../settings/user_settings_provider.dart';
 part 'memos_list_controller.dart';
 part 'memos_list_outbox_parser.dart';
 

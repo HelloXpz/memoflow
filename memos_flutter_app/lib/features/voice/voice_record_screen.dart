@@ -12,7 +12,7 @@ import '../../core/app_localization.dart';
 import '../../core/debug_ephemeral_storage.dart';
 import '../../core/memoflow_palette.dart';
 import '../../core/platform_layout.dart';
-import '../../state/preferences_provider.dart';
+import '../../state/settings/preferences_provider.dart';
 import '../../i18n/strings.g.dart';
 
 class VoiceRecordResult {

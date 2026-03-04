@@ -4,13 +4,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../application/app/app_sync_orchestrator.dart';
-import '../../core/desktop_shortcuts.dart';
+import '../../core/desktop/shortcuts.dart';
 import '../../data/logs/log_manager.dart';
 import '../../data/models/account.dart';
 import '../../data/models/app_preferences.dart';
 import '../../data/models/reminder_settings.dart';
-import '../reminder_scheduler.dart';
-import '../session_provider.dart';
+import '../system/reminder_scheduler.dart';
+import '../system/session_provider.dart';
 import 'app_bootstrap_adapter_provider.dart';
 
 class AppBootstrapController {

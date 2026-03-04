@@ -8,11 +8,11 @@ import 'package:permission_handler/permission_handler.dart';
 import '../../core/app_localization.dart';
 import '../../core/memoflow_palette.dart';
 import '../../core/top_toast.dart';
-import '../../state/reminder_scheduler.dart';
-import '../../state/reminder_settings_provider.dart';
+import '../../state/system/reminder_scheduler.dart';
+import '../../state/settings/reminder_settings_provider.dart';
 import 'custom_notification_screen.dart';
 import 'ringtone_picker.dart';
-import '../../state/reminder_utils.dart';
+import '../../state/system/reminder_utils.dart';
 import '../../core/system_settings_launcher.dart';
 import '../../i18n/strings.g.dart';
 

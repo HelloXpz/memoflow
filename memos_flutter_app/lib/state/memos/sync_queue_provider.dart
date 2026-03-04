@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/db/app_database.dart';
 import '../../data/logs/log_manager.dart';
-import '../database_provider.dart';
+import '../system/database_provider.dart';
 import 'sync_queue_models.dart';
 
 const _syncQueueDisplayLimit = 200;

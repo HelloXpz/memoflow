@@ -9,7 +9,7 @@ import '../../core/app_localization.dart';
 import '../../core/memoflow_palette.dart';
 import '../../core/top_toast.dart';
 import '../../data/logs/debug_log_store.dart';
-import '../../state/debug_log_provider.dart';
+import '../../state/system/debug_log_provider.dart';
 import '../../i18n/strings.g.dart';
 
 enum _DebugLogFilter { all, action, api }

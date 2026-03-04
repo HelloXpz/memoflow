@@ -9,7 +9,7 @@ import '../../core/app_localization.dart';
 import '../../core/drawer_navigation.dart';
 import '../../core/platform_layout.dart';
 import '../../data/models/recycle_bin_item.dart';
-import '../../state/memo_timeline_provider.dart';
+import '../../state/memos/memo_timeline_provider.dart';
 import '../../i18n/strings.g.dart';
 import '../about/about_screen.dart';
 import '../explore/explore_screen.dart';

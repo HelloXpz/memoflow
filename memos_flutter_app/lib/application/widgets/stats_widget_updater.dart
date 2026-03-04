@@ -4,7 +4,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/app_localization.dart';
-import '../../features/settings/widgets_service.dart';
+import 'home_widget_service.dart';
 import '../../state/memos/app_bootstrap_adapter_provider.dart';
 
 class StatsWidgetUpdater {

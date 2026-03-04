@@ -13,11 +13,11 @@ import 'package:video_player_media_kit/video_player_media_kit.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'app.dart';
-import 'core/desktop_tray_controller.dart';
+import 'application/desktop/desktop_tray_controller.dart';
 import 'core/debug_ephemeral_storage.dart';
 import 'data/logs/log_manager.dart';
 import 'core/desktop_quick_input_channel.dart';
-import 'features/memos/desktop_quick_input_window.dart';
+import 'features/desktop/quick_input/desktop_quick_input_window.dart';
 import 'features/settings/desktop_settings_window_app.dart';
 
 void _initializeDesktopDatabaseFactory() {

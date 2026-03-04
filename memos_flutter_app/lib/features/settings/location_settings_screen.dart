@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/memoflow_palette.dart';
 import '../../data/models/location_settings.dart';
-import '../../state/location_settings_provider.dart';
+import '../../state/settings/location_settings_provider.dart';
 import '../../i18n/strings.g.dart';
 
 class LocationSettingsScreen extends ConsumerStatefulWidget {

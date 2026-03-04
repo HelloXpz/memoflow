@@ -9,8 +9,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 
 import '../../core/desktop_quick_input_channel.dart';
-import '../../core/desktop_shortcuts.dart';
-import '../../core/desktop_tray_controller.dart';
+import '../../core/desktop/shortcuts.dart';
+import 'desktop_tray_controller.dart';
 import '../../core/top_toast.dart';
 import '../../data/models/app_preferences.dart';
 import '../../state/memos/app_bootstrap_adapter_provider.dart';

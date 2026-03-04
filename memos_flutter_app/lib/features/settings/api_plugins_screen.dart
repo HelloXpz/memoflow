@@ -7,9 +7,9 @@ import '../../core/app_localization.dart';
 import '../../core/memoflow_palette.dart';
 import '../../core/top_toast.dart';
 import '../../data/models/personal_access_token.dart';
-import '../../state/memos_providers.dart';
-import '../../state/personal_access_token_repository_provider.dart';
-import '../../state/session_provider.dart';
+import '../../state/memos/memos_providers.dart';
+import '../../state/settings/personal_access_token_repository_provider.dart';
+import '../../state/system/session_provider.dart';
 import '../../i18n/strings.g.dart';
 
 enum _TokenExpiration {

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'desktop_settings_window.dart';
+import '../application/desktop/desktop_settings_window.dart';
 import 'platform_layout.dart';
 
 const Duration kDrawerCloseNavigationDelay = Duration(milliseconds: 220);

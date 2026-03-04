@@ -5,8 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../application/sync/sync_request.dart';
 import '../../application/sync/sync_types.dart';
 import '../../data/db/app_database.dart';
-import '../database_provider.dart';
-import '../sync_coordinator_provider.dart';
+import '../system/database_provider.dart';
+import '../sync/sync_coordinator_provider.dart';
 import 'sync_queue_models.dart';
 
 final syncQueueControllerProvider = Provider<SyncQueueController>((ref) {

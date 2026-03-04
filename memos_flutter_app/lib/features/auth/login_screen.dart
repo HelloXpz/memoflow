@@ -8,12 +8,11 @@ import '../../core/memoflow_palette.dart';
 import '../../core/top_toast.dart';
 import '../../core/url.dart';
 import '../../i18n/strings.g.dart';
-import '../../state/login_draft_provider.dart';
-import '../../state/home_loading_overlay_provider.dart';
+import '../../state/system/login_draft_provider.dart';
+import '../../state/system/home_loading_overlay_provider.dart';
 import '../../state/memos/login_provider.dart';
-import '../../state/preferences_provider.dart';
-import '../../state/session_provider.dart';
-
+import '../../state/settings/preferences_provider.dart';
+import '../../state/system/session_provider.dart';
 enum _LoginMode { token, password }
 
 class LoginScreen extends ConsumerStatefulWidget {

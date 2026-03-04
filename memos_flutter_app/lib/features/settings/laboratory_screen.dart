@@ -6,7 +6,7 @@ import '../../core/memoflow_palette.dart';
 import '../../core/top_toast.dart';
 import '../../data/models/account.dart';
 import '../../state/memos/laboratory_providers.dart';
-import '../../state/session_provider.dart';
+import '../../state/system/session_provider.dart';
 import 'customize_drawer_screen.dart';
 import 'shortcuts_settings_screen.dart';
 import 'webhooks_settings_screen.dart';

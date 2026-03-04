@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../state/preferences_provider.dart';
+import '../data/models/app_preferences.dart';
 import 'app_localization.dart';
-import 'top_toast.dart';
 
 enum SyncFeedbackChannel { snackbar, toast, skipped }
 
@@ -74,46 +73,3 @@ String buildAutoSyncFeedbackMessage({
   };
 }
 
-SyncFeedbackChannel showSyncFeedback({
-  required BuildContext overlayContext,
-  required AppLanguage language,
-  required bool succeeded,
-  String? message,
-  BuildContext? messengerContext,
-  Duration duration = const Duration(seconds: 3),
-}) {
-  final resolvedMessage =
-      message ??
-      buildSyncFeedbackMessage(language: language, succeeded: succeeded);
-  // Keep sync feedback consistent with the app's capsule top toast style.
-  // Some call sites may provide a context without an attached root Overlay,
-  // so we fallback to the secondary context when possible.
-  final hasOverlayOnPrimary =
-      Overlay.maybeOf(overlayContext, rootOverlay: true) != null;
-  final hasOverlayOnSecondary =
-      messengerContext != null &&
-      Overlay.maybeOf(messengerContext, rootOverlay: true) != null;
-  final toastContext = hasOverlayOnPrimary
-      ? overlayContext
-      : (hasOverlayOnSecondary ? messengerContext : overlayContext);
-  final shown = showTopToast(
-    toastContext,
-    resolvedMessage,
-    duration: duration,
-    topOffset: 96,
-  );
-  if (!shown &&
-      messengerContext != null &&
-      !identical(messengerContext, toastContext)) {
-    final shownByFallback = showTopToast(
-      messengerContext,
-      resolvedMessage,
-      duration: duration,
-      topOffset: 96,
-    );
-    return shownByFallback
-        ? SyncFeedbackChannel.toast
-        : SyncFeedbackChannel.skipped;
-  }
-  return shown ? SyncFeedbackChannel.toast : SyncFeedbackChannel.skipped;
-}

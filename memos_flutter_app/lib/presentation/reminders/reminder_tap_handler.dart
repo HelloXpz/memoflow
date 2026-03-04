@@ -3,8 +3,7 @@ import 'package:flutter/material.dart';
 import '../../features/memos/memo_detail_screen.dart';
 import '../../features/memos/memos_list_screen.dart';
 import '../../i18n/strings.g.dart';
-import '../../state/reminder_scheduler.dart';
-
+import '../../state/system/reminder_scheduler.dart';
 class ReminderTapHandlerImpl {
   const ReminderTapHandlerImpl(this._navigatorKey);
 

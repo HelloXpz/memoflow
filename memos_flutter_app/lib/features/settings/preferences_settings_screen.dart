@@ -9,10 +9,9 @@ import '../../core/top_toast.dart';
 import '../../core/system_fonts.dart';
 import '../../core/theme_colors.dart';
 import '../../i18n/strings.g.dart';
-import '../../state/preferences_provider.dart';
-import '../../state/session_provider.dart';
-import '../../state/system_fonts_provider.dart';
-
+import '../../state/settings/preferences_provider.dart';
+import '../../state/system/session_provider.dart';
+import '../../state/system/system_fonts_provider.dart';
 class PreferencesSettingsScreen extends ConsumerWidget {
   const PreferencesSettingsScreen({super.key, this.showBackButton = true});
 

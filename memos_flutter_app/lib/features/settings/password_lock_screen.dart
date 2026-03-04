@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/app_localization.dart';
 import '../../core/memoflow_palette.dart';
 import '../../core/top_toast.dart';
-import '../../state/app_lock_provider.dart';
+import '../../state/settings/app_lock_provider.dart';
 import '../../i18n/strings.g.dart';
 
 class PasswordLockScreen extends ConsumerWidget {

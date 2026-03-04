@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/app_localization.dart';
 import '../../data/models/memo_version.dart';
-import '../../state/memo_timeline_provider.dart';
+import '../../state/memos/memo_timeline_provider.dart';
 import '../../i18n/strings.g.dart';
 import 'memo_markdown.dart';
 

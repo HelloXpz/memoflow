@@ -2,11 +2,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../application/sync/sync_request.dart';
 import '../../data/models/app_preferences.dart';
-import '../local_library_provider.dart';
-import '../preferences_provider.dart';
-import '../session_provider.dart';
-import '../sync_coordinator_provider.dart';
-
+import '../system/local_library_provider.dart';
+import '../settings/preferences_provider.dart';
+import '../system/session_provider.dart';
+import '../sync/sync_coordinator_provider.dart';
 final appSyncAdapterProvider = Provider<AppSyncAdapter>((ref) {
   return AppSyncAdapter(ref);
 });

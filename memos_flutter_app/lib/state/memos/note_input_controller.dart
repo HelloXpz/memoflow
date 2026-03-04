@@ -1,8 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/models/memo_location.dart';
-import '../database_provider.dart';
-
+import '../system/database_provider.dart';
 class NoteInputPendingAttachment {
   const NoteInputPendingAttachment({
     required this.uid,

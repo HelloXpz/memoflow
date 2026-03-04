@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/memoflow_palette.dart';
-import '../../state/app_lock_provider.dart';
+import '../../state/settings/app_lock_provider.dart';
 import '../../i18n/strings.g.dart';
 
 class AppLockGate extends ConsumerStatefulWidget {

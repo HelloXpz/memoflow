@@ -8,12 +8,11 @@ import '../../data/logs/log_manager.dart';
 import '../../data/models/local_library.dart';
 import '../settings/local_mode_setup_screen.dart';
 import '../../i18n/strings.g.dart';
-import '../../state/local_library_provider.dart';
-import '../../state/local_library_scanner.dart';
+import '../../state/system/local_library_provider.dart';
+import '../../state/system/local_library_scanner.dart';
 import '../../state/memos/onboarding_providers.dart';
-import '../../state/preferences_provider.dart';
-import '../../state/session_provider.dart';
-
+import '../../state/settings/preferences_provider.dart';
+import '../../state/system/session_provider.dart';
 enum OnboardingMode { local, server }
 
 class LanguageSelectionScreen extends ConsumerStatefulWidget {

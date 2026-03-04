@@ -9,9 +9,9 @@ import '../../core/memoflow_palette.dart';
 import '../../core/top_toast.dart';
 import '../../data/models/local_memo.dart';
 import '../../data/models/memo_reminder.dart';
-import '../../state/database_provider.dart';
-import '../../state/reminder_scheduler.dart';
-import '../../state/reminder_settings_provider.dart';
+import '../../state/system/database_provider.dart';
+import '../../state/system/reminder_scheduler.dart';
+import '../../state/settings/reminder_settings_provider.dart';
 import 'reminder_settings_screen.dart';
 import '../../i18n/strings.g.dart';
 

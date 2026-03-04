@@ -7,9 +7,9 @@ import '../../core/app_localization.dart';
 import '../../core/memoflow_palette.dart';
 import '../../core/top_toast.dart';
 import '../../data/models/user_setting.dart';
-import '../../state/memos_providers.dart';
-import '../../state/preferences_provider.dart';
-import '../../state/user_settings_provider.dart';
+import '../../state/memos/memos_providers.dart';
+import '../../state/settings/preferences_provider.dart';
+import '../../state/settings/user_settings_provider.dart';
 import '../../i18n/strings.g.dart';
 
 class WebhooksSettingsScreen extends ConsumerStatefulWidget {

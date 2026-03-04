@@ -16,15 +16,15 @@ import 'package:memos_flutter_app/data/models/webdav_backup_state.dart';
 import 'package:memos_flutter_app/data/models/webdav_backup.dart';
 import 'package:memos_flutter_app/data/models/webdav_export_status.dart';
 import 'package:memos_flutter_app/data/models/webdav_sync_meta.dart';
-import 'package:memos_flutter_app/data/settings/webdav_backup_password_repository.dart';
-import 'package:memos_flutter_app/data/settings/webdav_backup_state_repository.dart';
-import 'package:memos_flutter_app/data/settings/webdav_settings_repository.dart';
+import 'package:memos_flutter_app/data/repositories/webdav_backup_password_repository.dart';
+import 'package:memos_flutter_app/data/repositories/webdav_backup_state_repository.dart';
+import 'package:memos_flutter_app/data/repositories/webdav_settings_repository.dart';
 import 'package:memos_flutter_app/features/settings/webdav_sync_screen.dart';
 import 'package:memos_flutter_app/i18n/strings.g.dart';
-import 'package:memos_flutter_app/state/local_library_provider.dart';
-import 'package:memos_flutter_app/state/session_provider.dart';
-import 'package:memos_flutter_app/state/webdav_backup_provider.dart';
-import 'package:memos_flutter_app/state/webdav_settings_provider.dart';
+import 'package:memos_flutter_app/state/system/local_library_provider.dart';
+import 'package:memos_flutter_app/state/system/session_provider.dart';
+import 'package:memos_flutter_app/state/webdav/webdav_backup_provider.dart';
+import 'package:memos_flutter_app/state/webdav/webdav_settings_provider.dart';
 
 class FakeWebDavSyncService implements WebDavSyncService {
   FakeWebDavSyncService(this.conflicts);

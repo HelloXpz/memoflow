@@ -8,12 +8,12 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../../core/app_localization.dart';
-import '../../core/desktop_settings_window.dart';
+import '../../application/desktop/desktop_settings_window.dart';
 import '../../core/memoflow_palette.dart';
 import '../../core/url.dart';
-import '../../state/local_library_provider.dart';
-import '../../state/preferences_provider.dart';
-import '../../state/session_provider.dart';
+import '../../state/system/local_library_provider.dart';
+import '../../state/settings/preferences_provider.dart';
+import '../../state/system/session_provider.dart';
 import '../memos/memos_list_screen.dart';
 import '../stats/stats_screen.dart';
 import 'about_us_screen.dart';

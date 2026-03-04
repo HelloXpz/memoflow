@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-import '../../state/memo_timeline_provider.dart';
+import '../../state/memos/memo_timeline_provider.dart';
 import '../../i18n/strings.g.dart';
 import 'memo_version_preview_screen.dart';
 

@@ -14,8 +14,8 @@ import 'package:memos_flutter_app/data/models/account.dart';
 import 'package:memos_flutter_app/data/models/instance_profile.dart';
 import 'package:memos_flutter_app/features/auth/login_screen.dart';
 import 'package:memos_flutter_app/features/onboarding/language_selection_screen.dart';
-import 'package:memos_flutter_app/state/preferences_provider.dart';
-import 'package:memos_flutter_app/state/session_provider.dart';
+import 'package:memos_flutter_app/state/settings/preferences_provider.dart';
+import 'package:memos_flutter_app/state/system/session_provider.dart';
 
 void main() {
   testWidgets('Shows login when logged out', (WidgetTester tester) async {

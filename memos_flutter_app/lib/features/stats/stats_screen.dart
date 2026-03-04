@@ -15,7 +15,7 @@ import '../../core/app_localization.dart';
 import '../../core/memoflow_palette.dart';
 import '../../core/top_toast.dart';
 import '../memos/memos_list_screen.dart';
-import '../../state/stats_providers.dart';
+import '../../state/memos/stats_providers.dart';
 import '../../i18n/strings.g.dart';
 
 class StatsScreen extends ConsumerStatefulWidget {

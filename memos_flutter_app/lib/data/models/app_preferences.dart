@@ -1,5 +1,5 @@
 import '../../core/app_localization.dart';
-import '../../core/desktop_shortcuts.dart';
+import '../../core/desktop/shortcuts.dart';
 import '../../core/theme_colors.dart';
 
 enum AppLanguage {

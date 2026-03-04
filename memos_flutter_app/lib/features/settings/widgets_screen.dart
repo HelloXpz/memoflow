@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import '../../core/app_localization.dart';
 import '../../core/memoflow_palette.dart';
 import '../../core/top_toast.dart';
-import 'widgets_service.dart';
+import '../../application/widgets/home_widget_service.dart';
 import '../../i18n/strings.g.dart';
 
 class WidgetsScreen extends StatelessWidget {

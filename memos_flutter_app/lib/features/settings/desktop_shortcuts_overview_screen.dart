@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-import '../../core/desktop_shortcuts.dart';
+import '../../core/desktop/shortcuts.dart';
 import '../../core/memoflow_palette.dart';
 
 class DesktopShortcutsOverviewScreen extends StatelessWidget {

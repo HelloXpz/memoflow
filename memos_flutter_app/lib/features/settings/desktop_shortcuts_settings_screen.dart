@@ -3,12 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/desktop_shortcuts.dart';
+import '../../core/desktop/shortcuts.dart';
 import '../../core/memoflow_palette.dart';
 import '../../core/top_toast.dart';
 import '../../i18n/strings.g.dart';
-import '../../state/preferences_provider.dart';
-
+import '../../state/settings/preferences_provider.dart';
 class DesktopShortcutsSettingsScreen extends ConsumerWidget {
   const DesktopShortcutsSettingsScreen({super.key});
 

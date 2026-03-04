@@ -10,8 +10,8 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../core/memoflow_palette.dart';
 import '../../core/top_toast.dart';
-import '../../state/logging_provider.dart';
-import '../../state/preferences_provider.dart';
+import '../../state/system/logging_provider.dart';
+import '../../state/settings/preferences_provider.dart';
 import '../../i18n/strings.g.dart';
 
 class SystemLogsScreen extends ConsumerStatefulWidget {

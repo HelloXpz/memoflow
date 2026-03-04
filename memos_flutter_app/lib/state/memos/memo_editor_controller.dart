@@ -4,10 +4,9 @@ import '../../data/models/attachment.dart';
 import '../../data/models/local_memo.dart';
 import '../../data/models/memo_relation.dart';
 import '../../data/models/memo_location.dart';
-import '../database_provider.dart';
-import '../memo_timeline_provider.dart';
-import '../memos_providers.dart';
-
+import '../system/database_provider.dart';
+import 'memo_timeline_provider.dart';
+import 'memos_providers.dart';
 class MemoEditorPendingAttachment {
   const MemoEditorPendingAttachment({
     required this.uid,

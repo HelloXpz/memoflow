@@ -4,9 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/logs/log_manager.dart';
 import '../../data/models/app_preferences.dart';
-import '../../features/auth/login_screen.dart';
-import '../../features/home/home_screen.dart';
-import '../../features/onboarding/language_selection_screen.dart';
+import '../auth/login_screen.dart';
+import 'home_screen.dart';
+import '../onboarding/language_selection_screen.dart';
 import '../../state/memos/app_bootstrap_adapter_provider.dart';
 
 class MainHomePage extends ConsumerStatefulWidget {

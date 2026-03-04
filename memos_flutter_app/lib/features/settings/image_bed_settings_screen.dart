@@ -5,7 +5,7 @@ import '../../core/app_localization.dart';
 import '../../core/image_bed_url.dart';
 import '../../core/memoflow_palette.dart';
 import '../../data/models/image_bed_settings.dart';
-import '../../state/image_bed_settings_provider.dart';
+import '../../state/settings/image_bed_settings_provider.dart';
 import '../../i18n/strings.g.dart';
 
 class ImageBedSettingsScreen extends ConsumerStatefulWidget {

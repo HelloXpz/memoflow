@@ -4,8 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/memoflow_palette.dart';
 import '../../core/uid.dart';
 import '../../data/models/memo_template_settings.dart';
-import '../../state/memo_template_settings_provider.dart';
-
+import '../../state/settings/memo_template_settings_provider.dart';
 class TemplateSettingsScreen extends ConsumerWidget {
   const TemplateSettingsScreen({super.key});
 

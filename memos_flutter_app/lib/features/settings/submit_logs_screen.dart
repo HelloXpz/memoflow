@@ -10,12 +10,12 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../core/memoflow_palette.dart';
 import '../../core/top_toast.dart';
-import '../../state/debug_log_provider.dart';
-import '../../state/logging_provider.dart';
-import '../../state/network_log_provider.dart';
+import '../../state/system/debug_log_provider.dart';
+import '../../state/system/logging_provider.dart';
+import '../../state/system/network_log_provider.dart';
 import '../../state/memos/submit_logs_providers.dart';
-import '../../state/preferences_provider.dart';
-import '../../state/webdav_log_provider.dart';
+import '../../state/settings/preferences_provider.dart';
+import '../../state/webdav/webdav_log_provider.dart';
 import '../../i18n/strings.g.dart';
 
 class SubmitLogsScreen extends ConsumerStatefulWidget {

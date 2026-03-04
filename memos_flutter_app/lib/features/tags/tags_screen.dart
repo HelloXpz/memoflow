@@ -4,7 +4,7 @@ import 'package:window_manager/window_manager.dart';
 
 import '../../core/drawer_navigation.dart';
 import '../../core/platform_layout.dart';
-import '../../state/memos_providers.dart';
+import '../../state/memos/memos_providers.dart';
 import '../about/about_screen.dart';
 import '../explore/explore_screen.dart';
 import '../home/app_drawer.dart';

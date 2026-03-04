@@ -5,18 +5,18 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../state/sync_coordinator_provider.dart';
+import '../../state/sync/sync_coordinator_provider.dart';
 import '../../application/sync/sync_request.dart';
 import '../../application/sync/sync_types.dart';
 import '../../core/memoflow_palette.dart';
 import '../../data/logs/log_manager.dart';
 import '../../data/logs/sync_queue_progress_tracker.dart';
-import '../../state/home_loading_overlay_provider.dart';
-import '../../state/logging_provider.dart';
-import '../../state/memos_providers.dart';
-import '../../state/preferences_provider.dart';
-import '../../state/stats_providers.dart';
-import '../../state/user_settings_provider.dart';
+import '../../state/system/home_loading_overlay_provider.dart';
+import '../../state/system/logging_provider.dart';
+import '../../state/memos/memos_providers.dart';
+import '../../state/settings/preferences_provider.dart';
+import '../../state/memos/stats_providers.dart';
+import '../../state/settings/user_settings_provider.dart';
 import '../memos/memos_list_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {

@@ -8,7 +8,7 @@ import '../../data/logs/log_manager.dart';
 import '../../data/models/app_preferences.dart';
 import '../../core/top_toast.dart';
 import '../../features/memos/note_input_sheet.dart';
-import '../../features/settings/widgets_service.dart';
+import '../widgets/home_widget_service.dart';
 import '../../features/share/share_handler.dart';
 import '../../i18n/strings.g.dart';
 import '../../presentation/navigation/app_navigator.dart';

@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/memoflow_palette.dart';
-import '../../state/preferences_provider.dart';
+import '../../state/settings/preferences_provider.dart';
 import 'desktop_shortcuts_settings_screen.dart';
 
 class WindowsRelatedSettingsScreen extends ConsumerWidget {

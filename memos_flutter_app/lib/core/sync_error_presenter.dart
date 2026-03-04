@@ -1,4 +1,4 @@
-import '../state/preferences_provider.dart';
+import '../state/settings/preferences_provider.dart';
 import 'app_localization.dart';
 import '../application/sync/sync_error.dart';
 

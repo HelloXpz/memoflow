@@ -3,9 +3,8 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 
 import '../../core/app_localization.dart';
-import '../../state/preferences_provider.dart';
-import '../settings/ai_settings_repository.dart';
-
+import '../../state/settings/preferences_provider.dart';
+import '../repositories/ai_settings_repository.dart';
 class AiSummaryResult {
   const AiSummaryResult({
     required this.insights,

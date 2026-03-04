@@ -4,8 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/app_localization.dart';
 import '../../core/memoflow_palette.dart';
 import '../../core/top_toast.dart';
-import '../../data/settings/ai_settings_repository.dart';
-import '../../state/ai_settings_provider.dart';
+import '../../data/repositories/ai_settings_repository.dart';
+import '../../state/settings/ai_settings_provider.dart';
 import '../../i18n/strings.g.dart';
 
 class AiUserProfileScreen extends ConsumerStatefulWidget {

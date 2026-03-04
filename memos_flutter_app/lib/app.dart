@@ -17,8 +17,7 @@ import 'application/updates/update_announcement_runner.dart';
 import 'application/widgets/stats_widget_updater.dart';
 import 'core/app_localization.dart';
 import 'core/app_theme.dart';
-import 'core/app_theme_builder.dart';
-import 'core/desktop_settings_window.dart';
+import 'application/desktop/desktop_settings_window.dart';
 import 'core/font_loader.dart' as app_font;
 import 'core/memoflow_palette.dart';
 import 'data/models/app_preferences.dart';
@@ -28,15 +27,14 @@ import 'features/image_editor/i18n.dart';
 import 'features/lock/app_lock_gate.dart';
 import 'features/memos/memos_list_screen.dart';
 import 'features/share/share_handler.dart';
-import 'features/settings/widgets_service.dart';
+import 'application/widgets/home_widget_service.dart';
 import 'i18n/strings.g.dart';
 import 'presentation/navigation/app_navigator.dart';
 import 'presentation/reminders/reminder_tap_handler.dart';
-import 'state/local_library_provider.dart';
+import 'state/system/local_library_provider.dart';
 import 'state/memos/app_bootstrap_adapter_provider.dart';
 import 'state/memos/app_bootstrap_controller.dart';
-import 'state/session_provider.dart';
-
+import 'state/system/session_provider.dart';
 class App extends ConsumerStatefulWidget {
   const App({super.key});
 

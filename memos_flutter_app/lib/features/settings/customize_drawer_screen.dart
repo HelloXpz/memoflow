@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/app_localization.dart';
 import '../../core/memoflow_palette.dart';
-import '../../state/preferences_provider.dart';
+import '../../state/settings/preferences_provider.dart';
 import '../../i18n/strings.g.dart';
 
 class CustomizeDrawerScreen extends ConsumerWidget {

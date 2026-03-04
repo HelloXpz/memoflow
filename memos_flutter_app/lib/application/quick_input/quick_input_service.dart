@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../application/sync/sync_request.dart';
+import '../sync/sync_request.dart';
 import '../../core/tags.dart';
 import '../../core/uid.dart';
 import '../../data/models/attachment.dart';

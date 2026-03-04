@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/app_localization.dart';
 import '../../core/memoflow_palette.dart';
-import '../../data/settings/ai_settings_repository.dart';
+import '../../data/repositories/ai_settings_repository.dart';
 import '../../i18n/strings.g.dart';
 
 class QuickPromptEditorScreen extends StatefulWidget {

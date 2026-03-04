@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/memoflow_palette.dart';
 import '../../data/updates/update_config.dart';
-import '../../state/update_config_provider.dart';
+import '../../state/system/update_config_provider.dart';
 import '../../i18n/strings.g.dart';
 
 const String _defaultAvatarAsset = 'assets/images/default_avatar.webp';

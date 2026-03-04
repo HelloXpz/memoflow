@@ -16,9 +16,9 @@ import '../../core/top_toast.dart';
 import '../../core/url.dart';
 import '../../data/models/attachment.dart';
 import '../../data/models/local_memo.dart';
-import '../../state/database_provider.dart';
-import '../../state/preferences_provider.dart';
-import '../../state/session_provider.dart';
+import '../../state/system/database_provider.dart';
+import '../../state/settings/preferences_provider.dart';
+import '../../state/system/session_provider.dart';
 import '../import/import_flow_screens.dart';
 import '../../i18n/strings.g.dart';
 
