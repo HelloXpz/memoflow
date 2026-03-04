@@ -370,10 +370,13 @@ class _WebDavSyncScreenState extends ConsumerState<WebDavSyncScreen> {
   }
 
   Future<void> _openBackupSettings() async {
+    final session = ref.read(appSessionProvider).valueOrNull;
     final localLibrary = ref.read(currentLocalLibraryProvider);
     final mirrorLibrary = _resolveBackupMirrorLibrary();
-    final usesServerMode = localLibrary == null;
-    final backupAvailable = localLibrary != null || mirrorLibrary != null;
+    final usesServerMode = session?.currentAccount != null;
+    final backupAvailable = usesServerMode
+        ? mirrorLibrary != null
+        : localLibrary != null;
     final backupUnavailableHint = usesServerMode
         ? '${context.t.strings.legacy.msg_export} ${context.t.strings.legacy.msg_path}: ${context.t.strings.legacy.msg_not_set}'
         : context.t.strings.legacy.msg_local_library_only;
@@ -1100,7 +1103,9 @@ class _WebDavSyncScreenState extends ConsumerState<WebDavSyncScreen> {
 
   Future<void> _backupNow() async {
     final coordinator = ref.read(syncCoordinatorProvider.notifier);
+    final settingsNotifier = ref.read(webDavSettingsProvider.notifier);
     if (_backupEncryptionMode == WebDavBackupEncryptionMode.plain) {
+      settingsNotifier.setAutoSyncAllowed(true);
       await coordinator.requestWebDavBackup(
         reason: SyncRequestReason.manual,
         password: null,
@@ -1110,6 +1115,7 @@ class _WebDavSyncScreenState extends ConsumerState<WebDavSyncScreen> {
     }
     final password = await _resolveBackupPassword(confirm: false);
     if (!mounted || password == null) return;
+    settingsNotifier.setAutoSyncAllowed(true);
     await coordinator.requestWebDavBackup(
       reason: SyncRequestReason.manual,
       password: password,
@@ -1201,8 +1207,18 @@ class _WebDavSyncScreenState extends ConsumerState<WebDavSyncScreen> {
   }
 
   Future<void> _restoreBackup() async {
+    final session = ref.read(appSessionProvider).valueOrNull;
     final localLibrary = ref.read(currentLocalLibraryProvider);
-    final usesServerMode = localLibrary == null;
+    final usesServerMode = session?.currentAccount != null;
+    if (!usesServerMode && localLibrary == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(context.t.strings.legacy.msg_local_library_only),
+        ),
+      );
+      return;
+    }
     LocalLibrary? exportLibrary;
     String? exportPrefix;
     if (usesServerMode) {
@@ -1758,6 +1774,7 @@ class _WebDavSyncScreenState extends ConsumerState<WebDavSyncScreen> {
   }
 
   Future<void> _syncNow() async {
+    ref.read(webDavSettingsProvider.notifier).setAutoSyncAllowed(true);
     final result = await ref.read(syncCoordinatorProvider.notifier).requestSync(
           const SyncRequest(
             kind: SyncRequestKind.webDavSync,
@@ -1885,10 +1902,13 @@ class _WebDavSyncScreenState extends ConsumerState<WebDavSyncScreen> {
     final syncErrorText = syncStatus.lastError == null
         ? null
         : _formatSyncError(syncStatus.lastError!);
+    final session = ref.watch(appSessionProvider).valueOrNull;
     final localLibrary = ref.watch(currentLocalLibraryProvider);
     final mirrorLibrary = _resolveBackupMirrorLibrary();
-    final usesServerMode = localLibrary == null;
-    final backupAvailable = localLibrary != null || mirrorLibrary != null;
+    final usesServerMode = session?.currentAccount != null;
+    final backupAvailable = usesServerMode
+        ? mirrorLibrary != null
+        : localLibrary != null;
     final backupUnavailableHint = usesServerMode
         ? '${context.t.strings.legacy.msg_export} ${context.t.strings.legacy.msg_path}: ${context.t.strings.legacy.msg_not_set}'
         : context.t.strings.legacy.msg_local_library_only;

@@ -278,6 +278,7 @@ class SyncCoordinator extends StateNotifier<SyncCoordinatorState> {
     final accountKey = _deps.readCurrentAccountKey();
     if (accountKey == null || accountKey.trim().isEmpty) return;
     final settings = _deps.readWebDavSettings();
+    if (!settings.autoSyncAllowed) return;
     if (!_canSyncWebDav(settings)) return;
     _webDavAutoTimer?.cancel();
     _webDavAutoTimer = Timer(_webDavAutoDelay, () {
@@ -684,6 +685,9 @@ class SyncCoordinator extends StateNotifier<SyncCoordinatorState> {
 
   void _queueBackupIfDue({required SyncRequestReason reason}) {
     final settings = _deps.readWebDavSettings();
+    if (reason != SyncRequestReason.manual && !settings.autoSyncAllowed) {
+      return;
+    }
     if (!settings.isBackupEnabled) return;
     if (settings.backupSchedule == WebDavBackupSchedule.manual) return;
     if (settings.backupConfigScope == WebDavBackupConfigScope.none &&

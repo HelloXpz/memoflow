@@ -41,9 +41,10 @@ class WebDavSettingsController extends StateNotifier<WebDavSettings> {
     state = await _repo.read();
   }
 
-  void _setAndPersist(WebDavSettings next) {
+  void _setAndPersist(WebDavSettings next, {bool requestSync = true}) {
     state = next;
     unawaited(_repo.write(next));
+    if (!requestSync) return;
     unawaited(
       _ref.read(syncCoordinatorProvider.notifier).requestSync(
             const SyncRequest(
@@ -55,6 +56,11 @@ class WebDavSettingsController extends StateNotifier<WebDavSettings> {
   }
 
   void setEnabled(bool value) => _setAndPersist(state.copyWith(enabled: value));
+
+  void setAutoSyncAllowed(bool value) {
+    if (state.autoSyncAllowed == value) return;
+    _setAndPersist(state.copyWith(autoSyncAllowed: value), requestSync: false);
+  }
 
   void setServerUrl(String value) {
     final normalized = normalizeWebDavBaseUrl(value);

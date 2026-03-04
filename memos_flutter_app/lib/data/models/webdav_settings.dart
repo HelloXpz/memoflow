@@ -9,6 +9,7 @@ enum WebDavBackupConfigScope { none, safe, full }
 class WebDavSettings {
   const WebDavSettings({
     required this.enabled,
+    required this.autoSyncAllowed,
     required this.serverUrl,
     required this.username,
     required this.password,
@@ -31,6 +32,7 @@ class WebDavSettings {
   });
 
   final bool enabled;
+  final bool autoSyncAllowed;
   final String serverUrl;
   final String username;
   final String password;
@@ -57,6 +59,7 @@ class WebDavSettings {
 
   static const defaults = WebDavSettings(
     enabled: false,
+    autoSyncAllowed: false,
     serverUrl: '',
     username: '',
     password: '',
@@ -80,6 +83,7 @@ class WebDavSettings {
 
   WebDavSettings copyWith({
     bool? enabled,
+    bool? autoSyncAllowed,
     String? serverUrl,
     String? username,
     String? password,
@@ -102,6 +106,7 @@ class WebDavSettings {
   }) {
     return WebDavSettings(
       enabled: enabled ?? this.enabled,
+      autoSyncAllowed: autoSyncAllowed ?? this.autoSyncAllowed,
       serverUrl: serverUrl ?? this.serverUrl,
       username: username ?? this.username,
       password: password ?? this.password,
@@ -130,6 +135,7 @@ class WebDavSettings {
 
   Map<String, dynamic> toJson() => {
     'enabled': enabled,
+    'autoSyncAllowed': autoSyncAllowed,
     'serverUrl': serverUrl,
     'username': username,
     'password': password,
@@ -222,8 +228,13 @@ class WebDavSettings {
       return fallback;
     }
 
+    final resolvedAutoSyncAllowed = json.containsKey('autoSyncAllowed')
+        ? readBool('autoSyncAllowed', WebDavSettings.defaults.autoSyncAllowed)
+        : true;
+
     return WebDavSettings(
       enabled: readBool('enabled', WebDavSettings.defaults.enabled),
+      autoSyncAllowed: resolvedAutoSyncAllowed,
       serverUrl: readString('serverUrl', WebDavSettings.defaults.serverUrl),
       username: readString('username', WebDavSettings.defaults.username),
       password: readString('password', WebDavSettings.defaults.password),

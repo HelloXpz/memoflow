@@ -254,6 +254,10 @@ class FakeWebDavSettingsController extends StateNotifier<WebDavSettings>
   void setEnabled(bool value) => state = state.copyWith(enabled: value);
 
   @override
+  void setAutoSyncAllowed(bool value) =>
+      state = state.copyWith(autoSyncAllowed: value);
+
+  @override
   void setServerUrl(String value) => state = state.copyWith(serverUrl: value);
 
   @override
