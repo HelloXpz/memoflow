@@ -461,6 +461,7 @@ class _StringsStringsLegacyEn {
 	String get msg_recording_info_missing => 'Recording info missing';
 	String get msg_sync_task => 'Sync task';
 	String get msg_clear_all_debug_logs => 'Clear all debug logs?';
+	String get msg_clear_all_logs => 'Clear all log data on this device? Exported files will not be deleted.';
 	String get msg_export_finished => 'Export finished';
 	String msg_failed_stop_recording({required Object e}) => 'Failed to stop recording: ${e}';
 	String get msg_my_profile => 'My Profile';
@@ -480,6 +481,7 @@ class _StringsStringsLegacyEn {
 	String get msg_private => 'Private';
 	String get msg_filter_tags => 'Filter by tags';
 	String get msg_clear_logs => 'Clear logs';
+	String get msg_logs_cleared => 'Logs cleared';
 	String get msg_unable_open_browser => 'Unable to open browser';
 	String get msg_attachment_too_large => 'Attachment too large';
 	String get msg_query => 'Query';
@@ -1870,6 +1872,7 @@ class _StringsStringsLegacyDe extends _StringsStringsLegacyEn {
 	@override String get msg_recording_info_missing => 'Aufzeichnungsinformationen fehlen';
 	@override String get msg_sync_task => 'Synchronisierungsaufgabe';
 	@override String get msg_clear_all_debug_logs => 'Alle Debug-Protokolle löschen?';
+	@override String get msg_clear_all_logs => 'Alle Protokolle auf diesem Gerät löschen? Exportierte Dateien werden nicht gelöscht.';
 	@override String get msg_export_finished => 'Export abgeschlossen';
 	@override String msg_failed_stop_recording({required Object e}) => 'Aufzeichnung konnte nicht gestoppt werden: ${e}';
 	@override String get msg_my_profile => 'Mein Profil';
@@ -1889,6 +1892,7 @@ class _StringsStringsLegacyDe extends _StringsStringsLegacyEn {
 	@override String get msg_private => 'Privat';
 	@override String get msg_filter_tags => 'Nach Tags filtern';
 	@override String get msg_clear_logs => 'Protokolle löschen';
+	@override String get msg_logs_cleared => 'Protokolle gelöscht';
 	@override String get msg_unable_open_browser => 'Browser kann nicht geöffnet werden';
 	@override String get msg_attachment_too_large => 'Anhang zu groß';
 	@override String get msg_query => 'Abfrage';
@@ -3279,6 +3283,7 @@ class _StringsStringsLegacyJa extends _StringsStringsLegacyEn {
 	@override String get msg_recording_info_missing => '記録情報がありません';
 	@override String get msg_sync_task => '同期タスク';
 	@override String get msg_clear_all_debug_logs => 'すべてのデバッグログを消去しますか？';
+	@override String get msg_clear_all_logs => 'この端末のすべてのログを削除しますか？エクスポート済みのログファイルは削除されません。';
 	@override String get msg_export_finished => 'エクスポートが完了しました';
 	@override String msg_failed_stop_recording({required Object e}) => '記録の停止に失敗しました: ${e}';
 	@override String get msg_my_profile => 'マイプロフィール';
@@ -3298,6 +3303,7 @@ class _StringsStringsLegacyJa extends _StringsStringsLegacyEn {
 	@override String get msg_private => '非公開';
 	@override String get msg_filter_tags => 'タグで絞り込む';
 	@override String get msg_clear_logs => 'ログを消去';
+	@override String get msg_logs_cleared => 'ログを消去しました';
 	@override String get msg_unable_open_browser => 'ブラウザを開けません';
 	@override String get msg_attachment_too_large => '添付ファイルが大きすぎます';
 	@override String get msg_query => 'クエリ';
@@ -4688,6 +4694,7 @@ class _StringsStringsLegacyZhHans extends _StringsStringsLegacyEn {
 	@override String get msg_recording_info_missing => '录音信息缺失';
 	@override String get msg_sync_task => '同步任务';
 	@override String get msg_clear_all_debug_logs => '确认清空调试记录？';
+	@override String get msg_clear_all_logs => '确认清空本机所有日志记录？不会删除已导出的日志文件。';
 	@override String get msg_export_finished => '导出完成';
 	@override String msg_failed_stop_recording({required Object e}) => '停止录音失败：${e}';
 	@override String get msg_my_profile => '我的资料';
@@ -4707,6 +4714,7 @@ class _StringsStringsLegacyZhHans extends _StringsStringsLegacyEn {
 	@override String get msg_private => '仅私密';
 	@override String get msg_filter_tags => '标签筛选';
 	@override String get msg_clear_logs => '清空记录';
+	@override String get msg_logs_cleared => '日志已清空';
 	@override String get msg_unable_open_browser => '无法打开浏览器';
 	@override String get msg_attachment_too_large => '附件过大，超过服务器限制';
 	@override String get msg_query => 'Query';
@@ -6097,6 +6105,7 @@ class _StringsStringsLegacyZhHantTw extends _StringsStringsLegacyEn {
 	@override String get msg_recording_info_missing => '录音信息缺失';
 	@override String get msg_sync_task => '同步任务';
 	@override String get msg_clear_all_debug_logs => '确认清空调试记录？';
+	@override String get msg_clear_all_logs => '確認清空本機所有日誌記錄？不會刪除已匯出的日誌檔案。';
 	@override String get msg_export_finished => '导出完成';
 	@override String msg_failed_stop_recording({required Object e}) => '停止录音失败：${e}';
 	@override String get msg_my_profile => '我的资料';
@@ -6116,6 +6125,7 @@ class _StringsStringsLegacyZhHantTw extends _StringsStringsLegacyEn {
 	@override String get msg_private => '仅私密';
 	@override String get msg_filter_tags => '标签筛选';
 	@override String get msg_clear_logs => '清空记录';
+	@override String get msg_logs_cleared => '日誌已清空';
 	@override String get msg_unable_open_browser => '无法打开浏览器';
 	@override String get msg_attachment_too_large => '附件过大，超过服务器限制';
 	@override String get msg_query => 'Query';
@@ -7456,6 +7466,7 @@ extension on Translations {
 			case 'strings.legacy.msg_recording_info_missing': return 'Recording info missing';
 			case 'strings.legacy.msg_sync_task': return 'Sync task';
 			case 'strings.legacy.msg_clear_all_debug_logs': return 'Clear all debug logs?';
+			case 'strings.legacy.msg_clear_all_logs': return 'Clear all log data on this device? Exported files will not be deleted.';
 			case 'strings.legacy.msg_export_finished': return 'Export finished';
 			case 'strings.legacy.msg_failed_stop_recording': return ({required Object e}) => 'Failed to stop recording: ${e}';
 			case 'strings.legacy.msg_my_profile': return 'My Profile';
@@ -7475,6 +7486,7 @@ extension on Translations {
 			case 'strings.legacy.msg_private': return 'Private';
 			case 'strings.legacy.msg_filter_tags': return 'Filter by tags';
 			case 'strings.legacy.msg_clear_logs': return 'Clear logs';
+			case 'strings.legacy.msg_logs_cleared': return 'Logs cleared';
 			case 'strings.legacy.msg_unable_open_browser': return 'Unable to open browser';
 			case 'strings.legacy.msg_attachment_too_large': return 'Attachment too large';
 			case 'strings.legacy.msg_query': return 'Query';
@@ -8565,6 +8577,7 @@ extension on _StringsDe {
 			case 'strings.legacy.msg_recording_info_missing': return 'Aufzeichnungsinformationen fehlen';
 			case 'strings.legacy.msg_sync_task': return 'Synchronisierungsaufgabe';
 			case 'strings.legacy.msg_clear_all_debug_logs': return 'Alle Debug-Protokolle löschen?';
+			case 'strings.legacy.msg_clear_all_logs': return 'Alle Protokolle auf diesem Gerät löschen? Exportierte Dateien werden nicht gelöscht.';
 			case 'strings.legacy.msg_export_finished': return 'Export abgeschlossen';
 			case 'strings.legacy.msg_failed_stop_recording': return ({required Object e}) => 'Aufzeichnung konnte nicht gestoppt werden: ${e}';
 			case 'strings.legacy.msg_my_profile': return 'Mein Profil';
@@ -8584,6 +8597,7 @@ extension on _StringsDe {
 			case 'strings.legacy.msg_private': return 'Privat';
 			case 'strings.legacy.msg_filter_tags': return 'Nach Tags filtern';
 			case 'strings.legacy.msg_clear_logs': return 'Protokolle löschen';
+			case 'strings.legacy.msg_logs_cleared': return 'Protokolle gelöscht';
 			case 'strings.legacy.msg_unable_open_browser': return 'Browser kann nicht geöffnet werden';
 			case 'strings.legacy.msg_attachment_too_large': return 'Anhang zu groß';
 			case 'strings.legacy.msg_query': return 'Abfrage';
@@ -9674,6 +9688,7 @@ extension on _StringsJa {
 			case 'strings.legacy.msg_recording_info_missing': return '記録情報がありません';
 			case 'strings.legacy.msg_sync_task': return '同期タスク';
 			case 'strings.legacy.msg_clear_all_debug_logs': return 'すべてのデバッグログを消去しますか？';
+			case 'strings.legacy.msg_clear_all_logs': return 'この端末のすべてのログを削除しますか？エクスポート済みのログファイルは削除されません。';
 			case 'strings.legacy.msg_export_finished': return 'エクスポートが完了しました';
 			case 'strings.legacy.msg_failed_stop_recording': return ({required Object e}) => '記録の停止に失敗しました: ${e}';
 			case 'strings.legacy.msg_my_profile': return 'マイプロフィール';
@@ -9693,6 +9708,7 @@ extension on _StringsJa {
 			case 'strings.legacy.msg_private': return '非公開';
 			case 'strings.legacy.msg_filter_tags': return 'タグで絞り込む';
 			case 'strings.legacy.msg_clear_logs': return 'ログを消去';
+			case 'strings.legacy.msg_logs_cleared': return 'ログを消去しました';
 			case 'strings.legacy.msg_unable_open_browser': return 'ブラウザを開けません';
 			case 'strings.legacy.msg_attachment_too_large': return '添付ファイルが大きすぎます';
 			case 'strings.legacy.msg_query': return 'クエリ';
@@ -10783,6 +10799,7 @@ extension on _StringsZhHans {
 			case 'strings.legacy.msg_recording_info_missing': return '录音信息缺失';
 			case 'strings.legacy.msg_sync_task': return '同步任务';
 			case 'strings.legacy.msg_clear_all_debug_logs': return '确认清空调试记录？';
+			case 'strings.legacy.msg_clear_all_logs': return '确认清空本机所有日志记录？不会删除已导出的日志文件。';
 			case 'strings.legacy.msg_export_finished': return '导出完成';
 			case 'strings.legacy.msg_failed_stop_recording': return ({required Object e}) => '停止录音失败：${e}';
 			case 'strings.legacy.msg_my_profile': return '我的资料';
@@ -10802,6 +10819,7 @@ extension on _StringsZhHans {
 			case 'strings.legacy.msg_private': return '仅私密';
 			case 'strings.legacy.msg_filter_tags': return '标签筛选';
 			case 'strings.legacy.msg_clear_logs': return '清空记录';
+			case 'strings.legacy.msg_logs_cleared': return '日志已清空';
 			case 'strings.legacy.msg_unable_open_browser': return '无法打开浏览器';
 			case 'strings.legacy.msg_attachment_too_large': return '附件过大，超过服务器限制';
 			case 'strings.legacy.msg_query': return 'Query';
@@ -11892,6 +11910,7 @@ extension on _StringsZhHantTw {
 			case 'strings.legacy.msg_recording_info_missing': return '录音信息缺失';
 			case 'strings.legacy.msg_sync_task': return '同步任务';
 			case 'strings.legacy.msg_clear_all_debug_logs': return '确认清空调试记录？';
+			case 'strings.legacy.msg_clear_all_logs': return '確認清空本機所有日誌記錄？不會刪除已匯出的日誌檔案。';
 			case 'strings.legacy.msg_export_finished': return '导出完成';
 			case 'strings.legacy.msg_failed_stop_recording': return ({required Object e}) => '停止录音失败：${e}';
 			case 'strings.legacy.msg_my_profile': return '我的资料';
@@ -11911,6 +11930,7 @@ extension on _StringsZhHantTw {
 			case 'strings.legacy.msg_private': return '仅私密';
 			case 'strings.legacy.msg_filter_tags': return '标签筛选';
 			case 'strings.legacy.msg_clear_logs': return '清空记录';
+			case 'strings.legacy.msg_logs_cleared': return '日誌已清空';
 			case 'strings.legacy.msg_unable_open_browser': return '无法打开浏览器';
 			case 'strings.legacy.msg_attachment_too_large': return '附件过大，超过服务器限制';
 			case 'strings.legacy.msg_query': return 'Query';

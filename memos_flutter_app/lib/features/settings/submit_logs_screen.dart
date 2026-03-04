@@ -10,9 +10,12 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../core/memoflow_palette.dart';
 import '../../core/top_toast.dart';
+import '../../state/debug_log_provider.dart';
 import '../../state/logging_provider.dart';
+import '../../state/network_log_provider.dart';
 import '../../state/memos/submit_logs_providers.dart';
 import '../../state/preferences_provider.dart';
+import '../../state/webdav_log_provider.dart';
 import '../../i18n/strings.g.dart';
 
 class SubmitLogsScreen extends ConsumerStatefulWidget {
@@ -28,6 +31,7 @@ class _SubmitLogsScreenState extends ConsumerState<SubmitLogsScreen> {
   var _includeErrors = true;
   var _includeOutbox = true;
   var _busy = false;
+  var _clearing = false;
   String? _lastPath;
   String? _lastExportId;
 
@@ -127,7 +131,7 @@ class _SubmitLogsScreenState extends ConsumerState<SubmitLogsScreen> {
   }
 
   Future<void> _exportReport() async {
-    if (_busy) return;
+    if (_busy || _clearing) return;
     setState(() => _busy = true);
     try {
       final exportId = _generateExportId();
@@ -173,6 +177,50 @@ class _SubmitLogsScreenState extends ConsumerState<SubmitLogsScreen> {
     }
   }
 
+  Future<void> _clearAllLogs() async {
+    if (_busy || _clearing) return;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(context.t.strings.legacy.msg_clear_logs),
+          content: Text(context.t.strings.legacy.msg_clear_all_logs),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(context.t.strings.legacy.msg_cancel_2),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text(context.t.strings.legacy.msg_clear),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirm != true) return;
+    setState(() => _clearing = true);
+    try {
+      final logManager = ref.read(logManagerProvider);
+      await Future.wait([
+        ref.read(debugLogStoreProvider).clear(),
+        ref.read(webDavLogStoreProvider).clear(),
+        ref.read(networkLogStoreProvider).clear(),
+        logManager.clearAll(),
+      ]);
+      ref.read(breadcrumbStoreProvider).clear();
+      ref.read(networkLogBufferProvider).clear();
+      ref.read(syncStatusTrackerProvider).reset();
+      if (!mounted) return;
+      showTopToast(
+        context,
+        context.t.strings.legacy.msg_logs_cleared,
+      );
+    } finally {
+      if (mounted) setState(() => _clearing = false);
+    }
+  }
+
   Future<LogQueueResult> _queueServerLogSubmission({
     required String reportText,
     required String reportPath,
@@ -201,6 +249,7 @@ class _SubmitLogsScreenState extends ConsumerState<SubmitLogsScreen> {
     final divider = isDark
         ? Colors.white.withValues(alpha: 0.06)
         : Colors.black.withValues(alpha: 0.06);
+    final actionsLocked = _busy || _clearing;
     final networkLoggingEnabled = ref.watch(
       appPreferencesProvider.select((p) => p.networkLoggingEnabled),
     );
@@ -356,11 +405,23 @@ class _SubmitLogsScreenState extends ConsumerState<SubmitLogsScreen> {
                         : context.t.strings.legacy.msg_generate_log_file,
                     textMain: textMain,
                     textMuted: textMuted,
-                    onTap: _busy
+                    onTap: actionsLocked
                         ? () {}
                         : () {
                             haptic();
                             unawaited(_exportReport());
+                          },
+                  ),
+                  _ActionRow(
+                    icon: Icons.delete_outline,
+                    label: context.t.strings.legacy.msg_clear_logs,
+                    textMain: textMain,
+                    textMuted: textMuted,
+                    onTap: actionsLocked
+                        ? () {}
+                        : () {
+                            haptic();
+                            unawaited(_clearAllLogs());
                           },
                   ),
                 ],

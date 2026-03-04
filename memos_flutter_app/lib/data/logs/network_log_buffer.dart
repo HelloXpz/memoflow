@@ -45,6 +45,10 @@ class NetworkLogBuffer {
     }
   }
 
+  void clear() {
+    _entries.clear();
+  }
+
   List<NetworkRequestLog> listAll() {
     return List<NetworkRequestLog>.unmodifiable(_entries);
   }

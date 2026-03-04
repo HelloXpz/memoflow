@@ -57,6 +57,24 @@ class LogManager {
     await _logDeviceContext();
   }
 
+  Future<void> clearAll() async {
+    await init();
+    _writeQueue = _writeQueue.then((_) async {
+      final dir = await _resolveLogDir();
+      await for (final entry in dir.list()) {
+        if (entry is! File) continue;
+        final name = p.basename(entry.path);
+        if (!name.startsWith(logFilePrefix)) continue;
+        try {
+          await entry.delete();
+        } catch (_) {}
+      }
+      _currentDate = null;
+      _currentIndex = 0;
+    });
+    await _writeQueue;
+  }
+
   void debug(
     String message, {
     Object? error,

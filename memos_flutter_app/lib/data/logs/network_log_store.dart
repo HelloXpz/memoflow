@@ -173,6 +173,16 @@ class NetworkLogStore {
     }
   }
 
+  Future<void> clear() async {
+    try {
+      final file = await _resolveFile();
+      if (await file.exists()) {
+        await file.writeAsString('', flush: true);
+      }
+      _appendCount = 0;
+    } catch (_) {}
+  }
+
   Future<File> _resolveFile() async {
     final cached = _fileFuture;
     if (cached != null) return cached;

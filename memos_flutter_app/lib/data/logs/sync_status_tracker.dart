@@ -36,6 +36,15 @@ class SyncStatusTracker {
 
   SyncStatusSnapshot get snapshot => _snapshot;
 
+  void reset() {
+    _snapshot = const SyncStatusSnapshot(
+      inProgress: false,
+      lastSuccess: null,
+      lastFailure: null,
+      lastError: null,
+    );
+  }
+
   void markSyncStarted() {
     _snapshot = _snapshot.copyWith(inProgress: true);
   }

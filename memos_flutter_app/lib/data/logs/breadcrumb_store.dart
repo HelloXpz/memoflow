@@ -34,6 +34,10 @@ class BreadcrumbStore {
     }
   }
 
+  void clear() {
+    _entries.clear();
+  }
+
   List<BreadcrumbEntry> list({int limit = 20}) {
     if (limit <= 0 || _entries.isEmpty) return const [];
     final start = _entries.length > limit ? _entries.length - limit : 0;
