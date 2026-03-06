@@ -16,6 +16,7 @@ import '../../state/settings/preferences_provider.dart';
 import '../../state/system/session_provider.dart';
 import '../../state/memos/stats_providers.dart';
 import '../settings/memoflow_bridge_screen.dart';
+import '../tags/tag_edit_sheet.dart';
 import '../tags/tag_tree.dart';
 import '../../i18n/strings.g.dart';
 
@@ -55,6 +56,7 @@ class AppDrawer extends ConsumerWidget {
     this.onSelectTag,
     this.onOpenNotifications,
     this.embedded = false,
+    this.selectedTagPath,
   });
 
   final AppDrawerDestination selected;
@@ -62,6 +64,7 @@ class AppDrawer extends ConsumerWidget {
   final ValueChanged<String>? onSelectTag;
   final VoidCallback? onOpenNotifications;
   final bool embedded;
+  final String? selectedTagPath;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -427,11 +430,28 @@ class AppDrawer extends ConsumerWidget {
                           onSelect(AppDrawerDestination.tags);
                         }
                       },
+                      onEdit: (node) {
+                        final tagId = node.tagId;
+                        if (tagId == null) return;
+                        TagEditSheet.showEditorDialog(
+                          context,
+                          tag: TagStat(
+                            tag: node.path,
+                            path: node.path,
+                            count: node.count,
+                            tagId: tagId,
+                            parentId: node.parentId,
+                            pinned: node.pinned,
+                            colorHex: node.colorHex,
+                          ),
+                        );
+                      },
                       textMain: textMain,
                       textMuted: textMuted,
                       showCount: false,
                       initiallyExpanded: true,
                       compact: true,
+                      selectedPath: selectedTagPath,
                     );
                   },
                   loading: () => Padding(

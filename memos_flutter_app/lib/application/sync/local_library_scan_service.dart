@@ -738,11 +738,7 @@ class LocalLibraryScanService {
   }
 
   String _normalizeTag(String raw) {
-    final trimmed = raw.trim();
-    if (trimmed.isEmpty) return '';
-    return trimmed.startsWith('#')
-        ? trimmed.substring(1).toLowerCase()
-        : trimmed.toLowerCase();
+    return normalizeTagPath(raw);
   }
 
   bool _listEquals(List<String> a, List<String> b) {

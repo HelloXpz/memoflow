@@ -89,6 +89,9 @@ mixin _WebDavBackupManifestMixin on _WebDavBackupServiceBase {
     if (normalized == _backupNoteDraftSnapshotPath) {
       return WebDavBackupConfigType.noteDraft;
     }
+    if (normalized == _backupTagsSnapshotPath) {
+      return WebDavBackupConfigType.tags;
+    }
     if (normalized == _backupSettingsSnapshotPath) {
       return WebDavBackupConfigType.webdavSettings;
     }
@@ -237,6 +240,19 @@ mixin _WebDavBackupManifestMixin on _WebDavBackupServiceBase {
         ),
       );
     }
+    if (types.contains(WebDavBackupConfigType.tags) && snapshot != null) {
+      final payload = _wrapConfigPayload(
+        exportedAt: exportedAt,
+        data: snapshot.tagsSnapshot.toJson(),
+      );
+      files.add(
+        _BackupConfigFile(
+          type: WebDavBackupConfigType.tags,
+          path: _backupTagsSnapshotPath,
+          bytes: _encodeJsonBytes(payload),
+        ),
+      );
+    }
     if (types.contains(WebDavBackupConfigType.webdavSettings)) {
       final payload = _buildBackupSettingsSnapshotPayload(
         settings,
@@ -266,6 +282,7 @@ mixin _WebDavBackupManifestMixin on _WebDavBackupServiceBase {
     MemoTemplateSettings? templateSettings;
     AppLockSnapshot? appLockSnapshot;
     String? noteDraft;
+    TagSnapshot? tagsSnapshot;
     WebDavSettings? webDavSettings;
 
     T? safeParse<T>(T Function() parser) {
@@ -390,6 +407,15 @@ mixin _WebDavBackupManifestMixin on _WebDavBackupServiceBase {
       }
     }
 
+    final tagsBytes = configBytes[WebDavBackupConfigType.tags];
+    if (tagsBytes != null) {
+      final envelope = readEnvelope(tagsBytes);
+      final data = envelope == null ? null : readConfigData(envelope);
+      if (data != null) {
+        tagsSnapshot = safeParse(() => TagSnapshot.fromJson(data));
+      }
+    }
+
     final webDavBytes = configBytes[WebDavBackupConfigType.webdavSettings];
     if (webDavBytes != null) {
       final envelope = readEnvelope(webDavBytes);
@@ -419,6 +445,7 @@ mixin _WebDavBackupManifestMixin on _WebDavBackupServiceBase {
       templateSettings: templateSettings,
       appLockSnapshot: appLockSnapshot,
       noteDraft: noteDraft,
+      tagsSnapshot: tagsSnapshot,
       webDavSettings: webDavSettings,
     );
   }
@@ -517,6 +544,9 @@ mixin _WebDavBackupManifestMixin on _WebDavBackupServiceBase {
     if (bundle.noteDraft != null) {
       types.add(WebDavBackupConfigType.noteDraft);
     }
+    if (bundle.tagsSnapshot != null) {
+      types.add(WebDavBackupConfigType.tags);
+    }
     if (bundle.webDavSettings != null) {
       types.add(WebDavBackupConfigType.webdavSettings);
     }
@@ -599,6 +629,12 @@ mixin _WebDavBackupManifestMixin on _WebDavBackupServiceBase {
             final draft = bundle.noteDraft;
             if (draft != null) {
               await _configAdapter!.applyNoteDraft(draft);
+            }
+            break;
+          case WebDavBackupConfigType.tags:
+            final snapshot = bundle.tagsSnapshot;
+            if (snapshot != null) {
+              await _configAdapter!.applyTags(snapshot);
             }
             break;
           case WebDavBackupConfigType.webdavSettings:

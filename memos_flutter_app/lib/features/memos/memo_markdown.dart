@@ -12,7 +12,9 @@ import 'package:markdown/markdown.dart' as md;
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/image_error_logger.dart';
+import '../../core/tags.dart';
 import '../../i18n/strings.g.dart';
+import '../../state/tags/tag_color_lookup.dart';
 
 final RegExp _tagTokenPattern = RegExp(
   r'^#(?!#|\s)[\p{L}\p{N}\p{S}_/\-]{1,100}$',
@@ -291,6 +293,7 @@ class MemoMarkdown extends StatelessWidget {
     this.blockSpacing = 6,
     this.shrinkWrap = true,
     this.renderImages = true,
+    this.tagColors,
     this.onToggleTask,
   });
 
@@ -304,6 +307,7 @@ class MemoMarkdown extends StatelessWidget {
   final double blockSpacing;
   final bool shrinkWrap;
   final bool renderImages;
+  final TagColorLookup? tagColors;
   final TaskToggleHandler? onToggleTask;
 
   @override
@@ -325,6 +329,7 @@ class MemoMarkdown extends StatelessWidget {
       fontSize: fontSize == null ? null : fontSize * 0.9,
     );
     final tagStyle = _MemoTagStyle.resolve(theme);
+    final tagColorLookup = tagColors;
     final highlightStyle = _MemoHighlightStyle.resolve(theme);
     final inlineCodeBg =
         theme.cardTheme.color ?? theme.colorScheme.surfaceContainerHighest;
@@ -452,6 +457,9 @@ class MemoMarkdown extends StatelessWidget {
     if (cacheKey != null && cachedHtml == null) {
       _markdownHtmlCache.set(cacheKey, html);
     }
+    final renderedHtml = tagColorLookup == null
+        ? html
+        : _rewriteMemoTagLabels(html, tagColorLookup);
 
     var taskIndex = 0;
     Widget? buildTableWidget(dom.Element element) {
@@ -722,10 +730,25 @@ class MemoMarkdown extends StatelessWidget {
       final styles = <String, String>{};
       if (localName == 'span') {
         if (element.classes.contains('memotag')) {
+          final rawTag = element.attributes['data-tag'] ?? '';
+          final canonicalTag =
+              tagColorLookup?.resolveCanonicalPath(rawTag) ??
+              normalizeTagPath(rawTag);
+          final customColors =
+              (tagColorLookup != null && canonicalTag.isNotEmpty)
+              ? tagColorLookup.resolveChipColorsByPath(
+                  canonicalTag,
+                  surfaceColor: theme.colorScheme.surface,
+                  isDark: theme.brightness == Brightness.dark,
+                )
+              : null;
+          final background = customColors?.background ?? tagStyle.background;
+          final textColor = customColors?.text ?? tagStyle.textColor;
+          final borderColor = customColors?.border ?? tagStyle.borderColor;
           styles.addAll({
-            'background-color': _cssColor(tagStyle.background),
-            'color': _cssColor(tagStyle.textColor),
-            'border': '1px solid ${_cssColor(tagStyle.borderColor)}',
+            'background-color': _cssColor(background),
+            'color': _cssColor(textColor),
+            'border': '1px solid ${_cssColor(borderColor)}',
             'border-radius': '999px',
             'padding': '2px 10px',
             'font-weight': '600',
@@ -800,7 +823,7 @@ class MemoMarkdown extends StatelessWidget {
         ? RenderMode.column
         : const ListViewMode(shrinkWrap: false);
     Widget content = HtmlWidget(
-      html,
+      renderedHtml,
       factoryBuilder: () => _MemoMarkdownWidgetFactory(),
       renderMode: renderMode,
       textStyle: baseStyle,
@@ -1114,6 +1137,26 @@ String _escapeHtmlAttribute(String value) {
       .replaceAll('"', '&quot;')
       .replaceAll('<', '&lt;')
       .replaceAll('>', '&gt;');
+}
+
+String _rewriteMemoTagLabels(String html, TagColorLookup lookup) {
+  final fragment = html_parser.parseFragment(html);
+  var changed = false;
+  for (final element in fragment.querySelectorAll('span.memotag')) {
+    final rawTag = element.attributes['data-tag'] ?? element.text;
+    final canonicalPath = lookup.resolveCanonicalPath(rawTag);
+    if (canonicalPath.isEmpty) continue;
+    final canonicalLabel = '#$canonicalPath';
+    if (element.attributes['data-tag'] != canonicalPath) {
+      element.attributes['data-tag'] = canonicalPath;
+      changed = true;
+    }
+    if (element.text != canonicalLabel) {
+      element.text = canonicalLabel;
+      changed = true;
+    }
+  }
+  return changed ? fragment.outerHtml : html;
 }
 
 String _buildMemoHtml(String text, {String? highlightQuery}) {

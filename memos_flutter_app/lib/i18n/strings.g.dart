@@ -4,9 +4,9 @@
 /// To regenerate, run: `dart run slang`
 ///
 /// Locales: 5
-/// Strings: 5570 (1114 per locale)
+/// Strings: 5640 (1128 per locale)
 ///
-/// Built on 2026-03-05 at 10:32 UTC
+/// Built on 2026-03-05 at 12:33 UTC
 
 // coverage:ignore-file
 // ignore_for_file: type=lint
@@ -1030,6 +1030,20 @@ class _StringsStringsLegacyEn {
 	String msg_failed_load_4({required Object e}) => 'Failed to load: ${e}';
 	String msg_operation_failed({required Object e}) => 'Operation failed: ${e}';
 	String get msg_no_tags => 'No tags';
+	String get msg_create_tag => 'Create tag';
+	String get msg_edit_tag => 'Edit tag';
+	String get msg_tag_name => 'Tag name';
+	String get msg_tag_name_required => 'Tag name is required';
+	String get msg_tag_name_invalid => 'Tag name cannot contain /';
+	String get msg_parent_tag => 'Parent tag';
+	String get msg_no_parent => 'No parent';
+	String get msg_tag_color => 'Tag color';
+	String get msg_inherit => 'Inherit';
+	String get msg_inherit_color => 'Inherit parent color';
+	String get msg_tag_pinned => 'Pin tag';
+	String get msg_delete_tag => 'Delete tag';
+	String get msg_delete_tag_confirm => 'Delete this tag?';
+	String get msg_delete_tag_warning => 'Child tags will be moved to the parent and this tag will be removed from memos.';
 	String get msg_server => 'Server';
 	String get msg_improved => 'Improved';
 	String get msg_request_2 => 'Request';
@@ -2452,6 +2466,20 @@ class _StringsStringsLegacyDe extends _StringsStringsLegacyEn {
 	@override String msg_failed_load_4({required Object e}) => 'Laden fehlgeschlagen: ${e}';
 	@override String msg_operation_failed({required Object e}) => 'Vorgang fehlgeschlagen: ${e}';
 	@override String get msg_no_tags => 'Keine Tags';
+	@override String get msg_create_tag => 'Tag erstellen';
+	@override String get msg_edit_tag => 'Tag bearbeiten';
+	@override String get msg_tag_name => 'Tag-Name';
+	@override String get msg_tag_name_required => 'Tag-Name ist erforderlich';
+	@override String get msg_tag_name_invalid => 'Tag-Name darf kein / enthalten';
+	@override String get msg_parent_tag => 'Übergeordneter Tag';
+	@override String get msg_no_parent => 'Kein übergeordneter Tag';
+	@override String get msg_tag_color => 'Tag-Farbe';
+	@override String get msg_inherit => 'Übernehmen';
+	@override String get msg_inherit_color => 'Farbe vom übergeordneten Tag übernehmen';
+	@override String get msg_tag_pinned => 'Tag anheften';
+	@override String get msg_delete_tag => 'Tag löschen';
+	@override String get msg_delete_tag_confirm => 'Diesen Tag löschen?';
+	@override String get msg_delete_tag_warning => 'Untertags werden zur übergeordneten Ebene verschoben und dieser Tag wird aus Memos entfernt.';
 	@override String get msg_server => 'Server';
 	@override String get msg_improved => 'Verbessert';
 	@override String get msg_request_2 => 'Anfrage';
@@ -3874,6 +3902,20 @@ class _StringsStringsLegacyJa extends _StringsStringsLegacyEn {
 	@override String msg_failed_load_4({required Object e}) => '読み込みに失敗しました: ${e}';
 	@override String msg_operation_failed({required Object e}) => '操作に失敗しました: ${e}';
 	@override String get msg_no_tags => 'タグなし';
+	@override String get msg_create_tag => 'タグを作成';
+	@override String get msg_edit_tag => 'タグを編集';
+	@override String get msg_tag_name => 'タグ名';
+	@override String get msg_tag_name_required => 'タグ名を入力してください';
+	@override String get msg_tag_name_invalid => 'タグ名に / は使えません';
+	@override String get msg_parent_tag => '親タグ';
+	@override String get msg_no_parent => '親なし';
+	@override String get msg_tag_color => 'タグの色';
+	@override String get msg_inherit => '継承';
+	@override String get msg_inherit_color => '親タグの色を継承';
+	@override String get msg_tag_pinned => 'タグを固定';
+	@override String get msg_delete_tag => 'タグを削除';
+	@override String get msg_delete_tag_confirm => 'このタグを削除しますか？';
+	@override String get msg_delete_tag_warning => '子タグは親階層に移動され、このタグはメモから削除されます。';
 	@override String get msg_server => 'サーバー';
 	@override String get msg_improved => '改善済み';
 	@override String get msg_request_2 => 'リクエスト';
@@ -5296,6 +5338,20 @@ class _StringsStringsLegacyZhHans extends _StringsStringsLegacyEn {
 	@override String msg_failed_load_4({required Object e}) => '加载失败：${e}';
 	@override String msg_operation_failed({required Object e}) => '操作失败：${e}';
 	@override String get msg_no_tags => '暂无标签';
+	@override String get msg_create_tag => '创建标签';
+	@override String get msg_edit_tag => '编辑标签';
+	@override String get msg_tag_name => '标签名称';
+	@override String get msg_tag_name_required => '请输入标签名称';
+	@override String get msg_tag_name_invalid => '标签名称不能包含 /';
+	@override String get msg_parent_tag => '父标签';
+	@override String get msg_no_parent => '无父标签';
+	@override String get msg_tag_color => '标签颜色';
+	@override String get msg_inherit => '继承';
+	@override String get msg_inherit_color => '继承父标签颜色';
+	@override String get msg_tag_pinned => '置顶标签';
+	@override String get msg_delete_tag => '删除标签';
+	@override String get msg_delete_tag_confirm => '确定删除此标签？';
+	@override String get msg_delete_tag_warning => '子标签将提升为父级，且该标签将从 memo 中移除。';
 	@override String get msg_server => '服务器';
 	@override String get msg_improved => '优化';
 	@override String get msg_request_2 => '请求';
@@ -6718,6 +6774,20 @@ class _StringsStringsLegacyZhHantTw extends _StringsStringsLegacyEn {
 	@override String msg_failed_load_4({required Object e}) => '加载失败：${e}';
 	@override String msg_operation_failed({required Object e}) => '操作失败：${e}';
 	@override String get msg_no_tags => '暂无标签';
+	@override String get msg_create_tag => '建立標籤';
+	@override String get msg_edit_tag => '編輯標籤';
+	@override String get msg_tag_name => '標籤名稱';
+	@override String get msg_tag_name_required => '請輸入標籤名稱';
+	@override String get msg_tag_name_invalid => '標籤名稱不可包含 /';
+	@override String get msg_parent_tag => '父標籤';
+	@override String get msg_no_parent => '無父標籤';
+	@override String get msg_tag_color => '標籤顏色';
+	@override String get msg_inherit => '繼承';
+	@override String get msg_inherit_color => '繼承父標籤顏色';
+	@override String get msg_tag_pinned => '置頂標籤';
+	@override String get msg_delete_tag => '刪除標籤';
+	@override String get msg_delete_tag_confirm => '確定刪除此標籤？';
+	@override String get msg_delete_tag_warning => '子標籤將提升到父層，且此標籤將從 memo 中移除。';
 	@override String get msg_server => '服务器';
 	@override String get msg_improved => '优化';
 	@override String get msg_request_2 => '请求';
@@ -8090,6 +8160,20 @@ extension on Translations {
 			case 'strings.legacy.msg_failed_load_4': return ({required Object e}) => 'Failed to load: ${e}';
 			case 'strings.legacy.msg_operation_failed': return ({required Object e}) => 'Operation failed: ${e}';
 			case 'strings.legacy.msg_no_tags': return 'No tags';
+			case 'strings.legacy.msg_create_tag': return 'Create tag';
+			case 'strings.legacy.msg_edit_tag': return 'Edit tag';
+			case 'strings.legacy.msg_tag_name': return 'Tag name';
+			case 'strings.legacy.msg_tag_name_required': return 'Tag name is required';
+			case 'strings.legacy.msg_tag_name_invalid': return 'Tag name cannot contain /';
+			case 'strings.legacy.msg_parent_tag': return 'Parent tag';
+			case 'strings.legacy.msg_no_parent': return 'No parent';
+			case 'strings.legacy.msg_tag_color': return 'Tag color';
+			case 'strings.legacy.msg_inherit': return 'Inherit';
+			case 'strings.legacy.msg_inherit_color': return 'Inherit parent color';
+			case 'strings.legacy.msg_tag_pinned': return 'Pin tag';
+			case 'strings.legacy.msg_delete_tag': return 'Delete tag';
+			case 'strings.legacy.msg_delete_tag_confirm': return 'Delete this tag?';
+			case 'strings.legacy.msg_delete_tag_warning': return 'Child tags will be moved to the parent and this tag will be removed from memos.';
 			case 'strings.legacy.msg_server': return 'Server';
 			case 'strings.legacy.msg_improved': return 'Improved';
 			case 'strings.legacy.msg_request_2': return 'Request';
@@ -9212,6 +9296,20 @@ extension on _StringsDe {
 			case 'strings.legacy.msg_failed_load_4': return ({required Object e}) => 'Laden fehlgeschlagen: ${e}';
 			case 'strings.legacy.msg_operation_failed': return ({required Object e}) => 'Vorgang fehlgeschlagen: ${e}';
 			case 'strings.legacy.msg_no_tags': return 'Keine Tags';
+			case 'strings.legacy.msg_create_tag': return 'Tag erstellen';
+			case 'strings.legacy.msg_edit_tag': return 'Tag bearbeiten';
+			case 'strings.legacy.msg_tag_name': return 'Tag-Name';
+			case 'strings.legacy.msg_tag_name_required': return 'Tag-Name ist erforderlich';
+			case 'strings.legacy.msg_tag_name_invalid': return 'Tag-Name darf kein / enthalten';
+			case 'strings.legacy.msg_parent_tag': return 'Übergeordneter Tag';
+			case 'strings.legacy.msg_no_parent': return 'Kein übergeordneter Tag';
+			case 'strings.legacy.msg_tag_color': return 'Tag-Farbe';
+			case 'strings.legacy.msg_inherit': return 'Übernehmen';
+			case 'strings.legacy.msg_inherit_color': return 'Farbe vom übergeordneten Tag übernehmen';
+			case 'strings.legacy.msg_tag_pinned': return 'Tag anheften';
+			case 'strings.legacy.msg_delete_tag': return 'Tag löschen';
+			case 'strings.legacy.msg_delete_tag_confirm': return 'Diesen Tag löschen?';
+			case 'strings.legacy.msg_delete_tag_warning': return 'Untertags werden zur übergeordneten Ebene verschoben und dieser Tag wird aus Memos entfernt.';
 			case 'strings.legacy.msg_server': return 'Server';
 			case 'strings.legacy.msg_improved': return 'Verbessert';
 			case 'strings.legacy.msg_request_2': return 'Anfrage';
@@ -10334,6 +10432,20 @@ extension on _StringsJa {
 			case 'strings.legacy.msg_failed_load_4': return ({required Object e}) => '読み込みに失敗しました: ${e}';
 			case 'strings.legacy.msg_operation_failed': return ({required Object e}) => '操作に失敗しました: ${e}';
 			case 'strings.legacy.msg_no_tags': return 'タグなし';
+			case 'strings.legacy.msg_create_tag': return 'タグを作成';
+			case 'strings.legacy.msg_edit_tag': return 'タグを編集';
+			case 'strings.legacy.msg_tag_name': return 'タグ名';
+			case 'strings.legacy.msg_tag_name_required': return 'タグ名を入力してください';
+			case 'strings.legacy.msg_tag_name_invalid': return 'タグ名に / は使えません';
+			case 'strings.legacy.msg_parent_tag': return '親タグ';
+			case 'strings.legacy.msg_no_parent': return '親なし';
+			case 'strings.legacy.msg_tag_color': return 'タグの色';
+			case 'strings.legacy.msg_inherit': return '継承';
+			case 'strings.legacy.msg_inherit_color': return '親タグの色を継承';
+			case 'strings.legacy.msg_tag_pinned': return 'タグを固定';
+			case 'strings.legacy.msg_delete_tag': return 'タグを削除';
+			case 'strings.legacy.msg_delete_tag_confirm': return 'このタグを削除しますか？';
+			case 'strings.legacy.msg_delete_tag_warning': return '子タグは親階層に移動され、このタグはメモから削除されます。';
 			case 'strings.legacy.msg_server': return 'サーバー';
 			case 'strings.legacy.msg_improved': return '改善済み';
 			case 'strings.legacy.msg_request_2': return 'リクエスト';
@@ -11456,6 +11568,20 @@ extension on _StringsZhHans {
 			case 'strings.legacy.msg_failed_load_4': return ({required Object e}) => '加载失败：${e}';
 			case 'strings.legacy.msg_operation_failed': return ({required Object e}) => '操作失败：${e}';
 			case 'strings.legacy.msg_no_tags': return '暂无标签';
+			case 'strings.legacy.msg_create_tag': return '创建标签';
+			case 'strings.legacy.msg_edit_tag': return '编辑标签';
+			case 'strings.legacy.msg_tag_name': return '标签名称';
+			case 'strings.legacy.msg_tag_name_required': return '请输入标签名称';
+			case 'strings.legacy.msg_tag_name_invalid': return '标签名称不能包含 /';
+			case 'strings.legacy.msg_parent_tag': return '父标签';
+			case 'strings.legacy.msg_no_parent': return '无父标签';
+			case 'strings.legacy.msg_tag_color': return '标签颜色';
+			case 'strings.legacy.msg_inherit': return '继承';
+			case 'strings.legacy.msg_inherit_color': return '继承父标签颜色';
+			case 'strings.legacy.msg_tag_pinned': return '置顶标签';
+			case 'strings.legacy.msg_delete_tag': return '删除标签';
+			case 'strings.legacy.msg_delete_tag_confirm': return '确定删除此标签？';
+			case 'strings.legacy.msg_delete_tag_warning': return '子标签将提升为父级，且该标签将从 memo 中移除。';
 			case 'strings.legacy.msg_server': return '服务器';
 			case 'strings.legacy.msg_improved': return '优化';
 			case 'strings.legacy.msg_request_2': return '请求';
@@ -12578,6 +12704,20 @@ extension on _StringsZhHantTw {
 			case 'strings.legacy.msg_failed_load_4': return ({required Object e}) => '加载失败：${e}';
 			case 'strings.legacy.msg_operation_failed': return ({required Object e}) => '操作失败：${e}';
 			case 'strings.legacy.msg_no_tags': return '暂无标签';
+			case 'strings.legacy.msg_create_tag': return '建立標籤';
+			case 'strings.legacy.msg_edit_tag': return '編輯標籤';
+			case 'strings.legacy.msg_tag_name': return '標籤名稱';
+			case 'strings.legacy.msg_tag_name_required': return '請輸入標籤名稱';
+			case 'strings.legacy.msg_tag_name_invalid': return '標籤名稱不可包含 /';
+			case 'strings.legacy.msg_parent_tag': return '父標籤';
+			case 'strings.legacy.msg_no_parent': return '無父標籤';
+			case 'strings.legacy.msg_tag_color': return '標籤顏色';
+			case 'strings.legacy.msg_inherit': return '繼承';
+			case 'strings.legacy.msg_inherit_color': return '繼承父標籤顏色';
+			case 'strings.legacy.msg_tag_pinned': return '置頂標籤';
+			case 'strings.legacy.msg_delete_tag': return '刪除標籤';
+			case 'strings.legacy.msg_delete_tag_confirm': return '確定刪除此標籤？';
+			case 'strings.legacy.msg_delete_tag_warning': return '子標籤將提升到父層，且此標籤將從 memo 中移除。';
 			case 'strings.legacy.msg_server': return '服务器';
 			case 'strings.legacy.msg_improved': return '优化';
 			case 'strings.legacy.msg_request_2': return '请求';

@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
@@ -24,7 +25,6 @@ import '../../data/location/device_location_service.dart';
 import '../../data/models/attachment.dart';
 import '../../data/models/local_memo.dart';
 import '../../data/models/memo.dart';
-import '../../data/models/memo_relation.dart';
 import '../../data/models/memo_location.dart';
 import '../../data/models/memo_template_settings.dart';
 import '../../data/models/location_settings.dart';
@@ -36,9 +36,11 @@ import '../../state/memos/memo_editor_providers.dart';
 import '../../state/memos/memos_providers.dart';
 import '../../state/system/network_log_provider.dart';
 import '../../state/system/session_provider.dart';
+import '../../state/tags/tag_color_lookup.dart';
 import 'attachment_gallery_screen.dart';
 import 'link_memo_sheet.dart';
 import 'memo_video_grid.dart';
+import 'tag_autocomplete.dart';
 import 'windows_camera_capture_screen.dart';
 import '../settings/location_settings_screen.dart';
 import '../../i18n/strings.g.dart';
@@ -86,7 +88,9 @@ class _LinkedMemo {
 
 class _MemoEditorScreenState extends ConsumerState<MemoEditorScreen> {
   late final TextEditingController _contentController;
+  late final FocusNode _editorFocusNode;
   late final SmartEnterController _smartEnterController;
+  final _editorFieldKey = GlobalKey();
   final _tagMenuKey = GlobalKey();
   final _templateMenuKey = GlobalKey();
   final _todoMenuKey = GlobalKey();
@@ -118,12 +122,15 @@ class _MemoEditorScreenState extends ConsumerState<MemoEditorScreen> {
   MemoLocation? _location;
   MemoLocation? _initialLocation;
   var _locating = false;
+  int _tagAutocompleteIndex = 0;
+  String? _tagAutocompleteToken;
 
   @override
   void initState() {
     super.initState();
     final existing = widget.existing;
     _contentController = TextEditingController(text: existing?.content ?? '');
+    _editorFocusNode = FocusNode();
     _smartEnterController = SmartEnterController(_contentController);
     _lastValue = _contentController.value;
     _contentController.addListener(_handleContentChanged);
@@ -155,13 +162,89 @@ class _MemoEditorScreenState extends ConsumerState<MemoEditorScreen> {
       unawaited(_persistEditorDraftNow());
     }
     _smartEnterController.dispose();
+    _editorFocusNode.dispose();
     _contentController.dispose();
     super.dispose();
   }
 
   void _handleContentChanged() {
     if (!mounted) return;
+    _syncTagAutocompleteState();
     setState(() {});
+  }
+
+  void _syncTagAutocompleteState() {
+    final activeQuery = detectActiveTagQuery(_contentController.value);
+    final token = activeQuery == null
+        ? null
+        : '${activeQuery.start}:${activeQuery.query.toLowerCase()}';
+    if (_tagAutocompleteToken != token) {
+      _tagAutocompleteToken = token;
+      _tagAutocompleteIndex = 0;
+    }
+
+    final suggestions = _currentTagSuggestions();
+    if (suggestions.isEmpty) {
+      _tagAutocompleteIndex = 0;
+      return;
+    }
+
+    _tagAutocompleteIndex = _tagAutocompleteIndex
+        .clamp(0, suggestions.length - 1)
+        .toInt();
+  }
+
+  List<TagStat> _currentTagStats() {
+    return ref.read(tagStatsProvider).valueOrNull ?? _tagStatsCache;
+  }
+
+  List<TagStat> _currentTagSuggestions() {
+    if (!_editorFocusNode.hasFocus) return const <TagStat>[];
+    final activeQuery = detectActiveTagQuery(_contentController.value);
+    if (activeQuery == null) return const <TagStat>[];
+    return buildTagSuggestions(_currentTagStats(), query: activeQuery.query);
+  }
+
+  KeyEventResult _handleTagAutocompleteKeyEvent(
+    FocusNode node,
+    KeyEvent event,
+  ) {
+    if (event is! KeyDownEvent) {
+      return KeyEventResult.ignored;
+    }
+
+    final activeQuery = detectActiveTagQuery(_contentController.value);
+    final suggestions = _currentTagSuggestions();
+    if (activeQuery == null || suggestions.isEmpty) {
+      return KeyEventResult.ignored;
+    }
+
+    final key = event.logicalKey;
+    if (key == LogicalKeyboardKey.arrowDown) {
+      setState(() {
+        _tagAutocompleteIndex =
+            (_tagAutocompleteIndex + 1) % suggestions.length;
+      });
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.arrowUp) {
+      setState(() {
+        _tagAutocompleteIndex =
+            (_tagAutocompleteIndex - 1 + suggestions.length) %
+            suggestions.length;
+      });
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.numpadEnter) {
+      final selectedIndex = _tagAutocompleteIndex
+          .clamp(0, suggestions.length - 1)
+          .toInt();
+      _applyTagSuggestion(activeQuery, suggestions[selectedIndex]);
+      return KeyEventResult.handled;
+    }
+
+    return KeyEventResult.ignored;
   }
 
   String? get _draftMemoUid {
@@ -641,7 +724,9 @@ class _MemoEditorScreenState extends ConsumerState<MemoEditorScreen> {
           )
           .toList(growable: false);
 
-      await ref.read(memoEditorControllerProvider).saveMemo(
+      await ref
+          .read(memoEditorControllerProvider)
+          .saveMemo(
             existing: existing,
             uid: uid,
             content: content,
@@ -665,7 +750,9 @@ class _MemoEditorScreenState extends ConsumerState<MemoEditorScreen> {
           );
 
       unawaited(
-        ref.read(syncCoordinatorProvider.notifier).requestSync(
+        ref
+            .read(syncCoordinatorProvider.notifier)
+            .requestSync(
               const SyncRequest(
                 kind: SyncRequestKind.memos,
                 reason: SyncRequestReason.manual,
@@ -760,53 +847,38 @@ class _MemoEditorScreenState extends ConsumerState<MemoEditorScreen> {
     );
   }
 
-  Future<void> _openTagMenuFromKey(GlobalKey key, List<TagStat> tags) async {
+  void _startTagAutocomplete() {
     if (_saving) return;
-    final target = key.currentContext;
-    if (target == null) return;
-    final overlay = Overlay.of(context).context.findRenderObject();
-    final box = target.findRenderObject();
-    if (overlay is! RenderBox || box is! RenderBox) return;
-
-    final rect = Rect.fromPoints(
-      box.localToGlobal(Offset.zero, ancestor: overlay),
-      box.localToGlobal(box.size.bottomRight(Offset.zero), ancestor: overlay),
-    );
-    await _openTagMenu(
-      RelativeRect.fromRect(rect, Offset.zero & overlay.size),
-      tags,
-    );
+    final activeQuery = detectActiveTagQuery(_contentController.value);
+    if (activeQuery == null) {
+      _insertText('#');
+    }
+    _tagAutocompleteIndex = 0;
+    _editorFocusNode.requestFocus();
+    setState(() {});
   }
 
-  Future<void> _openTagMenu(RelativeRect position, List<TagStat> tags) async {
-    if (_saving) return;
-    final items = tags.isEmpty
-        ? [
-            const PopupMenuItem<String>(
-              enabled: false,
-              child: Text('No tags yet'),
-            ),
-          ]
-        : tags
-              .map(
-                (stat) => PopupMenuItem<String>(
-                  value: stat.tag,
-                  child: Text('#${stat.tag}'),
-                ),
-              )
-              .toList(growable: false);
-
-    final selection = await showMenu<String>(
-      context: context,
-      position: position,
-      items: items,
+  void _applyTagSuggestion(ActiveTagQuery query, TagStat tag) {
+    final value = _contentController.value;
+    final selection = value.selection;
+    final end = selection.isValid && selection.isCollapsed
+        ? selection.extentOffset.clamp(query.start, value.text.length).toInt()
+        : query.end;
+    var suffix = value.text.substring(end);
+    if (suffix.startsWith(' ')) {
+      suffix = suffix.substring(1);
+    }
+    final replacement = '#${tag.path} ';
+    final nextText = value.text.replaceRange(query.start, end, replacement);
+    final caret = query.start + replacement.length;
+    _contentController.value = value.copyWith(
+      text: nextText,
+      selection: TextSelection.collapsed(offset: caret),
+      composing: TextRange.empty,
     );
-    if (!mounted || selection == null) return;
-    final normalized = selection.startsWith('#')
-        ? selection.substring(1)
-        : selection;
-    if (normalized.isEmpty) return;
-    _insertText('$normalized ');
+    _tagAutocompleteIndex = 0;
+    _tagAutocompleteToken = null;
+    _editorFocusNode.requestFocus();
   }
 
   Future<void> _openTemplateMenuFromKey(
@@ -2244,7 +2316,20 @@ class _MemoEditorScreenState extends ConsumerState<MemoEditorScreen> {
     final attachAuthForSameOriginAbsolute = isServerVersion021(serverVersion);
     final token = account?.personalAccessToken ?? '';
     final authHeader = token.isEmpty ? null : 'Bearer $token';
-    final tagStats = _tagStatsCache;
+    final tagStats = ref.watch(tagStatsProvider).valueOrNull ?? _tagStatsCache;
+    final activeTagQuery = detectActiveTagQuery(_contentController.value);
+    final tagColorLookup = ref.watch(tagColorLookupProvider);
+    final tagSuggestions = activeTagQuery == null
+        ? const <TagStat>[]
+        : buildTagSuggestions(tagStats, query: activeTagQuery.query);
+    final highlightedTagSuggestionIndex = tagSuggestions.isEmpty
+        ? 0
+        : _tagAutocompleteIndex.clamp(0, tagSuggestions.length - 1).toInt();
+    final editorTextStyle = TextStyle(
+      fontSize: 16,
+      height: 1.35,
+      color: textColor,
+    );
     final templateSettings = ref.watch(memoTemplateSettingsProvider);
     final availableTemplates = templateSettings.enabled
         ? templateSettings.templates
@@ -2306,26 +2391,71 @@ class _MemoEditorScreenState extends ConsumerState<MemoEditorScreen> {
                                 attachAuthForSameOriginAbsolute,
                               ),
                               Expanded(
-                                child: TextField(
-                                  controller: _contentController,
-                                  enabled: !_saving,
-                                  keyboardType: TextInputType.multiline,
-                                  maxLines: null,
-                                  expands: true,
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    height: 1.35,
-                                    color: textColor,
-                                  ),
-                                  decoration: InputDecoration(
-                                    hintText: context
-                                        .t
-                                        .strings
-                                        .legacy
-                                        .msg_write_something_supports_tag_tasks_x,
-                                    hintStyle: TextStyle(color: hintColor),
-                                    border: InputBorder.none,
-                                  ),
+                                child: Stack(
+                                  clipBehavior: Clip.none,
+                                  children: [
+                                    Positioned.fill(
+                                      child: KeyedSubtree(
+                                        key: _editorFieldKey,
+                                        child: Focus(
+                                          canRequestFocus: false,
+                                          onKeyEvent:
+                                              _handleTagAutocompleteKeyEvent,
+                                          child: TextField(
+                                            controller: _contentController,
+                                            focusNode: _editorFocusNode,
+                                            enabled: !_saving,
+                                            keyboardType:
+                                                TextInputType.multiline,
+                                            maxLines: null,
+                                            expands: true,
+                                            style: editorTextStyle,
+                                            decoration: InputDecoration(
+                                              hintText: context
+                                                  .t
+                                                  .strings
+                                                  .legacy
+                                                  .msg_write_something_supports_tag_tasks_x,
+                                              hintStyle: TextStyle(
+                                                color: hintColor,
+                                              ),
+                                              border: InputBorder.none,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    if (_editorFocusNode.hasFocus &&
+                                        activeTagQuery != null &&
+                                        tagSuggestions.isNotEmpty)
+                                      Positioned.fill(
+                                        child: IgnorePointer(
+                                          child: TagAutocompleteOverlay(
+                                            editorKey: _editorFieldKey,
+                                            value: _contentController.value,
+                                            textStyle: editorTextStyle,
+                                            tags: tagSuggestions,
+                                            tagColors: tagColorLookup,
+                                            highlightedIndex:
+                                                highlightedTagSuggestionIndex,
+                                            onHighlight: (index) {
+                                              if (_tagAutocompleteIndex ==
+                                                  index) {
+                                                return;
+                                              }
+                                              setState(() {
+                                                _tagAutocompleteIndex = index;
+                                              });
+                                            },
+                                            onSelect: (tag) =>
+                                                _applyTagSuggestion(
+                                                  activeTagQuery,
+                                                  tag,
+                                                ),
+                                          ),
+                                        ),
+                                      ),
+                                  ],
                                 ),
                               ),
                             ],
@@ -2447,11 +2577,7 @@ class _MemoEditorScreenState extends ConsumerState<MemoEditorScreen> {
                                           ? null
                                           : () async {
                                               _closeMoreToolbar();
-                                              _insertText('#');
-                                              await _openTagMenuFromKey(
-                                                _tagMenuKey,
-                                                tagStats,
-                                              );
+                                              _startTagAutocomplete();
                                             },
                                       icon: Icon(
                                         Icons.tag,

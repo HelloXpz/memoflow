@@ -28,6 +28,7 @@ import '../../data/models/user.dart';
 import '../../state/memos/memo_detail_providers.dart';
 import '../../state/memos/memos_providers.dart';
 import '../../state/settings/preferences_provider.dart';
+import '../../state/tags/tag_color_lookup.dart';
 import '../../state/system/session_provider.dart';
 import '../../state/settings/location_settings_provider.dart';
 import 'attachment_gallery_screen.dart';
@@ -78,8 +79,9 @@ class _MemoDetailScreenState extends ConsumerState<MemoDetailScreen> {
 
   Future<void> _reload() async {
     final uid = _memo?.uid ?? widget.initialMemo.uid;
-    final memo =
-        await ref.read(memoDetailControllerProvider).loadMemoByUid(uid);
+    final memo = await ref
+        .read(memoDetailControllerProvider)
+        .loadMemoByUid(uid);
     if (memo == null) return;
     if (!mounted) return;
     setState(() => _memo = memo);
@@ -192,7 +194,9 @@ class _MemoDetailScreenState extends ConsumerState<MemoDetailScreen> {
     try {
       await controller.deleteMemo(memo);
       unawaited(
-        ref.read(syncCoordinatorProvider.notifier).requestSync(
+        ref
+            .read(syncCoordinatorProvider.notifier)
+            .requestSync(
               const SyncRequest(
                 kind: SyncRequestKind.memos,
                 reason: SyncRequestReason.manual,
@@ -218,13 +222,13 @@ class _MemoDetailScreenState extends ConsumerState<MemoDetailScreen> {
     bool? pinned,
     String? state,
   }) async {
-    await ref.read(memoDetailControllerProvider).updateLocalAndEnqueue(
-          memo: memo,
-          pinned: pinned,
-          state: state,
-        );
+    await ref
+        .read(memoDetailControllerProvider)
+        .updateLocalAndEnqueue(memo: memo, pinned: pinned, state: state);
     unawaited(
-      ref.read(syncCoordinatorProvider.notifier).requestSync(
+      ref
+          .read(syncCoordinatorProvider.notifier)
+          .requestSync(
             const SyncRequest(
               kind: SyncRequestKind.memos,
               reason: SyncRequestReason.manual,
@@ -385,7 +389,9 @@ class _MemoDetailScreenState extends ConsumerState<MemoDetailScreen> {
       );
 
       unawaited(
-        ref.read(syncCoordinatorProvider.notifier).requestSync(
+        ref
+            .read(syncCoordinatorProvider.notifier)
+            .requestSync(
               const SyncRequest(
                 kind: SyncRequestKind.memos,
                 reason: SyncRequestReason.manual,
@@ -524,6 +530,7 @@ class _MemoDetailScreenState extends ConsumerState<MemoDetailScreen> {
         : MemoFlowPalette.textLight;
     final contentStyle = Theme.of(context).textTheme.bodyLarge;
     final canToggleTasks = !widget.readOnly && !isArchived;
+    final tagColors = ref.watch(tagColorLookupProvider);
 
     final contentWidget = _CollapsibleText(
       text: memo.content,
@@ -531,6 +538,7 @@ class _MemoDetailScreenState extends ConsumerState<MemoDetailScreen> {
       initiallyExpanded: true,
       style: contentStyle,
       hapticsEnabled: hapticsEnabled,
+      tagColors: tagColors,
       onToggleTask: canToggleTasks
           ? (request) {
               maybeHaptic();
@@ -546,11 +554,11 @@ class _MemoDetailScreenState extends ConsumerState<MemoDetailScreen> {
 
     final memoErrorText =
         (memo.lastError == null || memo.lastError!.trim().isEmpty)
-            ? null
-            : presentSyncErrorText(
-                language: context.appLanguage,
-                raw: memo.lastError!.trim(),
-              );
+        ? null
+        : presentSyncErrorText(
+            language: context.appLanguage,
+            raw: memo.lastError!.trim(),
+          );
     final displayTime = memo.createTime.millisecondsSinceEpoch > 0
         ? memo.createTime
         : memo.updateTime;
@@ -2124,6 +2132,7 @@ class _CollapsibleText extends StatefulWidget {
     required this.style,
     required this.hapticsEnabled,
     this.initiallyExpanded = false,
+    this.tagColors,
     this.onToggleTask,
   });
 
@@ -2132,6 +2141,7 @@ class _CollapsibleText extends StatefulWidget {
   final TextStyle? style;
   final bool hapticsEnabled;
   final bool initiallyExpanded;
+  final TagColorLookup? tagColors;
   final ValueChanged<TaskToggleRequest>? onToggleTask;
 
   @override
@@ -2197,6 +2207,7 @@ class _CollapsibleTextState extends State<_CollapsibleText> {
           selectable: !showCollapsed,
           blockSpacing: 8,
           renderImages: false,
+          tagColors: widget.tagColors,
           onToggleTask: showCollapsed ? null : widget.onToggleTask,
         ),
         if (shouldCollapse)

@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/tag_colors.dart';
 import '../system/database_provider.dart';
 
 class LocalStats {
@@ -220,6 +221,12 @@ final annualInsightsProvider = StreamProvider.family<AnnualInsights, MonthKey>((
 
   Future<AnnualInsights> load() async {
     final sqlite = await db.db;
+    int readInt(Object? value) {
+      if (value is int) return value;
+      if (value is num) return value.toInt();
+      if (value is String) return int.tryParse(value.trim()) ?? 0;
+      return 0;
+    }
     final endMonth = DateTime(monthKey.year, monthKey.month, 1);
     final startMonth = DateTime(endMonth.year, endMonth.month - 11, 1);
     final endExclusive = DateTime(endMonth.year, endMonth.month + 1, 1);
@@ -274,6 +281,45 @@ final annualInsightsProvider = StreamProvider.family<AnnualInsights, MonthKey>((
       }
     }
 
+    final tagColorMap = <String, String?>{};
+    try {
+      final tagRows = await sqlite.query(
+        'tags',
+        columns: const ['id', 'parent_id', 'path', 'color_hex'],
+      );
+      final nodesById = <int, _TagColorNode>{};
+      for (final row in tagRows) {
+        final id = readInt(row['id']);
+        final path = row['path'] as String? ?? '';
+        if (id <= 0 || path.trim().isEmpty) continue;
+        nodesById[id] = _TagColorNode(
+          id: id,
+          parentId: readInt(row['parent_id']),
+          path: path.trim(),
+          colorHex: normalizeTagColorHex(row['color_hex'] as String?),
+        );
+      }
+
+      String? resolveColor(_TagColorNode node, Set<int> visited) {
+        if (node.effectiveColorHex != null) return node.effectiveColorHex;
+        if (node.colorHex != null) {
+          node.effectiveColorHex = node.colorHex;
+          return node.effectiveColorHex;
+        }
+        final parentId = node.parentId;
+        if (parentId == null || !visited.add(parentId)) return null;
+        final parent = nodesById[parentId];
+        if (parent == null) return null;
+        node.effectiveColorHex = resolveColor(parent, visited);
+        return node.effectiveColorHex;
+      }
+
+      for (final node in nodesById.values) {
+        final color = resolveColor(node, <int>{node.id});
+        tagColorMap[node.path] = color;
+      }
+    } catch (_) {}
+
     final monthlyChars =
         monthTotals.entries
             .map(
@@ -298,7 +344,7 @@ final annualInsightsProvider = StreamProvider.family<AnnualInsights, MonthKey>((
               tag: entry.key,
               count: entry.value,
               isUntagged: false,
-              colorHex: null,
+              colorHex: tagColorMap[entry.key],
               latestMemoAt: tagLatest[entry.key],
             ),
           ),
@@ -427,6 +473,21 @@ List<String> _splitTagsText(String tagsText) {
       .map((part) => part.trim())
       .where((part) => part.isNotEmpty)
       .toList(growable: false);
+}
+
+class _TagColorNode {
+  _TagColorNode({
+    required this.id,
+    required this.path,
+    this.parentId,
+    this.colorHex,
+  });
+
+  final int id;
+  final String path;
+  final int? parentId;
+  final String? colorHex;
+  String? effectiveColorHex;
 }
 
 extension _FirstOrNullExt<T> on List<T> {

@@ -12,6 +12,7 @@ import 'package:memos_flutter_app/data/models/image_compression_settings.dart';
 import 'package:memos_flutter_app/data/models/image_bed_settings.dart';
 import 'package:memos_flutter_app/data/models/location_settings.dart';
 import 'package:memos_flutter_app/data/models/memo_template_settings.dart';
+import 'package:memos_flutter_app/data/models/tag_snapshot.dart';
 import 'package:memos_flutter_app/data/models/webdav_settings.dart';
 import 'package:memos_flutter_app/data/models/webdav_sync_meta.dart';
 import 'package:memos_flutter_app/data/models/webdav_sync_state.dart';
@@ -65,7 +66,8 @@ class FakeWebDavDeviceIdRepository implements WebDavDeviceIdRepository {
 }
 
 class FakeWebDavVaultPasswordRepository extends WebDavVaultPasswordRepository {
-  FakeWebDavVaultPasswordRepository() : super(const FlutterSecureStorage(), accountKey: 'test');
+  FakeWebDavVaultPasswordRepository()
+    : super(const FlutterSecureStorage(), accountKey: 'test');
 
   String? value;
 
@@ -119,6 +121,9 @@ class FakeWebDavSyncLocalAdapter implements WebDavSyncLocalAdapter {
 
   @override
   Future<void> applyNoteDraft(String text) async {}
+
+  @override
+  Future<void> applyTags(TagSnapshot snapshot) async {}
 
   @override
   Future<void> applyWebDavSettings(WebDavSettings settings) async {}
@@ -234,6 +239,7 @@ WebDavSyncLocalSnapshot _defaultSnapshot() {
       passwordRecord: null,
     ),
     noteDraft: '',
+    tagsSnapshot: const TagSnapshot(tags: [], aliases: []),
   );
 }
 
@@ -294,12 +300,12 @@ void main() {
       localAdapter: localAdapter,
       vaultService: WebDavVaultService(),
       vaultPasswordRepository: FakeWebDavVaultPasswordRepository(),
-      clientFactory: ({
-        required Uri baseUrl,
-        required WebDavSettings settings,
-        void Function(DebugLogEntry entry)? logWriter,
-      }) =>
-          fakeClient,
+      clientFactory:
+          ({
+            required Uri baseUrl,
+            required WebDavSettings settings,
+            void Function(DebugLogEntry entry)? logWriter,
+          }) => fakeClient,
     );
 
     final result = await service.syncNow(
@@ -351,12 +357,12 @@ void main() {
       localAdapter: localAdapter,
       vaultService: WebDavVaultService(),
       vaultPasswordRepository: FakeWebDavVaultPasswordRepository(),
-      clientFactory: ({
-        required Uri baseUrl,
-        required WebDavSettings settings,
-        void Function(DebugLogEntry entry)? logWriter,
-      }) =>
-          fakeClient,
+      clientFactory:
+          ({
+            required Uri baseUrl,
+            required WebDavSettings settings,
+            void Function(DebugLogEntry entry)? logWriter,
+          }) => fakeClient,
     );
 
     final result = await service.syncNow(
@@ -429,10 +435,7 @@ void main() {
       ),
     };
     final stateRepo = FakeWebDavSyncStateRepository(
-      WebDavSyncState(
-        lastSyncAt: '2024-01-01T00:00:00Z',
-        files: fileMeta,
-      ),
+      WebDavSyncState(lastSyncAt: '2024-01-01T00:00:00Z', files: fileMeta),
     );
     final deviceRepo = FakeWebDavDeviceIdRepository('device-1');
     final localAdapter = FakeWebDavSyncLocalAdapter(snapshot);
@@ -446,12 +449,12 @@ void main() {
       localAdapter: localAdapter,
       vaultService: WebDavVaultService(),
       vaultPasswordRepository: FakeWebDavVaultPasswordRepository(),
-      clientFactory: ({
-        required Uri baseUrl,
-        required WebDavSettings settings,
-        void Function(DebugLogEntry entry)? logWriter,
-      }) =>
-          fakeClient,
+      clientFactory:
+          ({
+            required Uri baseUrl,
+            required WebDavSettings settings,
+            void Function(DebugLogEntry entry)? logWriter,
+          }) => fakeClient,
     );
 
     final result = await service.syncNow(

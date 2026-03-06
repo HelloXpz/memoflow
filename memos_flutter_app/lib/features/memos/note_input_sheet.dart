@@ -34,11 +34,13 @@ import '../../state/settings/memo_template_settings_provider.dart';
 import '../../state/system/network_log_provider.dart';
 import '../../state/memos/note_draft_provider.dart';
 import '../../state/settings/preferences_provider.dart';
+import '../../state/tags/tag_color_lookup.dart';
 import '../../state/settings/user_settings_provider.dart';
 import '../../state/memos/note_input_providers.dart';
 import 'attachment_gallery_screen.dart';
 import 'compose_toolbar_shared.dart';
 import 'memo_video_grid.dart';
+import 'tag_autocomplete.dart';
 import 'link_memo_sheet.dart';
 import 'windows_camera_capture_screen.dart';
 import '../voice/voice_record_screen.dart';
@@ -94,6 +96,7 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
   late final TextEditingController _controller;
   late final FocusNode _editorFocusNode;
   late final SmartEnterController _smartEnterController;
+  final _editorFieldKey = GlobalKey();
   var _busy = false;
   Timer? _draftTimer;
   ProviderSubscription<AsyncValue<String>>? _draftSubscription;
@@ -120,6 +123,8 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
   bool _isMoreToolbarOpen = false;
   MemoLocation? _location;
   var _locating = false;
+  int _tagAutocompleteIndex = 0;
+  String? _tagAutocompleteToken;
   ProviderSubscription<AsyncValue<UserGeneralSetting>>? _settingsSubscription;
 
   @override
@@ -142,6 +147,7 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
     }
     _lastValue = _controller.value;
     _smartEnterController = SmartEnterController(_controller);
+    _controller.addListener(_handleContentChanged);
     _controller.addListener(_scheduleDraftSave);
     _controller.addListener(_trackHistory);
     _applyDraft(ref.read(noteDraftProvider));
@@ -173,6 +179,7 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
     _draftTimer?.cancel();
     _draftSubscription?.close();
     _settingsSubscription?.close();
+    _controller.removeListener(_handleContentChanged);
     _controller.removeListener(_scheduleDraftSave);
     _controller.removeListener(_trackHistory);
     _smartEnterController.dispose();
@@ -567,53 +574,118 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
     return false;
   }
 
-  Future<void> _openTagMenuFromKey(GlobalKey key, List<TagStat> tags) async {
-    if (_busy) return;
-    final target = key.currentContext;
-    if (target == null) return;
-    final overlay = Overlay.of(context).context.findRenderObject();
-    final box = target.findRenderObject();
-    if (overlay is! RenderBox || box is! RenderBox) return;
-
-    final rect = Rect.fromPoints(
-      box.localToGlobal(Offset.zero, ancestor: overlay),
-      box.localToGlobal(box.size.bottomRight(Offset.zero), ancestor: overlay),
-    );
-    await _openTagMenu(
-      RelativeRect.fromRect(rect, Offset.zero & overlay.size),
-      tags,
-    );
+  void _handleContentChanged() {
+    if (!mounted) return;
+    _syncTagAutocompleteState();
+    setState(() {});
   }
 
-  Future<void> _openTagMenu(RelativeRect position, List<TagStat> tags) async {
-    if (_busy) return;
-    final items = tags.isEmpty
-        ? [
-            const PopupMenuItem<String>(
-              enabled: false,
-              child: Text('No tags yet'),
-            ),
-          ]
-        : tags
-              .map(
-                (stat) => PopupMenuItem<String>(
-                  value: stat.tag,
-                  child: Text('#${stat.tag}'),
-                ),
-              )
-              .toList(growable: false);
+  void _syncTagAutocompleteState() {
+    final activeQuery = detectActiveTagQuery(_controller.value);
+    final token = activeQuery == null
+        ? null
+        : '${activeQuery.start}:${activeQuery.query.toLowerCase()}';
+    if (_tagAutocompleteToken != token) {
+      _tagAutocompleteToken = token;
+      _tagAutocompleteIndex = 0;
+    }
 
-    final selection = await showMenu<String>(
-      context: context,
-      position: position,
-      items: items,
+    final suggestions = _currentTagSuggestions();
+    if (suggestions.isEmpty) {
+      _tagAutocompleteIndex = 0;
+      return;
+    }
+
+    _tagAutocompleteIndex = _tagAutocompleteIndex
+        .clamp(0, suggestions.length - 1)
+        .toInt();
+  }
+
+  List<TagStat> _currentTagStats() {
+    return ref.read(tagStatsProvider).valueOrNull ?? _tagStatsCache;
+  }
+
+  List<TagStat> _currentTagSuggestions() {
+    if (!_editorFocusNode.hasFocus) return const <TagStat>[];
+    final activeQuery = detectActiveTagQuery(_controller.value);
+    if (activeQuery == null) return const <TagStat>[];
+    return buildTagSuggestions(_currentTagStats(), query: activeQuery.query);
+  }
+
+  KeyEventResult _handleTagAutocompleteKeyEvent(
+    FocusNode node,
+    KeyEvent event,
+  ) {
+    if (event is! KeyDownEvent) {
+      return KeyEventResult.ignored;
+    }
+
+    final activeQuery = detectActiveTagQuery(_controller.value);
+    final suggestions = _currentTagSuggestions();
+    if (activeQuery == null || suggestions.isEmpty) {
+      return KeyEventResult.ignored;
+    }
+
+    final key = event.logicalKey;
+    if (key == LogicalKeyboardKey.arrowDown) {
+      setState(() {
+        _tagAutocompleteIndex =
+            (_tagAutocompleteIndex + 1) % suggestions.length;
+      });
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.arrowUp) {
+      setState(() {
+        _tagAutocompleteIndex =
+            (_tagAutocompleteIndex - 1 + suggestions.length) %
+            suggestions.length;
+      });
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.numpadEnter) {
+      final selectedIndex = _tagAutocompleteIndex
+          .clamp(0, suggestions.length - 1)
+          .toInt();
+      _applyTagSuggestion(activeQuery, suggestions[selectedIndex]);
+      return KeyEventResult.handled;
+    }
+
+    return KeyEventResult.ignored;
+  }
+
+  void _startTagAutocomplete() {
+    if (_busy) return;
+    final activeQuery = detectActiveTagQuery(_controller.value);
+    if (activeQuery == null) {
+      _insertText('#');
+    }
+    _tagAutocompleteIndex = 0;
+    _editorFocusNode.requestFocus();
+    setState(() {});
+  }
+
+  void _applyTagSuggestion(ActiveTagQuery query, TagStat tag) {
+    final value = _controller.value;
+    final selection = value.selection;
+    final end = selection.isValid && selection.isCollapsed
+        ? selection.extentOffset.clamp(query.start, value.text.length).toInt()
+        : query.end;
+    var suffix = value.text.substring(end);
+    if (suffix.startsWith(' ')) {
+      suffix = suffix.substring(1);
+    }
+    final replacement = '#${tag.path} ';
+    final nextText = value.text.replaceRange(query.start, end, replacement);
+    final caret = query.start + replacement.length;
+    _controller.value = value.copyWith(
+      text: nextText,
+      selection: TextSelection.collapsed(offset: caret),
+      composing: TextRange.empty,
     );
-    if (!mounted || selection == null) return;
-    final normalized = selection.startsWith('#')
-        ? selection.substring(1)
-        : selection;
-    if (normalized.isEmpty) return;
-    _insertText('$normalized ');
+    _tagAutocompleteIndex = 0;
+    _tagAutocompleteToken = null;
+    _editorFocusNode.requestFocus();
   }
 
   Future<void> _openTemplateMenuFromKey(
@@ -1621,7 +1693,9 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
           )
           .toList(growable: false);
 
-      await ref.read(noteInputControllerProvider).createMemo(
+      await ref
+          .read(noteInputControllerProvider)
+          .createMemo(
             uid: uid,
             content: content,
             visibility: visibility,
@@ -1635,7 +1709,9 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
           );
 
       unawaited(
-        ref.read(syncCoordinatorProvider.notifier).requestSync(
+        ref
+            .read(syncCoordinatorProvider.notifier)
+            .requestSync(
               const SyncRequest(
                 kind: SyncRequestKind.memos,
                 reason: SyncRequestReason.manual,
@@ -1681,7 +1757,20 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
         : Colors.grey.shade500;
     final (visibilityLabel, visibilityIcon, visibilityColor) =
         _resolveVisibilityStyle(context, _visibility);
-    final tagStats = _tagStatsCache;
+    final tagStats = ref.watch(tagStatsProvider).valueOrNull ?? _tagStatsCache;
+    final activeTagQuery = detectActiveTagQuery(_controller.value);
+    final tagColorLookup = ref.watch(tagColorLookupProvider);
+    final tagSuggestions = activeTagQuery == null
+        ? const <TagStat>[]
+        : buildTagSuggestions(tagStats, query: activeTagQuery.query);
+    final highlightedTagSuggestionIndex = tagSuggestions.isEmpty
+        ? 0
+        : _tagAutocompleteIndex.clamp(0, tagSuggestions.length - 1).toInt();
+    final editorTextStyle = TextStyle(
+      fontSize: 17,
+      height: 1.35,
+      color: textColor,
+    );
     final templateSettings = ref.watch(memoTemplateSettingsProvider);
     final availableTemplates = templateSettings.enabled
         ? templateSettings.templates
@@ -1767,31 +1856,72 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
                                   _buildAttachmentPreview(isDark),
                                   Flexible(
                                     fit: FlexFit.loose,
-                                    child: TextField(
-                                      controller: _controller,
-                                      focusNode: _editorFocusNode,
-                                      autofocus: widget.autoFocus,
-                                      maxLines: null,
-                                      keyboardType: TextInputType.multiline,
-                                      style: TextStyle(
-                                        fontSize: 17,
-                                        height: 1.35,
-                                        color: textColor,
-                                      ),
-                                      decoration: InputDecoration(
-                                        isDense: true,
-                                        border: InputBorder.none,
-                                        hintText: context
-                                            .t
-                                            .strings
-                                            .legacy
-                                            .msg_write_thoughts,
-                                        hintStyle: TextStyle(
-                                          color: isDark
-                                              ? const Color(0xFF666666)
-                                              : Colors.grey.shade500,
+                                    child: Stack(
+                                      clipBehavior: Clip.none,
+                                      children: [
+                                        KeyedSubtree(
+                                          key: _editorFieldKey,
+                                          child: Focus(
+                                            canRequestFocus: false,
+                                            onKeyEvent:
+                                                _handleTagAutocompleteKeyEvent,
+                                            child: TextField(
+                                              controller: _controller,
+                                              focusNode: _editorFocusNode,
+                                              autofocus: widget.autoFocus,
+                                              maxLines: null,
+                                              keyboardType:
+                                                  TextInputType.multiline,
+                                              style: editorTextStyle,
+                                              decoration: InputDecoration(
+                                                isDense: true,
+                                                border: InputBorder.none,
+                                                hintText: context
+                                                    .t
+                                                    .strings
+                                                    .legacy
+                                                    .msg_write_thoughts,
+                                                hintStyle: TextStyle(
+                                                  color: isDark
+                                                      ? const Color(0xFF666666)
+                                                      : Colors.grey.shade500,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
                                         ),
-                                      ),
+                                        if (_editorFocusNode.hasFocus &&
+                                            activeTagQuery != null &&
+                                            tagSuggestions.isNotEmpty)
+                                          Positioned.fill(
+                                            child: IgnorePointer(
+                                              child: TagAutocompleteOverlay(
+                                                editorKey: _editorFieldKey,
+                                                value: _controller.value,
+                                                textStyle: editorTextStyle,
+                                                tags: tagSuggestions,
+                                                tagColors: tagColorLookup,
+                                                highlightedIndex:
+                                                    highlightedTagSuggestionIndex,
+                                                onHighlight: (index) {
+                                                  if (_tagAutocompleteIndex ==
+                                                      index) {
+                                                    return;
+                                                  }
+                                                  setState(() {
+                                                    _tagAutocompleteIndex =
+                                                        index;
+                                                  });
+                                                },
+                                                onSelect: (tag) =>
+                                                    _applyTagSuggestion(
+                                                      activeTagQuery,
+                                                      tag,
+                                                    ),
+                                              ),
+                                            ),
+                                          ),
+                                      ],
                                     ),
                                   ),
                                 ],
@@ -1925,13 +2055,7 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
                                     visibilityButtonKey: _visibilityMenuKey,
                                     onTagPressed: () {
                                       _closeMoreToolbar();
-                                      _insertText('#');
-                                      unawaited(
-                                        _openTagMenuFromKey(
-                                          _tagMenuKey,
-                                          tagStats,
-                                        ),
-                                      );
+                                      _startTagAutocomplete();
                                     },
                                     onTemplatePressed: () {
                                       _closeMoreToolbar();

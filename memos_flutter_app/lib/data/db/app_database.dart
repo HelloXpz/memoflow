@@ -6,18 +6,20 @@ import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 
 import '../../core/debug_ephemeral_storage.dart';
+import '../../core/tags.dart';
 import '../models/memo_location.dart';
 
 class AppDatabase {
   AppDatabase({String dbName = 'memos_app.db'}) : _dbName = dbName;
 
   final String _dbName;
-  static const _dbVersion = 12;
+  static const _dbVersion = 13;
   static const int outboxStatePending = 0;
   static const int outboxStateRunning = 1;
   static const int outboxStateRetry = 2;
   static const int outboxStateError = 3;
   static const int outboxStateDone = 4;
+  static const int _maintenanceBatchSize = 300;
 
   Database? _db;
   final _changes = StreamController<void>.broadcast();
@@ -61,6 +63,8 @@ CREATE TABLE IF NOT EXISTS memos (
   last_error TEXT
 );
 ''');
+
+          await _ensureTagTables(db);
 
           await db.execute('''
 CREATE TABLE IF NOT EXISTS memo_reminders (
@@ -271,6 +275,12 @@ CREATE TABLE IF NOT EXISTS recycle_bin_items (
               'UPDATE outbox SET state = $outboxStatePending WHERE state NOT IN ($outboxStatePending, $outboxStateRetry, $outboxStateError, $outboxStateDone);',
             );
           }
+          if (oldVersion < 13) {
+            await _ensureTagTables(db);
+            await _normalizeStoredTags(db);
+            await _backfillTagsFromMemos(db);
+            await _ensureStatsCache(db, rebuild: true);
+          }
         },
         onOpen: (db) async {
           await _ensureStatsCache(db);
@@ -354,14 +364,9 @@ CREATE TABLE IF NOT EXISTS recycle_bin_items (
     if (tags.isEmpty) return const [];
     final list = <String>[];
     for (final raw in tags) {
-      final trimmed = raw.trim();
-      if (trimmed.isEmpty) continue;
-      final withoutHash = trimmed.startsWith('#')
-          ? trimmed.substring(1)
-          : trimmed;
-      final t = withoutHash.toLowerCase();
-      if (t.isEmpty) continue;
-      list.add(t);
+      final normalized = normalizeTagPath(raw);
+      if (normalized.isEmpty) continue;
+      list.add(normalized);
     }
     return list;
   }
@@ -370,13 +375,9 @@ CREATE TABLE IF NOT EXISTS recycle_bin_items (
     if (tagsText.trim().isEmpty) return '';
     final normalized = <String>{};
     for (final part in tagsText.split(' ')) {
-      final trimmed = part.trim();
-      if (trimmed.isEmpty) continue;
-      final withoutHash = trimmed.startsWith('#')
-          ? trimmed.substring(1)
-          : trimmed;
-      if (withoutHash.isEmpty) continue;
-      normalized.add(withoutHash.toLowerCase());
+      final normalizedPart = normalizeTagPath(part);
+      if (normalizedPart.isEmpty) continue;
+      normalized.add(normalizedPart);
     }
     if (normalized.isEmpty) return '';
     final list = normalized.toList(growable: false)..sort();
@@ -384,22 +385,43 @@ CREATE TABLE IF NOT EXISTS recycle_bin_items (
   }
 
   static Future<void> _normalizeStoredTags(Database db) async {
-    await db.transaction((txn) async {
-      final rows = await txn.query('memos', columns: const ['uid', 'tags']);
+    var lastId = 0;
+    while (true) {
+      final rows = await db.query(
+        'memos',
+        columns: const ['id', 'uid', 'tags'],
+        where: 'id > ?',
+        whereArgs: [lastId],
+        orderBy: 'id ASC',
+        limit: _maintenanceBatchSize,
+      );
+      if (rows.isEmpty) return;
+      lastId = _readInt(rows.last['id']) ?? lastId;
+      final updates = <({int id, String tags})>[];
       for (final row in rows) {
         final uid = row['uid'];
         if (uid is! String || uid.trim().isEmpty) continue;
         final tagsText = (row['tags'] as String?) ?? '';
         final normalized = _normalizeTagsText(tagsText);
         if (normalized == tagsText) continue;
-        await txn.update(
-          'memos',
-          {'tags': normalized},
-          where: 'uid = ?',
-          whereArgs: [uid],
-        );
+        final id = _readInt(row['id']) ?? 0;
+        if (id <= 0) continue;
+        updates.add((id: id, tags: normalized));
       }
-    });
+      if (updates.isNotEmpty) {
+        await db.transaction((txn) async {
+          for (final update in updates) {
+            await txn.update(
+              'memos',
+              {'tags': update.tags},
+              where: 'id = ?',
+              whereArgs: [update.id],
+            );
+          }
+        });
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 1));
+    }
   }
 
   static List<String> _splitTagsText(String tagsText) {
@@ -420,6 +442,120 @@ CREATE TABLE IF NOT EXISTS recycle_bin_items (
       counts[key] = (counts[key] ?? 0) + 1;
     }
     return counts;
+  }
+
+  Future<_ResolvedTag?> resolveTagPath(
+    DatabaseExecutor txn,
+    String rawTag,
+  ) {
+    return _resolveTagPath(txn, rawTag);
+  }
+
+  Future<void> updateMemoTagsMapping(
+    DatabaseExecutor txn,
+    String memoUid,
+    List<int> tagIds,
+  ) async {
+    await _updateMemoTagsMapping(txn, memoUid, tagIds);
+  }
+
+  Future<List<String>> listMemoUidsByTagId(
+    DatabaseExecutor txn,
+    int tagId,
+  ) async {
+    return listMemoUidsByTagIds(txn, [tagId]);
+  }
+
+  Future<List<String>> listMemoUidsByTagIds(
+    DatabaseExecutor txn,
+    List<int> tagIds,
+  ) async {
+    if (tagIds.isEmpty) return const [];
+    final placeholders = List.filled(tagIds.length, '?').join(', ');
+    final rows = await txn.rawQuery(
+      'SELECT DISTINCT memo_uid FROM memo_tags WHERE tag_id IN ($placeholders);',
+      tagIds,
+    );
+    final result = <String>[];
+    for (final row in rows) {
+      final uid = row['memo_uid'];
+      if (uid is String && uid.trim().isNotEmpty) {
+        result.add(uid);
+      }
+    }
+    return result;
+  }
+
+  Future<List<String>> listTagPathsForMemo(
+    DatabaseExecutor txn,
+    String memoUid,
+  ) async {
+    final normalized = memoUid.trim();
+    if (normalized.isEmpty) return const [];
+    final rows = await txn.rawQuery(
+      '''
+SELECT t.path
+FROM memo_tags mt
+JOIN tags t ON t.id = mt.tag_id
+WHERE mt.memo_uid = ?;
+''',
+      [normalized],
+    );
+    final paths = <String>[];
+    for (final row in rows) {
+      final path = row['path'];
+      if (path is String && path.trim().isNotEmpty) {
+        paths.add(path.trim());
+      }
+    }
+    paths.sort();
+    return paths;
+  }
+
+  Future<void> updateMemoTagsText(
+    DatabaseExecutor txn,
+    String memoUid,
+    List<String> tags,
+  ) async {
+    final normalizedUid = memoUid.trim();
+    if (normalizedUid.isEmpty) return;
+    final normalizedTags = _normalizeTags(tags);
+    final deduped = <String>[];
+    final seen = <String>{};
+    for (final tag in normalizedTags) {
+      if (seen.add(tag)) deduped.add(tag);
+    }
+    final tagsText = deduped.join(' ');
+    final before = await _fetchMemoSnapshot(txn, normalizedUid);
+    if (before == null) return;
+    await txn.update(
+      'memos',
+      {'tags': tagsText},
+      where: 'uid = ?',
+      whereArgs: [normalizedUid],
+    );
+    final rows = await txn.query(
+      'memos',
+      columns: const ['id'],
+      where: 'uid = ?',
+      whereArgs: [normalizedUid],
+      limit: 1,
+    );
+    final rowId = _readInt(rows.firstOrNull?['id']) ?? 0;
+    if (rowId > 0) {
+      await txn.insert(
+        'memos_fts',
+        {'rowid': rowId, 'content': before.content, 'tags': tagsText},
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+    final after = _MemoSnapshot(
+      state: before.state,
+      createTimeSec: before.createTimeSec,
+      content: before.content,
+      tags: deduped,
+    );
+    await _applyMemoCacheDelta(txn, before: before, after: after);
   }
 
   static int _countChars(String content) {
@@ -702,14 +838,22 @@ WHERE id = 1;
     String? lastError,
   }) async {
     final db = await this.db;
-    final normalizedTags = _normalizeTags(tags);
-    final tagsText = normalizedTags.join(' ');
     final attachmentsJson = jsonEncode(attachments);
     final locationPlaceholder = location?.placeholder;
     final locationLat = location?.latitude;
     final locationLng = location?.longitude;
 
     await db.transaction((txn) async {
+      final normalizedTags = _normalizeTags(tags);
+      final resolved = <String, int>{};
+      for (final raw in normalizedTags) {
+        final resolvedTag = await resolveTagPath(txn, raw);
+        if (resolvedTag == null) continue;
+        resolved.putIfAbsent(resolvedTag.path, () => resolvedTag.id);
+      }
+      final canonicalTags = resolved.keys.toList(growable: false);
+      final tagsText = canonicalTags.join(' ');
+
       final before = await _fetchMemoSnapshot(txn, uid);
       final updated = await txn.update(
         'memos',
@@ -770,11 +914,17 @@ WHERE id = 1;
         'tags': tagsText,
       }, conflictAlgorithm: ConflictAlgorithm.replace);
 
+      await updateMemoTagsMapping(
+        txn,
+        uid,
+        resolved.values.toList(growable: false),
+      );
+
       final after = _MemoSnapshot(
         state: state,
         createTimeSec: createTimeSec,
         content: content,
-        tags: normalizedTags,
+        tags: canonicalTags,
       );
       await _applyMemoCacheDelta(txn, before: before, after: after);
     });
@@ -1897,6 +2047,248 @@ $sqlLimitClause;
     _notifyChanged();
   }
 
+  static Future<void> _ensureTagTables(Database db) async {
+    await db.execute('''
+CREATE TABLE IF NOT EXISTS tags (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  parent_id INTEGER,
+  path TEXT NOT NULL UNIQUE,
+  pinned INTEGER NOT NULL DEFAULT 0,
+  color_hex TEXT,
+  create_time INTEGER NOT NULL,
+  update_time INTEGER NOT NULL,
+  FOREIGN KEY (parent_id) REFERENCES tags(id) ON DELETE SET NULL ON UPDATE CASCADE
+);
+''');
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_tags_parent_id ON tags(parent_id);',
+    );
+    await db.execute(
+      'CREATE UNIQUE INDEX IF NOT EXISTS idx_tags_parent_name ON tags(parent_id, name);',
+    );
+
+    await db.execute('''
+CREATE TABLE IF NOT EXISTS tag_aliases (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  tag_id INTEGER NOT NULL,
+  alias TEXT NOT NULL UNIQUE,
+  created_time INTEGER NOT NULL,
+  FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE ON UPDATE CASCADE
+);
+''');
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_tag_aliases_tag_id ON tag_aliases(tag_id);',
+    );
+
+    await db.execute('''
+CREATE TABLE IF NOT EXISTS memo_tags (
+  memo_uid TEXT NOT NULL,
+  tag_id INTEGER NOT NULL,
+  PRIMARY KEY (memo_uid, tag_id),
+  FOREIGN KEY (memo_uid) REFERENCES memos(uid) ON DELETE CASCADE ON UPDATE CASCADE,
+  FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE ON UPDATE CASCADE
+);
+''');
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_memo_tags_tag_id ON memo_tags(tag_id);',
+    );
+  }
+
+  static Future<_ResolvedTag?> _resolveTagPath(
+    DatabaseExecutor txn,
+    String rawTag,
+  ) async {
+    final normalized = normalizeTagPath(rawTag);
+    if (normalized.isEmpty) return null;
+
+    final directRows = await txn.query(
+      'tags',
+      columns: const ['id', 'path'],
+      where: 'path = ?',
+      whereArgs: [normalized],
+      limit: 1,
+    );
+    if (directRows.isNotEmpty) {
+      final row = directRows.first;
+      final id = _readInt(row['id']) ?? 0;
+      final path = row['path'] as String? ?? normalized;
+      if (id > 0) return _ResolvedTag(id: id, path: path);
+    }
+
+    final aliasRows = await txn.query(
+      'tag_aliases',
+      columns: const ['tag_id'],
+      where: 'alias = ?',
+      whereArgs: [normalized],
+      limit: 1,
+    );
+    if (aliasRows.isNotEmpty) {
+      final tagId = _readInt(aliasRows.first['tag_id']);
+      if (tagId != null && tagId > 0) {
+        final tagRows = await txn.query(
+          'tags',
+          columns: const ['id', 'path'],
+          where: 'id = ?',
+          whereArgs: [tagId],
+          limit: 1,
+        );
+        if (tagRows.isNotEmpty) {
+          final row = tagRows.first;
+          final path = row['path'] as String? ?? normalized;
+          return _ResolvedTag(id: tagId, path: path);
+        }
+      }
+    }
+
+    final parts =
+        normalized.split('/').where((p) => p.trim().isNotEmpty).toList();
+    if (parts.isEmpty) return null;
+    int? parentId;
+    var path = '';
+    final now = DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
+    for (final part in parts) {
+      final name = part.trim();
+      if (name.isEmpty) continue;
+      final rows = await txn.query(
+        'tags',
+        columns: const ['id', 'path'],
+        where: parentId == null
+            ? 'name = ? AND parent_id IS NULL'
+            : 'name = ? AND parent_id = ?',
+        whereArgs: parentId == null ? [name] : [name, parentId],
+        limit: 1,
+      );
+      if (rows.isNotEmpty) {
+        final row = rows.first;
+        parentId = _readInt(row['id']);
+        path = row['path'] as String? ?? path;
+        continue;
+      }
+
+      path = path.isEmpty ? name : '$path/$name';
+      final insertedId = await txn.insert(
+        'tags',
+        {
+          'name': name,
+          'parent_id': parentId,
+          'path': path,
+          'pinned': 0,
+          'color_hex': null,
+          'create_time': now,
+          'update_time': now,
+        },
+        conflictAlgorithm: ConflictAlgorithm.ignore,
+      );
+      if (insertedId == 0) {
+        final existing = await txn.query(
+          'tags',
+          columns: const ['id', 'path'],
+          where: parentId == null
+              ? 'name = ? AND parent_id IS NULL'
+              : 'name = ? AND parent_id = ?',
+          whereArgs: parentId == null ? [name] : [name, parentId],
+          limit: 1,
+        );
+        if (existing.isNotEmpty) {
+          final row = existing.first;
+          parentId = _readInt(row['id']);
+          path = row['path'] as String? ?? path;
+          continue;
+        }
+      }
+      parentId = insertedId;
+    }
+
+    if (parentId == null || path.isEmpty) return null;
+    return _ResolvedTag(id: parentId, path: path);
+  }
+
+  static Future<void> _updateMemoTagsMapping(
+    DatabaseExecutor txn,
+    String memoUid,
+    List<int> tagIds,
+  ) async {
+    final normalizedUid = memoUid.trim();
+    if (normalizedUid.isEmpty) return;
+    await txn.delete(
+      'memo_tags',
+      where: 'memo_uid = ?',
+      whereArgs: [normalizedUid],
+    );
+    if (tagIds.isEmpty) return;
+    final batch = txn.batch();
+    final seen = <int>{};
+    for (final id in tagIds) {
+      if (id <= 0 || !seen.add(id)) continue;
+      batch.insert(
+        'memo_tags',
+        {'memo_uid': normalizedUid, 'tag_id': id},
+        conflictAlgorithm: ConflictAlgorithm.ignore,
+      );
+    }
+    await batch.commit(noResult: true);
+  }
+
+  static Future<void> _backfillTagsFromMemos(Database db) async {
+    var lastId = 0;
+    while (true) {
+      final rows = await db.query(
+        'memos',
+        columns: const ['id', 'uid', 'content', 'tags'],
+        where: 'id > ?',
+        whereArgs: [lastId],
+        orderBy: 'id ASC',
+        limit: _maintenanceBatchSize,
+      );
+      if (rows.isEmpty) return;
+      lastId = _readInt(rows.last['id']) ?? lastId;
+      await db.transaction((txn) async {
+        for (final row in rows) {
+          final uid = row['uid'];
+          if (uid is! String || uid.trim().isEmpty) continue;
+          final tagsText = (row['tags'] as String?) ?? '';
+          final tags = _splitTagsText(tagsText);
+          final resolved = <String, int>{};
+          for (final tag in tags) {
+            final entry = await _resolveTagPath(txn, tag);
+            if (entry == null) continue;
+            resolved[entry.path] = entry.id;
+          }
+          final canonicalTags =
+              resolved.keys.toList(growable: false)..sort();
+          await _updateMemoTagsMapping(
+            txn,
+            uid,
+            resolved.values.toList(growable: false),
+          );
+          final updatedTagsText = canonicalTags.join(' ');
+          if (updatedTagsText != tagsText) {
+            await txn.update(
+              'memos',
+              {'tags': updatedTagsText},
+              where: 'uid = ?',
+              whereArgs: [uid],
+            );
+          }
+          final rowId = _readInt(row['id']) ?? 0;
+          if (rowId > 0) {
+            await txn.insert(
+              'memos_fts',
+              {
+                'rowid': rowId,
+                'content': (row['content'] as String?) ?? '',
+                'tags': updatedTagsText,
+              },
+              conflictAlgorithm: ConflictAlgorithm.replace,
+            );
+          }
+        }
+      });
+      await Future<void>.delayed(const Duration(milliseconds: 1));
+    }
+  }
+
   static Future<void> _ensureStatsCache(
     Database db, {
     bool rebuild = false,
@@ -1951,22 +2343,30 @@ CREATE TABLE IF NOT EXISTS tag_stats_cache (
       await txn.delete('stats_cache');
       await txn.delete('daily_counts_cache');
       await txn.delete('tag_stats_cache');
+    });
 
-      final rows = await txn.query(
+    var totalMemos = 0;
+    var archivedMemos = 0;
+    var totalChars = 0;
+    int? minCreateTime;
+    final dailyCounts = <String, int>{};
+    final tagCounts = <String, int>{};
+
+    var lastId = 0;
+    while (true) {
+      final rows = await db.query(
         'memos',
-        columns: const ['state', 'create_time', 'content', 'tags'],
+        columns: const ['id', 'state', 'create_time', 'content', 'tags'],
+        where: 'id > ?',
+        whereArgs: [lastId],
+        orderBy: 'id ASC',
+        limit: _maintenanceBatchSize,
       );
-
-      var totalMemos = 0;
-      var archivedMemos = 0;
-      var totalChars = 0;
-      int? minCreateTime;
-      final dailyCounts = <String, int>{};
-      final tagCounts = <String, int>{};
-
+      if (rows.isEmpty) break;
+      lastId = _readInt(rows.last['id']) ?? lastId;
       for (final row in rows) {
         final state = (row['state'] as String?) ?? 'NORMAL';
-        final createTimeSec = row['create_time'] as int? ?? 0;
+        final createTimeSec = _readInt(row['create_time']) ?? 0;
         final content = (row['content'] as String?) ?? '';
         final tagsText = (row['tags'] as String?) ?? '';
 
@@ -1996,8 +2396,11 @@ CREATE TABLE IF NOT EXISTS tag_stats_cache (
           tagCounts[tag] = (tagCounts[tag] ?? 0) + 1;
         }
       }
+      await Future<void>.delayed(const Duration(milliseconds: 1));
+    }
 
-      final now = DateTime.now().toUtc().millisecondsSinceEpoch;
+    final now = DateTime.now().toUtc().millisecondsSinceEpoch;
+    await db.transaction((txn) async {
       await txn.insert('stats_cache', {
         'id': 1,
         'total_memos': totalMemos,
@@ -2159,6 +2562,13 @@ class _MemoSnapshot {
   final int createTimeSec;
   final String content;
   final List<String> tags;
+}
+
+class _ResolvedTag {
+  const _ResolvedTag({required this.id, required this.path});
+
+  final int id;
+  final String path;
 }
 
 extension _FirstOrNullExt<T> on List<T> {

@@ -16,6 +16,7 @@ import '../../data/models/memo_template_settings.dart';
 import '../../data/models/webdav_settings.dart';
 import '../../data/models/webdav_sync_meta.dart';
 import '../../data/models/webdav_sync_state.dart';
+import '../../data/models/tag_snapshot.dart';
 import '../../data/models/app_lock.dart';
 import '../../data/models/app_preferences.dart';
 import '../../data/models/reminder_settings.dart';
@@ -39,6 +40,7 @@ const _webDavImageBedFile = 'image_bed.json';
 const _webDavImageCompressionFile = 'image_compression_settings.json';
 const _webDavLocationFile = 'location_settings.json';
 const _webDavTemplateFile = 'template_settings.json';
+const _webDavTagsFile = 'tags.json';
 const _webDavPreferencesEncFile = 'preferences.enc';
 const _webDavAiEncFile = 'ai_settings.enc';
 const _webDavAppLockEncFile = 'app_lock.enc';
@@ -48,6 +50,7 @@ const _webDavImageBedEncFile = 'image_bed.enc';
 const _webDavImageCompressionEncFile = 'image_compression_settings.enc';
 const _webDavLocationEncFile = 'location_settings.enc';
 const _webDavTemplateEncFile = 'template_settings.enc';
+const _webDavTagsEncFile = 'tags.enc';
 const _webDavDeprecatedDelay = Duration(days: 7);
 
 class WebDavSyncLocalSnapshot {
@@ -61,6 +64,7 @@ class WebDavSyncLocalSnapshot {
     required this.templateSettings,
     required this.appLockSnapshot,
     required this.noteDraft,
+    required this.tagsSnapshot,
   });
 
   final AppPreferences preferences;
@@ -72,6 +76,7 @@ class WebDavSyncLocalSnapshot {
   final MemoTemplateSettings templateSettings;
   final AppLockSnapshot appLockSnapshot;
   final String noteDraft;
+  final TagSnapshot tagsSnapshot;
 }
 
 abstract class WebDavSyncLocalAdapter {
@@ -88,6 +93,7 @@ abstract class WebDavSyncLocalAdapter {
   Future<void> applyTemplateSettings(MemoTemplateSettings settings);
   Future<void> applyAppLockSnapshot(AppLockSnapshot snapshot);
   Future<void> applyNoteDraft(String text);
+  Future<void> applyTags(TagSnapshot snapshot);
   Future<void> applyWebDavSettings(WebDavSettings settings);
 }
 
@@ -424,6 +430,8 @@ class WebDavSyncService {
       useVault ? _webDavDraftEncFile : _webDavDraftFile: {
         'text': snapshot.noteDraft,
       },
+      useVault ? _webDavTagsEncFile : _webDavTagsFile:
+          snapshot.tagsSnapshot.toJson(),
     };
 
     final payloads = <String, _WebDavFilePayload>{};
@@ -715,6 +723,10 @@ class WebDavSyncService {
         final text = (json['text'] as String?) ?? '';
         await _localAdapter.applyNoteDraft(text);
         break;
+      case _webDavTagsFile:
+        final snapshot = TagSnapshot.fromJson(json);
+        await _localAdapter.applyTags(snapshot);
+        break;
     }
   }
 
@@ -819,6 +831,7 @@ class WebDavSyncService {
         _webDavImageCompressionFile,
         _webDavLocationFile,
         _webDavTemplateFile,
+        _webDavTagsFile,
       };
 
   String _plainNameFromEncrypted(String name) {

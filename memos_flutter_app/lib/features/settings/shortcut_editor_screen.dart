@@ -8,6 +8,7 @@ import '../../core/memoflow_palette.dart';
 import '../../core/top_toast.dart';
 import '../../data/models/shortcut.dart';
 import '../../state/memos/memos_providers.dart';
+import '../../state/tags/tag_color_lookup.dart';
 import '../../i18n/strings.g.dart';
 
 class ShortcutEditorResult {
@@ -23,7 +24,8 @@ class ShortcutEditorScreen extends ConsumerStatefulWidget {
   final Shortcut? shortcut;
 
   @override
-  ConsumerState<ShortcutEditorScreen> createState() => _ShortcutEditorScreenState();
+  ConsumerState<ShortcutEditorScreen> createState() =>
+      _ShortcutEditorScreenState();
 }
 
 class _ShortcutEditorScreenState extends ConsumerState<ShortcutEditorScreen> {
@@ -41,7 +43,9 @@ class _ShortcutEditorScreenState extends ConsumerState<ShortcutEditorScreen> {
   @override
   void initState() {
     super.initState();
-    _titleController = TextEditingController(text: widget.shortcut?.title ?? '');
+    _titleController = TextEditingController(
+      text: widget.shortcut?.title ?? '',
+    );
     _titleController.addListener(() => setState(() {}));
     _lastDaysController = TextEditingController();
     _applyExistingFilter(widget.shortcut?.filter ?? '');
@@ -59,10 +63,7 @@ class _ShortcutEditorScreenState extends ConsumerState<ShortcutEditorScreen> {
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
-      builder: (context) => _TagPickerSheet(
-        tags: tags,
-        initial: _selectedTags,
-      ),
+      builder: (context) => _TagPickerSheet(tags: tags, initial: _selectedTags),
     );
     if (selected == null) return;
     setState(() {
@@ -74,11 +75,9 @@ class _ShortcutEditorScreenState extends ConsumerState<ShortcutEditorScreen> {
 
   Future<void> _openDateRangePicker() async {
     final now = DateTime.now();
-    final initial = _createdRange ??
-        DateTimeRange(
-          start: now.subtract(const Duration(days: 7)),
-          end: now,
-        );
+    final initial =
+        _createdRange ??
+        DateTimeRange(start: now.subtract(const Duration(days: 7)), end: now);
     final result = await showDateRangePicker(
       context: context,
       firstDate: DateTime(2000),
@@ -86,7 +85,9 @@ class _ShortcutEditorScreenState extends ConsumerState<ShortcutEditorScreen> {
       initialDateRange: initial,
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
-          colorScheme: Theme.of(context).colorScheme.copyWith(primary: MemoFlowPalette.primary),
+          colorScheme: Theme.of(
+            context,
+          ).colorScheme.copyWith(primary: MemoFlowPalette.primary),
         ),
         child: child ?? const SizedBox.shrink(),
       ),
@@ -118,10 +119,7 @@ class _ShortcutEditorScreenState extends ConsumerState<ShortcutEditorScreen> {
     final title = _titleController.text.trim();
     final filter = _buildFilter();
     if (title.isEmpty) {
-      showTopToast(
-        context,
-        context.t.strings.legacy.msg_enter_name,
-      );
+      showTopToast(context, context.t.strings.legacy.msg_enter_name);
       return;
     }
     if (filter.isEmpty) {
@@ -137,13 +135,21 @@ class _ShortcutEditorScreenState extends ConsumerState<ShortcutEditorScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg = isDark ? MemoFlowPalette.backgroundDark : MemoFlowPalette.backgroundLight;
+    final bg = isDark
+        ? MemoFlowPalette.backgroundDark
+        : MemoFlowPalette.backgroundLight;
     final card = isDark ? MemoFlowPalette.cardDark : MemoFlowPalette.cardLight;
-    final border = isDark ? MemoFlowPalette.borderDark : MemoFlowPalette.borderLight;
-    final textMain = isDark ? MemoFlowPalette.textDark : MemoFlowPalette.textLight;
+    final border = isDark
+        ? MemoFlowPalette.borderDark
+        : MemoFlowPalette.borderLight;
+    final textMain = isDark
+        ? MemoFlowPalette.textDark
+        : MemoFlowPalette.textLight;
     final textMuted = textMain.withValues(alpha: isDark ? 0.55 : 0.6);
-    final canSubmit = _titleController.text.trim().isNotEmpty && _buildFilter().isNotEmpty;
+    final canSubmit =
+        _titleController.text.trim().isNotEmpty && _buildFilter().isNotEmpty;
     final tags = ref.watch(tagStatsProvider).valueOrNull ?? const <TagStat>[];
+    final tagColors = ref.watch(tagColorLookupProvider);
     final dateFormat = DateFormat('yyyy/MM/dd');
 
     return Scaffold(
@@ -157,7 +163,10 @@ class _ShortcutEditorScreenState extends ConsumerState<ShortcutEditorScreen> {
           onPressed: () => context.safePop(),
           child: Text(
             context.t.strings.legacy.msg_cancel_2,
-            style: TextStyle(color: MemoFlowPalette.primary, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              color: MemoFlowPalette.primary,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
         title: Text(
@@ -189,11 +198,7 @@ class _ShortcutEditorScreenState extends ConsumerState<ShortcutEditorScreen> {
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [
-                      const Color(0xFF0B0B0B),
-                      bg,
-                      bg,
-                    ],
+                    colors: [const Color(0xFF0B0B0B), bg, bg],
                   ),
                 ),
               ),
@@ -201,7 +206,10 @@ class _ShortcutEditorScreenState extends ConsumerState<ShortcutEditorScreen> {
           ListView(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
             children: [
-              _FieldLabel(text: context.t.strings.legacy.msg_name, textColor: textMain),
+              _FieldLabel(
+                text: context.t.strings.legacy.msg_name,
+                textColor: textMain,
+              ),
               const SizedBox(height: 8),
               _TextFieldCard(
                 cardColor: card,
@@ -211,14 +219,24 @@ class _ShortcutEditorScreenState extends ConsumerState<ShortcutEditorScreen> {
                 textColor: textMain,
               ),
               const SizedBox(height: 16),
-              _FieldLabel(text: context.t.strings.legacy.msg_match, textColor: textMain),
+              _FieldLabel(
+                text: context.t.strings.legacy.msg_match,
+                textColor: textMain,
+              ),
               const SizedBox(height: 8),
               _SegmentedControl<_MatchMode>(
                 value: _matchAll ? _MatchMode.all : _MatchMode.any,
-                onChanged: (value) => setState(() => _matchAll = value == _MatchMode.all),
+                onChanged: (value) =>
+                    setState(() => _matchAll = value == _MatchMode.all),
                 options: [
-                  _SegmentOption(value: _MatchMode.all, label: context.t.strings.legacy.msg_match_all),
-                  _SegmentOption(value: _MatchMode.any, label: context.t.strings.legacy.msg_match_any),
+                  _SegmentOption(
+                    value: _MatchMode.all,
+                    label: context.t.strings.legacy.msg_match_all,
+                  ),
+                  _SegmentOption(
+                    value: _MatchMode.any,
+                    label: context.t.strings.legacy.msg_match_any,
+                  ),
                 ],
               ),
               const SizedBox(height: 16),
@@ -226,7 +244,11 @@ class _ShortcutEditorScreenState extends ConsumerState<ShortcutEditorScreen> {
                 _WarningCard(
                   cardColor: card,
                   borderColor: border,
-                  text: context.t.strings.legacy.msg_shortcut_includes_advanced_conditions_saving_overwrite,
+                  text: context
+                      .t
+                      .strings
+                      .legacy
+                      .msg_shortcut_includes_advanced_conditions_saving_overwrite,
                 ),
               if (_hasUnsupportedFilter) const SizedBox(height: 12),
               _ShortcutConditionCard(
@@ -237,10 +259,17 @@ class _ShortcutEditorScreenState extends ConsumerState<ShortcutEditorScreen> {
                   children: [
                     _SegmentedControl<_TagMatchMode>(
                       value: _tagMatchMode,
-                      onChanged: (value) => setState(() => _tagMatchMode = value),
+                      onChanged: (value) =>
+                          setState(() => _tagMatchMode = value),
                       options: [
-                        _SegmentOption(value: _TagMatchMode.any, label: context.t.strings.legacy.msg_any),
-                        _SegmentOption(value: _TagMatchMode.all, label: context.t.strings.legacy.msg_all),
+                        _SegmentOption(
+                          value: _TagMatchMode.any,
+                          label: context.t.strings.legacy.msg_any,
+                        ),
+                        _SegmentOption(
+                          value: _TagMatchMode.all,
+                          label: context.t.strings.legacy.msg_all,
+                        ),
                       ],
                     ),
                     const SizedBox(height: 10),
@@ -263,16 +292,31 @@ class _ShortcutEditorScreenState extends ConsumerState<ShortcutEditorScreen> {
                         spacing: 8,
                         runSpacing: 8,
                         children: _selectedTags
-                            .map(
-                              (tag) => InputChip(
+                            .map((tag) {
+                              final colors = tagColors.resolveChipColorsByPath(
+                                tag,
+                                surfaceColor: Theme.of(
+                                  context,
+                                ).colorScheme.surface,
+                                isDark: isDark,
+                              );
+                              return InputChip(
                                 label: Text('#$tag'),
-                                onDeleted: () => setState(() => _selectedTags.remove(tag)),
-                                backgroundColor: card,
-                                deleteIconColor: textMuted,
-                                labelStyle: TextStyle(fontWeight: FontWeight.w600, color: textMain),
-                                side: BorderSide(color: border.withValues(alpha: 0.8)),
-                              ),
-                            )
+                                onDeleted: () =>
+                                    setState(() => _selectedTags.remove(tag)),
+                                backgroundColor: colors?.background ?? card,
+                                deleteIconColor: colors?.text ?? textMuted,
+                                labelStyle: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: colors?.text ?? textMain,
+                                ),
+                                side: BorderSide(
+                                  color:
+                                      colors?.border ??
+                                      border.withValues(alpha: 0.8),
+                                ),
+                              );
+                            })
                             .toList(growable: false),
                       ),
                     ],
@@ -290,10 +334,17 @@ class _ShortcutEditorScreenState extends ConsumerState<ShortcutEditorScreen> {
                   children: [
                     _SegmentedControl<_CreatedMode>(
                       value: _createdMode,
-                      onChanged: (value) => setState(() => _createdMode = value),
+                      onChanged: (value) =>
+                          setState(() => _createdMode = value),
                       options: [
-                        _SegmentOption(value: _CreatedMode.range, label: context.t.strings.legacy.msg_date_range_2),
-                        _SegmentOption(value: _CreatedMode.lastDays, label: context.t.strings.legacy.msg_past_days),
+                        _SegmentOption(
+                          value: _CreatedMode.range,
+                          label: context.t.strings.legacy.msg_date_range_2,
+                        ),
+                        _SegmentOption(
+                          value: _CreatedMode.lastDays,
+                          label: context.t.strings.legacy.msg_past_days,
+                        ),
                       ],
                     ),
                     const SizedBox(height: 10),
@@ -329,29 +380,46 @@ class _ShortcutEditorScreenState extends ConsumerState<ShortcutEditorScreen> {
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(color: border),
                         ),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         child: Row(
                           children: [
                             Expanded(
                               child: TextField(
                                 controller: _lastDaysController,
                                 keyboardType: TextInputType.number,
-                                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.digitsOnly,
+                                ],
                                 decoration: InputDecoration(
-                                  hintText: context.t.strings.legacy.msg_enter_days,
+                                  hintText:
+                                      context.t.strings.legacy.msg_enter_days,
                                   border: InputBorder.none,
                                   isDense: true,
                                 ),
                                 onChanged: (value) {
                                   final parsed = int.tryParse(value);
-                                  setState(() => _createdLastDays = (parsed != null && parsed > 0) ? parsed : null);
+                                  setState(
+                                    () => _createdLastDays =
+                                        (parsed != null && parsed > 0)
+                                        ? parsed
+                                        : null,
+                                  );
                                 },
-                                style: TextStyle(fontWeight: FontWeight.w600, color: textMain),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: textMain,
+                                ),
                               ),
                             ),
                             Text(
                               context.t.strings.legacy.msg_days_4,
-                              style: TextStyle(fontWeight: FontWeight.w600, color: textMuted),
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: textMuted,
+                              ),
                             ),
                           ],
                         ),
@@ -363,14 +431,25 @@ class _ShortcutEditorScreenState extends ConsumerState<ShortcutEditorScreen> {
               const SizedBox(height: 12),
               _ShortcutConditionCard(
                 title: context.t.strings.legacy.msg_visibility,
-                onClear: _visibilityMode == _VisibilityMode.all ? null : _clearVisibility,
+                onClear: _visibilityMode == _VisibilityMode.all
+                    ? null
+                    : _clearVisibility,
                 child: _SegmentedControl<_VisibilityMode>(
                   value: _visibilityMode,
                   onChanged: (value) => setState(() => _visibilityMode = value),
                   options: [
-                    _SegmentOption(value: _VisibilityMode.private, label: context.t.strings.legacy.msg_private),
-                    _SegmentOption(value: _VisibilityMode.public, label: context.t.strings.legacy.msg_public),
-                    _SegmentOption(value: _VisibilityMode.all, label: context.t.strings.legacy.msg_all_2),
+                    _SegmentOption(
+                      value: _VisibilityMode.private,
+                      label: context.t.strings.legacy.msg_private,
+                    ),
+                    _SegmentOption(
+                      value: _VisibilityMode.public,
+                      label: context.t.strings.legacy.msg_public,
+                    ),
+                    _SegmentOption(
+                      value: _VisibilityMode.all,
+                      label: context.t.strings.legacy.msg_all_2,
+                    ),
                   ],
                 ),
               ),
@@ -406,11 +485,14 @@ class _ShortcutEditorScreenState extends ConsumerState<ShortcutEditorScreen> {
 
   String? _buildTagCondition() {
     if (_selectedTags.isEmpty) return null;
-    final tags = _selectedTags.map(_escapeFilterValue).toList(growable: false)..sort();
+    final tags = _selectedTags.map(_escapeFilterValue).toList(growable: false)
+      ..sort();
     if (_tagMatchMode == _TagMatchMode.any || tags.length == 1) {
       return 'tag in [${tags.map(_quoteValue).join(', ')}]';
     }
-    final parts = tags.map((tag) => 'tag in [${_quoteValue(tag)}]').toList(growable: false);
+    final parts = tags
+        .map((tag) => 'tag in [${_quoteValue(tag)}]')
+        .toList(growable: false);
     return parts.join(' && ');
   }
 
@@ -424,8 +506,19 @@ class _ShortcutEditorScreenState extends ConsumerState<ShortcutEditorScreen> {
 
     final range = _createdRange;
     if (range == null) return null;
-    final start = DateTime(range.start.year, range.start.month, range.start.day);
-    final end = DateTime(range.end.year, range.end.month, range.end.day, 23, 59, 59);
+    final start = DateTime(
+      range.start.year,
+      range.start.month,
+      range.start.day,
+    );
+    final end = DateTime(
+      range.end.year,
+      range.end.month,
+      range.end.day,
+      23,
+      59,
+      59,
+    );
     final startSec = start.toUtc().millisecondsSinceEpoch ~/ 1000;
     final endSec = end.toUtc().millisecondsSinceEpoch ~/ 1000;
     return 'created_ts >= $startSec && created_ts <= $endSec';
@@ -453,7 +546,10 @@ class _ShortcutEditorScreenState extends ConsumerState<ShortcutEditorScreen> {
   String _quoteValue(String value) => '"$value"';
 
   String _escapeFilterValue(String raw) {
-    return raw.replaceAll('\\', r'\\').replaceAll('"', r'\"').replaceAll('\n', ' ');
+    return raw
+        .replaceAll('\\', r'\\')
+        .replaceAll('"', r'\"')
+        .replaceAll('\n', ' ');
   }
 
   void _applyExistingFilter(String raw) {
@@ -497,7 +593,10 @@ class _ShortcutEditorScreenState extends ConsumerState<ShortcutEditorScreen> {
       hasUnknown = true;
     }
 
-    final relativeSeconds = _extractTimestamp(filter, r'created_ts\s*(?:>=|>)\s*now\(\)\s*-\s*(\d+)');
+    final relativeSeconds = _extractTimestamp(
+      filter,
+      r'created_ts\s*(?:>=|>)\s*now\(\)\s*-\s*(\d+)',
+    );
     if (relativeSeconds != null) {
       final days = _secondsToDays(relativeSeconds);
       if (days != null) {
@@ -508,11 +607,23 @@ class _ShortcutEditorScreenState extends ConsumerState<ShortcutEditorScreen> {
         hasUnknown = true;
       }
     } else {
-      final startSec = _extractTimestamp(filter, r'created_ts\s*(?:>=|>)\s*(\d+)');
-      final endSec = _extractTimestamp(filter, r'created_ts\s*(?:<=|<)\s*(\d+)');
+      final startSec = _extractTimestamp(
+        filter,
+        r'created_ts\s*(?:>=|>)\s*(\d+)',
+      );
+      final endSec = _extractTimestamp(
+        filter,
+        r'created_ts\s*(?:<=|<)\s*(\d+)',
+      );
       if (startSec != null && endSec != null) {
-        final start = DateTime.fromMillisecondsSinceEpoch(startSec * 1000, isUtc: true).toLocal();
-        final end = DateTime.fromMillisecondsSinceEpoch(endSec * 1000, isUtc: true).toLocal();
+        final start = DateTime.fromMillisecondsSinceEpoch(
+          startSec * 1000,
+          isUtc: true,
+        ).toLocal();
+        final end = DateTime.fromMillisecondsSinceEpoch(
+          endSec * 1000,
+          isUtc: true,
+        ).toLocal();
         _createdRange = DateTimeRange(start: start, end: end);
         _createdMode = _CreatedMode.range;
         _createdLastDays = null;
@@ -549,7 +660,9 @@ class _ShortcutEditorScreenState extends ConsumerState<ShortcutEditorScreen> {
       'tags',
       'creator_id',
     ];
-    if (unsupportedFields.any((field) => RegExp(r'\b$field\b').hasMatch(filter))) {
+    if (unsupportedFields.any(
+      (field) => RegExp(r'\b$field\b').hasMatch(filter),
+    )) {
       hasUnknown = true;
     }
 
@@ -563,7 +676,10 @@ class _ShortcutEditorScreenState extends ConsumerState<ShortcutEditorScreen> {
   }
 
   int? _estimateLastDays(int startSec) {
-    final start = DateTime.fromMillisecondsSinceEpoch(startSec * 1000, isUtc: true).toLocal();
+    final start = DateTime.fromMillisecondsSinceEpoch(
+      startSec * 1000,
+      isUtc: true,
+    ).toLocal();
     final startDay = DateTime(start.year, start.month, start.day);
     final now = DateTime.now();
     final todayStart = DateTime(now.year, now.month, now.day);
@@ -582,7 +698,9 @@ class _ShortcutEditorScreenState extends ConsumerState<ShortcutEditorScreen> {
   }
 
   _VisibilityMode? _parseVisibility(String filter) {
-    final direct = RegExp(r'visibility\s*==\s*"(PUBLIC|PRIVATE|PROTECTED)"').firstMatch(filter);
+    final direct = RegExp(
+      r'visibility\s*==\s*"(PUBLIC|PRIVATE|PROTECTED)"',
+    ).firstMatch(filter);
     if (direct != null) {
       final value = direct.group(1);
       if (value == 'PUBLIC') return _VisibilityMode.public;
@@ -590,17 +708,23 @@ class _ShortcutEditorScreenState extends ConsumerState<ShortcutEditorScreen> {
       return null;
     }
 
-    final listMatch = RegExp(r'visibility\s+in\s+\[([^\]]*)\]').firstMatch(filter);
+    final listMatch = RegExp(
+      r'visibility\s+in\s+\[([^\]]*)\]',
+    ).firstMatch(filter);
     if (listMatch == null) return null;
     final values = _parseQuotedValues(listMatch.group(1) ?? '');
     final normalized = values.map((e) => e.toUpperCase()).toSet();
-    if (normalized.length == 1 && normalized.contains('PUBLIC')) return _VisibilityMode.public;
-    if (normalized.length == 1 && normalized.contains('PRIVATE')) return _VisibilityMode.private;
+    if (normalized.length == 1 && normalized.contains('PUBLIC'))
+      return _VisibilityMode.public;
+    if (normalized.length == 1 && normalized.contains('PRIVATE'))
+      return _VisibilityMode.private;
     return null;
   }
 
   List<String> _parseQuotedValues(String raw) {
-    final matches = RegExp("\"((?:\\\\.|[^\"\\\\])*)\"|'((?:\\\\.|[^'\\\\])*)'").allMatches(raw);
+    final matches = RegExp(
+      "\"((?:\\\\.|[^\"\\\\])*)\"|'((?:\\\\.|[^'\\\\])*)'",
+    ).allMatches(raw);
     final out = <String>[];
     for (final match in matches) {
       final value = (match.group(1) ?? match.group(2) ?? '').trim();
@@ -611,7 +735,10 @@ class _ShortcutEditorScreenState extends ConsumerState<ShortcutEditorScreen> {
   }
 
   String _unescapeFilterValue(String raw) {
-    return raw.replaceAll(r'\\\"', '"').replaceAll(r"\\'", "'").replaceAll(r'\\\\', '\\');
+    return raw
+        .replaceAll(r'\\\"', '"')
+        .replaceAll(r"\\'", "'")
+        .replaceAll(r'\\\\', '\\');
   }
 }
 
@@ -689,7 +816,9 @@ class _WarningCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textMain = isDark ? MemoFlowPalette.textDark : MemoFlowPalette.textLight;
+    final textMain = isDark
+        ? MemoFlowPalette.textDark
+        : MemoFlowPalette.textLight;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -700,12 +829,19 @@ class _WarningCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.info_outline, size: 18, color: textMain.withValues(alpha: 0.6)),
+          Icon(
+            Icons.info_outline,
+            size: 18,
+            color: textMain.withValues(alpha: 0.6),
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               text,
-              style: TextStyle(fontSize: 12, color: textMain.withValues(alpha: 0.7)),
+              style: TextStyle(
+                fontSize: 12,
+                color: textMain.withValues(alpha: 0.7),
+              ),
             ),
           ),
         ],
@@ -729,8 +865,12 @@ class _ShortcutConditionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final card = isDark ? MemoFlowPalette.cardDark : MemoFlowPalette.cardLight;
-    final border = isDark ? MemoFlowPalette.borderDark : MemoFlowPalette.borderLight;
-    final textMain = isDark ? MemoFlowPalette.textDark : MemoFlowPalette.textLight;
+    final border = isDark
+        ? MemoFlowPalette.borderDark
+        : MemoFlowPalette.borderLight;
+    final textMain = isDark
+        ? MemoFlowPalette.textDark
+        : MemoFlowPalette.textLight;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
@@ -752,7 +892,11 @@ class _ShortcutConditionCard extends StatelessWidget {
               if (onClear != null)
                 IconButton(
                   onPressed: onClear,
-                  icon: Icon(Icons.close, size: 18, color: textMain.withValues(alpha: 0.6)),
+                  icon: Icon(
+                    Icons.close,
+                    size: 18,
+                    color: textMain.withValues(alpha: 0.6),
+                  ),
                   tooltip: context.t.strings.legacy.msg_clear,
                 ),
             ],
@@ -786,8 +930,12 @@ class _SegmentedControl<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final border = isDark ? MemoFlowPalette.borderDark : MemoFlowPalette.borderLight;
-    final textMain = isDark ? MemoFlowPalette.textDark : MemoFlowPalette.textLight;
+    final border = isDark
+        ? MemoFlowPalette.borderDark
+        : MemoFlowPalette.borderLight;
+    final textMain = isDark
+        ? MemoFlowPalette.textDark
+        : MemoFlowPalette.textLight;
 
     return Container(
       padding: const EdgeInsets.all(3),
@@ -807,7 +955,9 @@ class _SegmentedControl<T> extends StatelessWidget {
                   duration: const Duration(milliseconds: 180),
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   decoration: BoxDecoration(
-                    color: option.value == value ? MemoFlowPalette.primary : Colors.transparent,
+                    color: option.value == value
+                        ? MemoFlowPalette.primary
+                        : Colors.transparent,
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
@@ -829,10 +979,7 @@ class _SegmentedControl<T> extends StatelessWidget {
 }
 
 class _TagPickerSheet extends StatefulWidget {
-  const _TagPickerSheet({
-    required this.tags,
-    required this.initial,
-  });
+  const _TagPickerSheet({required this.tags, required this.initial});
 
   final List<TagStat> tags;
   final Set<String> initial;
@@ -847,7 +994,9 @@ class _TagPickerSheetState extends State<_TagPickerSheet> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textMain = isDark ? MemoFlowPalette.textDark : MemoFlowPalette.textLight;
+    final textMain = isDark
+        ? MemoFlowPalette.textDark
+        : MemoFlowPalette.textLight;
     final textMuted = textMain.withValues(alpha: 0.55);
 
     return SafeArea(
@@ -862,20 +1011,29 @@ class _TagPickerSheetState extends State<_TagPickerSheet> {
                   onPressed: () => context.safePop(),
                   child: Text(
                     context.t.strings.legacy.msg_cancel_2,
-                    style: TextStyle(color: MemoFlowPalette.primary, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      color: MemoFlowPalette.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
                 const Spacer(),
                 Text(
                   context.t.strings.legacy.msg_select_tags,
-                  style: TextStyle(fontWeight: FontWeight.w700, color: textMain),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: textMain,
+                  ),
                 ),
                 const Spacer(),
                 TextButton(
                   onPressed: () => context.safePop(_selected),
                   child: Text(
                     context.t.strings.legacy.msg_done,
-                    style: TextStyle(color: MemoFlowPalette.primary, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      color: MemoFlowPalette.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],
@@ -907,8 +1065,17 @@ class _TagPickerSheetState extends State<_TagPickerSheet> {
                             }
                           });
                         },
-                        title: Text('#${tag.tag}', style: TextStyle(color: textMain, fontWeight: FontWeight.w600)),
-                        subtitle: Text('${tag.count}', style: TextStyle(fontSize: 12, color: textMuted)),
+                        title: Text(
+                          '#${tag.tag}',
+                          style: TextStyle(
+                            color: textMain,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        subtitle: Text(
+                          '${tag.count}',
+                          style: TextStyle(fontSize: 12, color: textMuted),
+                        ),
                         activeColor: MemoFlowPalette.primary,
                       );
                     },

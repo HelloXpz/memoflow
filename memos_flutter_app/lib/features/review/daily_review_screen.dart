@@ -558,9 +558,7 @@ class _DailyReviewScreenState extends ConsumerState<DailyReviewScreen> {
   }
 
   String _normalizeTag(String raw) {
-    final trimmed = raw.trim();
-    if (trimmed.isEmpty) return '';
-    return trimmed.startsWith('#') ? trimmed.substring(1).trim() : trimmed;
+    return normalizeTagPath(raw);
   }
 
   String _tagKey(String raw) {

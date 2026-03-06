@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
 import 'package:dio/dio.dart';
@@ -24,6 +23,7 @@ import '../../core/attachment_toast.dart';
 import '../../application/desktop/desktop_settings_window.dart';
 import '../../core/desktop/shortcuts.dart';
 import '../../application/desktop/desktop_tray_controller.dart';
+import '../../application/desktop/desktop_exit_coordinator.dart';
 import '../../core/drawer_navigation.dart';
 import '../../core/location_launcher.dart';
 import '../../core/memo_template_renderer.dart';
@@ -31,11 +31,14 @@ import '../../core/memoflow_palette.dart';
 import '../../core/platform_layout.dart';
 import '../../core/sync_error_presenter.dart';
 import '../../application/sync/sync_feedback_presenter.dart';
+import '../../core/tag_badge.dart';
+import '../../core/tag_colors.dart';
 import '../../core/tags.dart';
 import '../../core/top_toast.dart';
 import '../../core/uid.dart';
 import '../../core/url.dart';
 import '../../state/memos/memos_list_providers.dart';
+import '../../state/tags/tag_color_lookup.dart';
 import '../../data/logs/sync_queue_progress_tracker.dart';
 import '../../data/models/attachment.dart';
 import '../../data/models/location_settings.dart';
@@ -80,6 +83,7 @@ import '../settings/settings_screen.dart';
 import '../sync/sync_queue_screen.dart';
 import '../stats/stats_screen.dart';
 import '../tags/tags_screen.dart';
+import '../tags/tag_edit_sheet.dart';
 import '../voice/voice_record_screen.dart';
 import 'attachment_gallery_screen.dart';
 import '../desktop/quick_input/desktop_quick_input_dialog.dart';
@@ -95,6 +99,7 @@ import 'link_memo_sheet.dart';
 import 'recycle_bin_screen.dart';
 import 'memo_video_grid.dart';
 import 'note_input_sheet.dart';
+import 'tag_autocomplete.dart';
 import 'windows_camera_capture_screen.dart';
 import 'widgets/audio_row.dart';
 import '../../i18n/strings.g.dart';
@@ -346,6 +351,7 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
   final _searchFocusNode = FocusNode();
   final _inlineComposeController = TextEditingController();
   final _inlineComposeFocusNode = FocusNode();
+  final _inlineEditorFieldKey = GlobalKey();
   final _inlineTagMenuKey = GlobalKey();
   final _inlineTemplateMenuKey = GlobalKey();
   final _inlineTodoMenuKey = GlobalKey();
@@ -421,6 +427,8 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
   MemoLocation? _inlineLocation;
   bool _inlineLocating = false;
   bool _inlineMoreToolbarOpen = false;
+  int _inlineTagAutocompleteIndex = 0;
+  String? _inlineTagAutocompleteToken;
   final List<TextEditingValue> _inlineUndoStack = <TextEditingValue>[];
   final List<TextEditingValue> _inlineRedoStack = <TextEditingValue>[];
   TextEditingValue _inlineLastValue = const TextEditingValue();
@@ -453,8 +461,10 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
       if (message == null || message.trim().isEmpty) return;
       showTopToast(context, message);
     });
+    _inlineComposeController.addListener(_handleInlineComposeChanged);
     _inlineComposeController.addListener(_scheduleInlineComposeDraftSave);
     _inlineComposeController.addListener(_trackInlineComposeHistory);
+    _inlineComposeFocusNode.addListener(_handleInlineComposeFocusChanged);
     _inlineLastValue = _inlineComposeController.value;
     _applyInlineComposeDraft(ref.read(noteDraftProvider));
     _inlineDraftSubscription = ref.listenManual<AsyncValue<String>>(
@@ -561,9 +571,11 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
     }
     _inlineComposeDraftTimer?.cancel();
     _inlineDraftSubscription?.close();
+    _inlineComposeController.removeListener(_handleInlineComposeChanged);
     _inlineComposeController.removeListener(_scheduleInlineComposeDraftSave);
     _inlineComposeController.removeListener(_trackInlineComposeHistory);
     _inlineComposeController.dispose();
+    _inlineComposeFocusNode.removeListener(_handleInlineComposeFocusChanged);
     _inlineComposeFocusNode.dispose();
     _searchFocusNode.dispose();
     _scrollToTopTimer?.cancel();
@@ -581,13 +593,9 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
   }
 
   String? _normalizeTag(String? raw) {
-    if (raw == null) return null;
-    final trimmed = raw.trim();
-    if (trimmed.isEmpty) return null;
-    final withoutHash = trimmed.startsWith('#')
-        ? trimmed.substring(1)
-        : trimmed;
-    return withoutHash.toLowerCase();
+    final normalized = normalizeTagPath(raw ?? '');
+    if (normalized.isEmpty) return null;
+    return normalized;
   }
 
   void _selectTagFilter(String? tag) {
@@ -934,7 +942,9 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
     required QuickSearchKind? quickSearchKind,
   }) async {
     if (!mounted) return;
-    await ref.read(memosListControllerProvider).logEmptyViewDiagnostics(
+    await ref
+        .read(memosListControllerProvider)
+        .logEmptyViewDiagnostics(
           queryKey: queryKey,
           state: widget.state,
           providerCount: providerCount,
@@ -1411,7 +1421,9 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
       final visibility = _resolveInlineComposeVisibility();
       final tags = extractTags(content);
 
-      await ref.read(memosListControllerProvider).createQuickInputMemo(
+      await ref
+          .read(memosListControllerProvider)
+          .createQuickInputMemo(
             uid: uid,
             content: content,
             visibility: visibility,
@@ -1419,7 +1431,16 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
             tags: tags,
           );
 
-      unawaited(ref.read(syncCoordinatorProvider.notifier).requestSync(const SyncRequest(kind: SyncRequestKind.memos, reason: SyncRequestReason.manual)));
+      unawaited(
+        ref
+            .read(syncCoordinatorProvider.notifier)
+            .requestSync(
+              const SyncRequest(
+                kind: SyncRequestKind.memos,
+                reason: SyncRequestReason.manual,
+              ),
+            ),
+      );
       if (!mounted) return;
       showTopToast(context, '已保存到 MemoFlow');
     } catch (error, stackTrace) {
@@ -1798,7 +1819,16 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
         pressedKeys: pressed,
         action: DesktopShortcutAction.refresh,
       );
-      unawaited(ref.read(syncCoordinatorProvider.notifier).requestSync(const SyncRequest(kind: SyncRequestKind.memos, reason: SyncRequestReason.manual)));
+      unawaited(
+        ref
+            .read(syncCoordinatorProvider.notifier)
+            .requestSync(
+              const SyncRequest(
+                kind: SyncRequestKind.memos,
+                reason: SyncRequestReason.manual,
+              ),
+            ),
+      );
       return true;
     }
     if (matches(DesktopShortcutAction.backHome)) {
@@ -1871,24 +1901,7 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
 
   Future<void> _closeDesktopWindow() async {
     if (!Platform.isWindows) return;
-    final closeToTray = ref.read(
-      appPreferencesProvider.select((p) => p.windowsCloseToTray),
-    );
-    if (closeToTray && DesktopTrayController.instance.supported) {
-      try {
-        await DesktopTrayController.instance.hideToTray();
-        return;
-      } catch (error, stackTrace) {
-        ref
-            .read(logManagerProvider)
-            .warn(
-              'Hide to tray failed. Falling back to closing window.',
-              error: error,
-              stackTrace: stackTrace,
-            );
-      }
-    }
-    await windowManager.close();
+    await DesktopExitCoordinator.requestClose(source: 'window_button');
   }
 
   Widget _buildPillActionsRow(
@@ -2664,17 +2677,25 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
       _openSyncQueue();
       return;
     }
-    final retried =
-        await ref.read(memosListControllerProvider).retryOutboxErrors(
-              memoUid: normalizedUid,
-            );
+    final retried = await ref
+        .read(memosListControllerProvider)
+        .retryOutboxErrors(memoUid: normalizedUid);
     if (retried <= 0) {
       _openSyncQueue();
       return;
     }
     if (!mounted) return;
     showTopToast(context, context.t.strings.legacy.msg_retry_started);
-    unawaited(ref.read(syncCoordinatorProvider.notifier).requestSync(const SyncRequest(kind: SyncRequestKind.memos, reason: SyncRequestReason.manual)));
+    unawaited(
+      ref
+          .read(syncCoordinatorProvider.notifier)
+          .requestSync(
+            const SyncRequest(
+              kind: SyncRequestKind.memos,
+              reason: SyncRequestReason.manual,
+            ),
+          ),
+    );
   }
 
   Future<void> _handleMemoSyncStatusTap(
@@ -2733,6 +2754,93 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
     _inlineComposeDraftTimer = Timer(const Duration(milliseconds: 300), () {
       ref.read(noteDraftProvider.notifier).setDraft(text);
     });
+  }
+
+  void _handleInlineComposeChanged() {
+    _syncInlineTagAutocompleteState();
+  }
+
+  void _handleInlineComposeFocusChanged() {
+    if (!mounted) return;
+    _syncInlineTagAutocompleteState();
+    setState(() {});
+  }
+
+  void _syncInlineTagAutocompleteState() {
+    final activeQuery = detectActiveTagQuery(_inlineComposeController.value);
+    final token = activeQuery == null
+        ? null
+        : '${activeQuery.start}:${activeQuery.query.toLowerCase()}';
+    if (_inlineTagAutocompleteToken != token) {
+      _inlineTagAutocompleteToken = token;
+      _inlineTagAutocompleteIndex = 0;
+    }
+
+    final suggestions = _currentInlineTagSuggestions();
+    if (suggestions.isEmpty) {
+      _inlineTagAutocompleteIndex = 0;
+      return;
+    }
+
+    _inlineTagAutocompleteIndex = _inlineTagAutocompleteIndex
+        .clamp(0, suggestions.length - 1)
+        .toInt();
+  }
+
+  List<TagStat> _currentInlineTagStats() {
+    return ref.read(tagStatsProvider).valueOrNull ?? const <TagStat>[];
+  }
+
+  List<TagStat> _currentInlineTagSuggestions() {
+    if (!_inlineComposeFocusNode.hasFocus) return const <TagStat>[];
+    final activeQuery = detectActiveTagQuery(_inlineComposeController.value);
+    if (activeQuery == null) return const <TagStat>[];
+    return buildTagSuggestions(
+      _currentInlineTagStats(),
+      query: activeQuery.query,
+    );
+  }
+
+  KeyEventResult _handleInlineTagAutocompleteKeyEvent(
+    FocusNode node,
+    KeyEvent event,
+  ) {
+    if (event is! KeyDownEvent) {
+      return KeyEventResult.ignored;
+    }
+
+    final activeQuery = detectActiveTagQuery(_inlineComposeController.value);
+    final suggestions = _currentInlineTagSuggestions();
+    if (activeQuery == null || suggestions.isEmpty) {
+      return KeyEventResult.ignored;
+    }
+
+    final key = event.logicalKey;
+    if (key == LogicalKeyboardKey.arrowDown) {
+      setState(() {
+        _inlineTagAutocompleteIndex =
+            (_inlineTagAutocompleteIndex + 1) % suggestions.length;
+      });
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.arrowUp) {
+      setState(() {
+        _inlineTagAutocompleteIndex =
+            (_inlineTagAutocompleteIndex - 1 + suggestions.length) %
+            suggestions.length;
+      });
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.numpadEnter) {
+      final selectedIndex = _inlineTagAutocompleteIndex
+          .clamp(0, suggestions.length - 1)
+          .toInt();
+      _applyInlineTagSuggestion(activeQuery, suggestions[selectedIndex]);
+      return KeyEventResult.handled;
+    }
+
+    return KeyEventResult.ignored;
   }
 
   String _resolveInlineComposeVisibility() {
@@ -2797,6 +2905,38 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
       selection: TextSelection.collapsed(offset: caret),
       composing: TextRange.empty,
     );
+  }
+
+  void _startInlineTagAutocomplete() {
+    if (_inlineComposeBusy) return;
+    final activeQuery = detectActiveTagQuery(_inlineComposeController.value);
+    if (activeQuery == null) {
+      _insertInlineComposeText('#');
+    }
+    _inlineTagAutocompleteIndex = 0;
+    _inlineComposeFocusNode.requestFocus();
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  void _applyInlineTagSuggestion(ActiveTagQuery query, TagStat tag) {
+    final value = _inlineComposeController.value;
+    final selection = value.selection;
+    final end = selection.isValid && selection.isCollapsed
+        ? selection.extentOffset.clamp(query.start, value.text.length).toInt()
+        : query.end;
+    final replacement = '#${tag.path} ';
+    final nextText = value.text.replaceRange(query.start, end, replacement);
+    final caret = query.start + replacement.length;
+    _inlineComposeController.value = value.copyWith(
+      text: nextText,
+      selection: TextSelection.collapsed(offset: caret),
+      composing: TextRange.empty,
+    );
+    _inlineTagAutocompleteIndex = 0;
+    _inlineTagAutocompleteToken = null;
+    _inlineComposeFocusNode.requestFocus();
   }
 
   void _replaceInlineComposeText(String text) {
@@ -3256,61 +3396,6 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
     );
     if (!mounted || selection == null) return;
     _addInlineLinkedMemo(selection);
-  }
-
-  Future<void> _openInlineTagMenuFromKey(
-    GlobalKey key,
-    List<TagStat> tags,
-  ) async {
-    if (_inlineComposeBusy) return;
-    final target = key.currentContext;
-    if (target == null) return;
-    final overlay = Overlay.of(context).context.findRenderObject();
-    final box = target.findRenderObject();
-    if (overlay is! RenderBox || box is! RenderBox) return;
-
-    final rect = Rect.fromPoints(
-      box.localToGlobal(Offset.zero, ancestor: overlay),
-      box.localToGlobal(box.size.bottomRight(Offset.zero), ancestor: overlay),
-    );
-    await _openInlineTagMenu(
-      RelativeRect.fromRect(rect, Offset.zero & overlay.size),
-      tags,
-    );
-  }
-
-  Future<void> _openInlineTagMenu(
-    RelativeRect position,
-    List<TagStat> tags,
-  ) async {
-    if (_inlineComposeBusy) return;
-    final items = tags.isEmpty
-        ? [
-            const PopupMenuItem<String>(
-              enabled: false,
-              child: Text('No tags yet'),
-            ),
-          ]
-        : tags
-              .map(
-                (stat) => PopupMenuItem<String>(
-                  value: stat.tag,
-                  child: Text('#${stat.tag}'),
-                ),
-              )
-              .toList(growable: false);
-
-    final selection = await showMenu<String>(
-      context: context,
-      position: position,
-      items: items,
-    );
-    if (!mounted || selection == null) return;
-    final normalized = selection.startsWith('#')
-        ? selection.substring(1)
-        : selection;
-    if (normalized.isEmpty) return;
-    _insertInlineComposeText('$normalized ');
   }
 
   Future<void> _openInlineTemplateMenuFromKey(
@@ -4004,7 +4089,9 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
           )
           .toList(growable: false);
 
-      await ref.read(memosListControllerProvider).createInlineComposeMemo(
+      await ref
+          .read(memosListControllerProvider)
+          .createInlineComposeMemo(
             uid: uid,
             content: content,
             visibility: visibility,
@@ -4016,7 +4103,16 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
             pendingAttachments: pendingUploads,
           );
 
-      unawaited(ref.read(syncCoordinatorProvider.notifier).requestSync(const SyncRequest(kind: SyncRequestKind.memos, reason: SyncRequestReason.manual)));
+      unawaited(
+        ref
+            .read(syncCoordinatorProvider.notifier)
+            .requestSync(
+              const SyncRequest(
+                kind: SyncRequestKind.memos,
+                reason: SyncRequestReason.manual,
+              ),
+            ),
+      );
       _inlineComposeDraftTimer?.cancel();
       _inlineComposeController.clear();
       await ref.read(noteDraftProvider.notifier).clear();
@@ -4075,6 +4171,7 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
     final chipText = isDark
         ? MemoFlowPalette.textDark
         : MemoFlowPalette.textLight;
+    final tagColorLookup = ref.watch(tagColorLookupProvider);
     final inlineComposeMinLines = Platform.isWindows ? 3 : 1;
     final inlineComposeMaxLines = Platform.isWindows ? 8 : 5;
     final (visibilityLabel, visibilityIcon, visibilityColor) =
@@ -4170,20 +4267,82 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
                 ),
               ),
             ),
-          TextField(
-            controller: _inlineComposeController,
-            focusNode: _inlineComposeFocusNode,
-            enabled: !_inlineComposeBusy,
-            minLines: inlineComposeMinLines,
-            maxLines: inlineComposeMaxLines,
-            keyboardType: TextInputType.multiline,
-            style: TextStyle(fontSize: 15, height: 1.35, color: textColor),
-            decoration: InputDecoration(
-              isDense: true,
-              border: InputBorder.none,
-              hintText: context.t.strings.legacy.msg_write_thoughts,
-              hintStyle: TextStyle(color: hintColor),
-            ),
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: _inlineComposeController,
+            builder: (context, value, _) {
+              final inlineEditorTextStyle = TextStyle(
+                fontSize: 15,
+                height: 1.35,
+                color: textColor,
+              );
+              final inlineActiveTagQuery = _inlineComposeFocusNode.hasFocus
+                  ? detectActiveTagQuery(value)
+                  : null;
+              final inlineTagSuggestions = inlineActiveTagQuery == null
+                  ? const <TagStat>[]
+                  : buildTagSuggestions(
+                      tagStats,
+                      query: inlineActiveTagQuery.query,
+                    );
+              final highlightedInlineTagSuggestionIndex =
+                  inlineTagSuggestions.isEmpty
+                  ? 0
+                  : _inlineTagAutocompleteIndex
+                        .clamp(0, inlineTagSuggestions.length - 1)
+                        .toInt();
+              return Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  KeyedSubtree(
+                    key: _inlineEditorFieldKey,
+                    child: Focus(
+                      canRequestFocus: false,
+                      onKeyEvent: _handleInlineTagAutocompleteKeyEvent,
+                      child: TextField(
+                        controller: _inlineComposeController,
+                        focusNode: _inlineComposeFocusNode,
+                        enabled: !_inlineComposeBusy,
+                        minLines: inlineComposeMinLines,
+                        maxLines: inlineComposeMaxLines,
+                        keyboardType: TextInputType.multiline,
+                        style: inlineEditorTextStyle,
+                        decoration: InputDecoration(
+                          isDense: true,
+                          border: InputBorder.none,
+                          hintText: context.t.strings.legacy.msg_write_thoughts,
+                          hintStyle: TextStyle(color: hintColor),
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (_inlineComposeFocusNode.hasFocus &&
+                      inlineActiveTagQuery != null &&
+                      inlineTagSuggestions.isNotEmpty)
+                    Positioned.fill(
+                      child: IgnorePointer(
+                        child: TagAutocompleteOverlay(
+                          editorKey: _inlineEditorFieldKey,
+                          value: value,
+                          textStyle: inlineEditorTextStyle,
+                          tags: inlineTagSuggestions,
+                          tagColors: tagColorLookup,
+                          highlightedIndex: highlightedInlineTagSuggestionIndex,
+                          onHighlight: (index) {
+                            if (_inlineTagAutocompleteIndex == index) return;
+                            setState(() {
+                              _inlineTagAutocompleteIndex = index;
+                            });
+                          },
+                          onSelect: (tag) => _applyInlineTagSuggestion(
+                            inlineActiveTagQuery,
+                            tag,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
           ),
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 180),
@@ -4225,10 +4384,7 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
                   visibilityButtonKey: _inlineVisibilityMenuKey,
                   onTagPressed: () {
                     _closeInlineMoreToolbar();
-                    _insertInlineComposeText('#');
-                    unawaited(
-                      _openInlineTagMenuFromKey(_inlineTagMenuKey, tagStats),
-                    );
+                    _startInlineTagAutocomplete();
                   },
                   onTemplatePressed: () {
                     _closeInlineMoreToolbar();
@@ -4481,8 +4637,8 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
             SnackBar(
               content: Text(
                 context.t.strings.legacy.msg_scan_failed(
-                      e: _formatLocalScanError(error),
-                    ),
+                  e: _formatLocalScanError(error),
+                ),
               ),
             ),
           );
@@ -4511,15 +4667,15 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
               content: Text(
                 conflict.isDeletion
                     ? context
-                        .t
-                        .strings
-                        .legacy
-                        .msg_memo_missing_disk_but_has_local
+                          .t
+                          .strings
+                          .legacy
+                          .msg_memo_missing_disk_but_has_local
                     : context
-                        .t
-                        .strings
-                        .legacy
-                        .msg_disk_content_conflicts_local_pending_changes,
+                          .t
+                          .strings
+                          .legacy
+                          .msg_disk_content_conflicts_local_pending_changes,
               ),
               actions: [
                 TextButton(
@@ -4542,7 +4698,6 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
   String _formatLocalScanError(SyncError error) {
     return presentSyncError(language: context.appLanguage, error: error);
   }
-
 
   void _maybeAutoScanLocalLibrary({
     required bool memosLoading,
@@ -4571,8 +4726,9 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
       _autoScanInFlight = true;
       var bootstrapModeEnabled = false;
       try {
-        final hasLocalMemos =
-            await ref.read(memosListControllerProvider).hasAnyLocalMemos();
+        final hasLocalMemos = await ref
+            .read(memosListControllerProvider)
+            .hasAnyLocalMemos();
         if (!mounted) return;
         if (hasLocalMemos) return;
 
@@ -4587,7 +4743,14 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
           });
         }
         _autoScanTriggered = true;
-        await ref.read(syncCoordinatorProvider.notifier).requestSync(const SyncRequest(kind: SyncRequestKind.memos, reason: SyncRequestReason.manual));
+        await ref
+            .read(syncCoordinatorProvider.notifier)
+            .requestSync(
+              const SyncRequest(
+                kind: SyncRequestKind.memos,
+                reason: SyncRequestReason.manual,
+              ),
+            );
       } catch (e) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -4742,10 +4905,9 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
       return;
     }
     try {
-      final created = await ref.read(memosListControllerProvider).createShortcut(
-            title: result.title,
-            filter: result.filter,
-          );
+      final created = await ref
+          .read(memosListControllerProvider)
+          .createShortcut(title: result.title, filter: result.filter);
       ref.invalidate(shortcutsProvider);
       if (!mounted) return;
       setState(() {
@@ -4836,12 +4998,19 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
     bool? pinned,
     String? state,
   }) async {
-    await ref.read(memosListControllerProvider).updateMemo(
-          memo,
-          pinned: pinned,
-          state: state,
-        );
-    unawaited(ref.read(syncCoordinatorProvider.notifier).requestSync(const SyncRequest(kind: SyncRequestKind.memos, reason: SyncRequestReason.manual)));
+    await ref
+        .read(memosListControllerProvider)
+        .updateMemo(memo, pinned: pinned, state: state);
+    unawaited(
+      ref
+          .read(syncCoordinatorProvider.notifier)
+          .requestSync(
+            const SyncRequest(
+              kind: SyncRequestKind.memos,
+              reason: SyncRequestReason.manual,
+            ),
+          ),
+    );
   }
 
   Future<void> _updateMemoContent(
@@ -4851,13 +5020,24 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
     bool triggerSync = true,
   }) async {
     if (content == memo.content) return;
-    await ref.read(memosListControllerProvider).updateMemoContent(
+    await ref
+        .read(memosListControllerProvider)
+        .updateMemoContent(
           memo,
           content,
           preserveUpdateTime: preserveUpdateTime,
         );
     if (triggerSync) {
-      unawaited(ref.read(syncCoordinatorProvider.notifier).requestSync(const SyncRequest(kind: SyncRequestKind.memos, reason: SyncRequestReason.manual)));
+      unawaited(
+        ref
+            .read(syncCoordinatorProvider.notifier)
+            .requestSync(
+              const SyncRequest(
+                kind: SyncRequestKind.memos,
+                reason: SyncRequestReason.manual,
+              ),
+            ),
+      );
     }
   }
 
@@ -4911,11 +5091,22 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
     if (!confirmed) return;
 
     try {
-      await ref.read(memosListControllerProvider).deleteMemo(
+      await ref
+          .read(memosListControllerProvider)
+          .deleteMemo(
             memo,
             onMovedToRecycleBin: () => _removeMemoWithAnimation(memo),
           );
-      unawaited(ref.read(syncCoordinatorProvider.notifier).requestSync(const SyncRequest(kind: SyncRequestKind.memos, reason: SyncRequestReason.manual)));
+      unawaited(
+        ref
+            .read(syncCoordinatorProvider.notifier)
+            .requestSync(
+              const SyncRequest(
+                kind: SyncRequestKind.memos,
+                reason: SyncRequestReason.manual,
+              ),
+            ),
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -5015,6 +5206,7 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
     final outboxStatus =
         ref.read(memosListOutboxStatusProvider).valueOrNull ??
         const OutboxMemoStatus.empty();
+    final tagColors = ref.watch(tagColorLookupProvider);
 
     _listKey.currentState?.removeItem(
       index,
@@ -5025,6 +5217,7 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
         prefs: ref.read(appPreferencesProvider),
         outboxStatus: outboxStatus,
         removing: true,
+        tagColors: tagColors,
       ),
       duration: const Duration(milliseconds: 380),
     );
@@ -5209,6 +5402,7 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
     required AppPreferences prefs,
     required OutboxMemoStatus outboxStatus,
     required bool removing,
+    required TagColorLookup tagColors,
   }) {
     final curved = CurvedAnimation(parent: animation, curve: Curves.easeInOut);
     Widget memoCard = _buildMemoCard(
@@ -5217,6 +5411,7 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
       prefs: prefs,
       outboxStatus: outboxStatus,
       removing: removing,
+      tagColors: tagColors,
     );
     if (Platform.isWindows) {
       memoCard = Align(
@@ -5246,6 +5441,7 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
     required AppPreferences prefs,
     required OutboxMemoStatus outboxStatus,
     required bool removing,
+    required TagColorLookup tagColors,
   }) {
     final displayTime = memo.createTime.millisecondsSinceEpoch > 0
         ? memo.createTime
@@ -5327,6 +5523,7 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
       memo: memo,
       dateText: _dateFmt.format(displayTime),
       reminderText: reminderText,
+      tagColors: tagColors,
       initiallyExpanded: inSearchContext,
       highlightQuery: highlightQuery.isEmpty ? null : highlightQuery,
       collapseLongContent: prefs.collapseLongContent,
@@ -5495,12 +5692,25 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
     final searchHistory = ref.watch(searchHistoryProvider);
     final tagStats =
         ref.watch(tagStatsProvider).valueOrNull ?? const <TagStat>[];
+    final tagColorLookup = ref.watch(tagColorLookupProvider);
+    final activeTagStat = (resolvedTag ?? '').trim().isEmpty
+        ? null
+        : tagColorLookup.resolveTag(resolvedTag!.trim());
     final templateSettings = ref.watch(memoTemplateSettingsProvider);
     final availableTemplates = templateSettings.enabled
         ? templateSettings.templates
         : const <MemoTemplate>[];
     final recommendedTags = [...tagStats]
-      ..sort((a, b) => b.count.compareTo(a.count));
+      ..sort((a, b) {
+        if (a.pinned != b.pinned) return a.pinned ? -1 : 1;
+        return b.count.compareTo(a.count);
+      });
+    final tagPresentationSignature = tagStats
+        .map(
+          (tag) =>
+              '${tag.path}|${tag.parentId ?? ''}|${tag.pinned ? 1 : 0}|${normalizeTagColorHex(tag.colorHex) ?? ''}',
+        )
+        .join(',');
     final showSearchLanding =
         _searching && searchQuery.trim().isEmpty && !useQuickSearch;
     final memosValue = memosAsync.valueOrNull;
@@ -5572,7 +5782,7 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
           '${widget.state}|${resolvedTag ?? ''}|${searchQuery.trim()}|${shortcutFilter.trim()}|'
           '${useShortcutFilter ? 1 : 0}|${selectedQuickSearchKind?.name ?? ''}|'
           '${useQuickSearch ? 1 : 0}|${startTimeSec ?? ''}|${endTimeSecExclusive ?? ''}|'
-          '${enableHomeSort ? _sortOption.name : 'default'}';
+          '${enableHomeSort ? _sortOption.name : 'default'}|$tagPresentationSignature';
       _syncAnimatedMemos(sortedMemos, listSignature);
     }
     final visibleMemos = _animatedMemos;
@@ -5643,10 +5853,9 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
     final currentLocalLibrary = ref.watch(currentLocalLibraryProvider);
     if (kDebugMode) {
       final currentKey = session?.currentKey;
-      final resolvedDb =
-          (currentKey == null || currentKey.trim().isEmpty)
-              ? null
-              : databaseNameForAccountKey(currentKey);
+      final resolvedDb = (currentKey == null || currentKey.trim().isEmpty)
+          ? null
+          : databaseNameForAccountKey(currentKey);
       final workspaceMode = currentLocalLibrary != null
           ? 'local'
           : (session?.currentAccount != null ? 'remote' : 'none');
@@ -5667,8 +5876,7 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
           );
     }
     final account = session?.currentAccount;
-    final debugApiVersionText =
-        ref.watch(memosListDebugApiVersionTextProvider);
+    final debugApiVersionText = ref.watch(memosListDebugApiVersionTextProvider);
     final mediaQuery = MediaQuery.of(context);
     final bottomInset = mediaQuery.padding.bottom;
     final screenWidth = mediaQuery.size.width;
@@ -5689,6 +5897,9 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
             onSelectTag: _openTagFromDrawer,
             onOpenNotifications: _openNotifications,
             embedded: useDesktopSidePane,
+            selectedTagPath: (resolvedTag ?? '').trim().isEmpty
+                ? null
+                : resolvedTag!.trim(),
           )
         : null;
     final showComposeFab =
@@ -5710,7 +5921,11 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
         if (navigator.canPop()) {
           navigator.pop();
         } else {
-          SystemNavigator.pop();
+          if (Platform.isWindows) {
+            await DesktopExitCoordinator.requestExit(reason: 'back');
+          } else {
+            SystemNavigator.pop();
+          }
         }
       },
       child: Scaffold(
@@ -5749,8 +5964,9 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
                       );
                     }
                     if (!context.mounted) return;
-                    final inFlightStatus =
-                        ref.read(syncCoordinatorProvider).memos;
+                    final inFlightStatus = ref
+                        .read(syncCoordinatorProvider)
+                        .memos;
                     if (!inFlightStatus.running) {
                       final language = ref.read(
                         appPreferencesProvider.select((p) => p.language),
@@ -5852,6 +6068,19 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
                           actions: useWindowsDesktopHeader && !_searching
                               ? null
                               : [
+                                  if (!_searching &&
+                                      activeTagStat?.tagId != null)
+                                    IconButton(
+                                      tooltip:
+                                          context.t.strings.legacy.msg_edit_tag,
+                                      onPressed: () async {
+                                        await TagEditSheet.showEditorDialog(
+                                          context,
+                                          tag: activeTagStat,
+                                        );
+                                      },
+                                      icon: const Icon(Icons.edit),
+                                    ),
                                   if (kDebugMode && !screenshotModeEnabled)
                                     Padding(
                                       padding: const EdgeInsets.only(right: 6),
@@ -6006,6 +6235,15 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
                                                   child: _FilterTagChip(
                                                     label:
                                                         '#${resolvedTag!.trim()}',
+                                                    colors: tagColorLookup
+                                                        .resolveChipColorsByPath(
+                                                          resolvedTag.trim(),
+                                                          surfaceColor:
+                                                              Theme.of(context)
+                                                                  .colorScheme
+                                                                  .surface,
+                                                          isDark: isDark,
+                                                        ),
                                                     onClear:
                                                         widget.showTagFilters
                                                         ? () =>
@@ -6044,6 +6282,7 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
                                   .toList(growable: false),
                               selectedTag: resolvedTag,
                               onSelectTag: _selectTagFilter,
+                              tagColors: tagColorLookup,
                             ),
                           ),
                         if (memosLoading && visibleMemos.isNotEmpty)
@@ -6078,6 +6317,7 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
                               tags: recommendedTags
                                   .map((e) => e.tag)
                                   .toList(growable: false),
+                              tagColors: tagColorLookup,
                               onSelectTag: _applySearchQuery,
                             ),
                           )
@@ -6127,6 +6367,7 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
                                   prefs: prefs,
                                   outboxStatus: outboxStatus,
                                   removing: false,
+                                  tagColors: tagColorLookup,
                                 );
                               },
                             ),
@@ -6735,6 +6976,7 @@ class _SearchLanding extends StatefulWidget {
     required this.onRemoveHistory,
     required this.onSelectHistory,
     required this.tags,
+    required this.tagColors,
     required this.onSelectTag,
   });
 
@@ -6743,6 +6985,7 @@ class _SearchLanding extends StatefulWidget {
   final ValueChanged<String> onRemoveHistory;
   final ValueChanged<String> onSelectHistory;
   final List<String> tags;
+  final TagColorLookup tagColors;
   final ValueChanged<String> onSelectTag;
 
   @override
@@ -6769,13 +7012,6 @@ class _SearchLandingState extends State<_SearchLanding> {
         ? MemoFlowPalette.textDark
         : MemoFlowPalette.textLight;
     final textMuted = textMain.withValues(alpha: isDark ? 0.55 : 0.6);
-    final border = isDark
-        ? MemoFlowPalette.borderDark
-        : MemoFlowPalette.borderLight;
-    final chipBg = isDark
-        ? MemoFlowPalette.cardDark
-        : MemoFlowPalette.cardLight;
-    final accent = MemoFlowPalette.primary;
     final tags = widget.tags;
     final hasMoreTags = tags.length > _collapsedTagCount;
     final visibleTags = _showAllTags || !hasMoreTags
@@ -6910,33 +7146,14 @@ class _SearchLandingState extends State<_SearchLanding> {
                   InkWell(
                     onTap: () => widget.onSelectTag('#${tag.trim()}'),
                     borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
+                    child: TagBadge(
+                      label: '#${tag.trim()}',
+                      colors: widget.tagColors.resolveChipColorsByPath(
+                        tag.trim(),
+                        surfaceColor: Theme.of(context).colorScheme.surface,
+                        isDark: isDark,
                       ),
-                      decoration: BoxDecoration(
-                        color: chipBg,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: border),
-                        boxShadow: isDark
-                            ? null
-                            : [
-                                BoxShadow(
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                  color: Colors.black.withValues(alpha: 0.06),
-                                ),
-                              ],
-                      ),
-                      child: Text(
-                        '#${tag.trim()}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: accent,
-                        ),
-                      ),
+                      compact: true,
                     ),
                   ),
               ],
@@ -7080,11 +7297,13 @@ class _TagFilterBar extends StatelessWidget {
     required this.tags,
     required this.selectedTag,
     required this.onSelectTag,
+    required this.tagColors,
   });
 
   final List<String> tags;
   final String? selectedTag;
   final ValueChanged<String?> onSelectTag;
+  final TagColorLookup tagColors;
 
   @override
   Widget build(BuildContext context) {
@@ -7108,10 +7327,20 @@ class _TagFilterBar extends StatelessWidget {
       String label, {
       required bool selected,
       required VoidCallback onTap,
+      String? tagPath,
     }) {
-      final bg = selected ? selectedBg : chipBg;
-      final chipBorder = selected ? selectedBorder : border;
-      final textColor = selected ? accent : textMuted;
+      final colors = tagPath == null
+          ? null
+          : tagColors.resolveChipColorsByPath(
+              tagPath,
+              surfaceColor: Theme.of(context).colorScheme.surface,
+              isDark: isDark,
+            );
+      final bg = colors?.background ?? (selected ? selectedBg : chipBg);
+      final chipBorder = colors == null
+          ? (selected ? selectedBorder : border)
+          : (selected ? accent : colors.border);
+      final textColor = colors?.text ?? (selected ? accent : textMuted);
       return InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
@@ -7171,6 +7400,7 @@ class _TagFilterBar extends StatelessWidget {
                   '#${tag.trim()}',
                   selected: normalizedSelected == tag.trim(),
                   onTap: () => onSelectTag(tag),
+                  tagPath: tag.trim(),
                 ),
             ],
           ),
@@ -7181,18 +7411,21 @@ class _TagFilterBar extends StatelessWidget {
 }
 
 class _FilterTagChip extends StatelessWidget {
-  const _FilterTagChip({required this.label, this.onClear});
+  const _FilterTagChip({required this.label, this.onClear, this.colors});
 
   final String label;
   final VoidCallback? onClear;
+  final TagChipColors? colors;
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final accent = MemoFlowPalette.primary;
-    final bg = accent.withValues(alpha: isDark ? 0.22 : 0.14);
-    final border = accent.withValues(alpha: isDark ? 0.55 : 0.6);
-    final textColor = accent;
+    final bg =
+        colors?.background ?? accent.withValues(alpha: isDark ? 0.22 : 0.14);
+    final border =
+        colors?.border ?? accent.withValues(alpha: isDark ? 0.55 : 0.6);
+    final textColor = colors?.text ?? accent;
 
     final chip = Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -7304,6 +7537,7 @@ class _MemoCard extends StatefulWidget {
     required this.memo,
     required this.dateText,
     required this.reminderText,
+    required this.tagColors,
     required this.initiallyExpanded,
     required this.highlightQuery,
     required this.collapseLongContent,
@@ -7329,6 +7563,7 @@ class _MemoCard extends StatefulWidget {
   final LocalMemo memo;
   final String dateText;
   final String? reminderText;
+  final TagColorLookup tagColors;
   final bool initiallyExpanded;
   final String? highlightQuery;
   final bool collapseLongContent;
@@ -7644,6 +7879,7 @@ class _MemoCardState extends State<_MemoCard> {
               blockSpacing: 4,
               normalizeHeadings: true,
               renderImages: false,
+              tagColors: widget.tagColors,
               onToggleTask: (request) => onToggleTask(request.taskIndex),
             ),
             if (showToggle) ...[
@@ -8281,9 +8517,7 @@ class _MemoRelationsSectionState extends ConsumerState<_MemoRelationsSection> {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            context.t.strings.legacy.msg_failed_load_4(e: error),
-          ),
+          content: Text(context.t.strings.legacy.msg_failed_load_4(e: error)),
         ),
       );
       return;

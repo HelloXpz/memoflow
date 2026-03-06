@@ -17,6 +17,7 @@ import '../review/daily_review_screen.dart';
 import '../settings/settings_screen.dart';
 import '../stats/stats_screen.dart';
 import '../sync/sync_queue_screen.dart';
+import 'tag_edit_sheet.dart';
 import 'tag_tree.dart';
 import '../../i18n/strings.g.dart';
 
@@ -81,6 +82,10 @@ class TagsScreen extends ConsumerWidget {
     closeDrawerThenPushReplacement(context, const NotificationsScreen());
   }
 
+  Future<void> _openTagEditor(BuildContext context, TagStat? tag) async {
+    await TagEditSheet.showEditorDialog(context, tag: tag);
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tagsAsync = ref.watch(tagStatsProvider);
@@ -116,6 +121,22 @@ class TagsScreen extends ConsumerWidget {
                       ),
                     );
                   },
+                  onEdit: (node) {
+                    final tagId = node.tagId;
+                    if (tagId == null) return;
+                    _openTagEditor(
+                      context,
+                      TagStat(
+                        tag: node.path,
+                        path: node.path,
+                        count: node.count,
+                        tagId: tagId,
+                        parentId: node.parentId,
+                        pinned: node.pinned,
+                        colorHex: node.colorHex,
+                      ),
+                    );
+                  },
                   textMain: Theme.of(context).colorScheme.onSurface,
                   textMuted: Theme.of(context).colorScheme.onSurfaceVariant,
                   showCount: true,
@@ -144,6 +165,13 @@ class TagsScreen extends ConsumerWidget {
             ignoring: enableWindowsDragToMove,
             child: Text(context.t.strings.legacy.msg_tags),
           ),
+          actions: [
+            IconButton(
+              tooltip: context.t.strings.legacy.msg_create_tag,
+              onPressed: () => _openTagEditor(context, null),
+              icon: const Icon(Icons.add),
+            ),
+          ],
         ),
         body: useDesktopSidePane
             ? Row(

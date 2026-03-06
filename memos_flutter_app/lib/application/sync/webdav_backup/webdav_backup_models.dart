@@ -16,6 +16,7 @@ enum WebDavBackupConfigType {
   templateSettings,
   appLock,
   noteDraft,
+  tags,
   webdavSettings,
 }
 
@@ -30,6 +31,7 @@ class WebDavBackupConfigBundle {
     this.templateSettings,
     this.appLockSnapshot,
     this.noteDraft,
+    this.tagsSnapshot,
     this.webDavSettings,
   });
 
@@ -42,6 +44,7 @@ class WebDavBackupConfigBundle {
   final MemoTemplateSettings? templateSettings;
   final AppLockSnapshot? appLockSnapshot;
   final String? noteDraft;
+  final TagSnapshot? tagsSnapshot;
   final WebDavSettings? webDavSettings;
 
   bool get isEmpty =>
@@ -54,6 +57,7 @@ class WebDavBackupConfigBundle {
       templateSettings == null &&
       appLockSnapshot == null &&
       noteDraft == null &&
+      tagsSnapshot == null &&
       webDavSettings == null;
 }
 
@@ -80,6 +84,7 @@ const _autoRestoreConfigTypes = <WebDavBackupConfigType>{
   WebDavBackupConfigType.templateSettings,
   WebDavBackupConfigType.locationSettings,
   WebDavBackupConfigType.imageCompressionSettings,
+  WebDavBackupConfigType.tags,
 };
 
 const _confirmRestoreConfigTypes = <WebDavBackupConfigType>{
@@ -99,6 +104,7 @@ const _safeBackupConfigTypes = <WebDavBackupConfigType>{
   WebDavBackupConfigType.templateSettings,
   WebDavBackupConfigType.locationSettings,
   WebDavBackupConfigType.imageCompressionSettings,
+  WebDavBackupConfigType.tags,
 };
 
 const _fullBackupConfigTypes = <WebDavBackupConfigType>{
@@ -112,6 +118,7 @@ const _fullBackupConfigTypes = <WebDavBackupConfigType>{
   WebDavBackupConfigType.appLock,
   WebDavBackupConfigType.noteDraft,
   WebDavBackupConfigType.aiSettings,
+  WebDavBackupConfigType.tags,
 };
 
 const _backupDir = 'backup';
@@ -132,6 +139,7 @@ const _backupLocationSnapshotPath = 'config/location_settings.json';
 const _backupTemplateSnapshotPath = 'config/template_settings.json';
 const _backupAppLockSnapshotPath = 'config/app_lock.json';
 const _backupNoteDraftSnapshotPath = 'config/note_draft.json';
+const _backupTagsSnapshotPath = 'config/tags.json';
 const _backupManifestFile = 'manifest.json';
 const _plainBackupIndexFile = 'index.json';
 const _exportEncSignatureFile = '.memoflow_export_enc.json';

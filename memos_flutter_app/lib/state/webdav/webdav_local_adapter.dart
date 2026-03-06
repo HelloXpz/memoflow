@@ -5,6 +5,7 @@ import '../../data/models/image_compression_settings.dart';
 import '../../data/models/image_bed_settings.dart';
 import '../../data/models/location_settings.dart';
 import '../../data/models/memo_template_settings.dart';
+import '../../data/models/tag_snapshot.dart';
 import '../../data/models/webdav_settings.dart';
 import '../../data/repositories/ai_settings_repository.dart';
 import '../settings/ai_settings_provider.dart';
@@ -16,6 +17,7 @@ import '../settings/memo_template_settings_provider.dart';
 import '../memos/note_draft_provider.dart';
 import '../settings/preferences_provider.dart';
 import '../settings/reminder_settings_provider.dart';
+import '../tags/tag_repository.dart';
 import 'webdav_settings_provider.dart';
 
 class RiverpodWebDavSyncLocalAdapter implements WebDavSyncLocalAdapter {
@@ -35,6 +37,7 @@ class RiverpodWebDavSyncLocalAdapter implements WebDavSyncLocalAdapter {
     final lockRepo = _ref.read(appLockRepositoryProvider);
     final lockSnapshot = await lockRepo.readSnapshot();
     final draft = _ref.read(noteDraftProvider).valueOrNull ?? '';
+    final tagsSnapshot = await _ref.read(tagRepositoryProvider).readSnapshot();
     return WebDavSyncLocalSnapshot(
       preferences: prefs,
       aiSettings: ai,
@@ -45,6 +48,7 @@ class RiverpodWebDavSyncLocalAdapter implements WebDavSyncLocalAdapter {
       templateSettings: template,
       appLockSnapshot: lockSnapshot,
       noteDraft: draft,
+      tagsSnapshot: tagsSnapshot,
     );
   }
 
@@ -111,6 +115,11 @@ class RiverpodWebDavSyncLocalAdapter implements WebDavSyncLocalAdapter {
     await _ref
         .read(noteDraftProvider.notifier)
         .setDraft(text, triggerSync: false);
+  }
+
+  @override
+  Future<void> applyTags(TagSnapshot snapshot) async {
+    await _ref.read(tagRepositoryProvider).applySnapshot(snapshot);
   }
 
   @override

@@ -1,73 +1,140 @@
 import 'package:flutter/material.dart';
 
 import '../../core/memoflow_palette.dart';
+import '../../core/tag_badge.dart';
+import '../../core/tag_colors.dart';
 import '../../state/memos/memos_providers.dart';
+import '../../i18n/strings.g.dart';
+
 class TagTreeNode {
   TagTreeNode({
     required this.key,
-    required this.text,
+    required this.path,
     required this.count,
+    this.tagId,
+    this.parentId,
+    this.pinned = false,
+    this.colorHex,
+    this.effectiveColorHex,
     List<TagTreeNode>? children,
   }) : children = children ?? [];
 
   final String key;
-  final String text;
+  final String path;
+  final int? tagId;
+  final int? parentId;
+  final bool pinned;
+  final String? colorHex;
+  String? effectiveColorHex;
   int count;
   final List<TagTreeNode> children;
 }
 
 List<TagTreeNode> buildTagTree(List<TagStat> stats) {
-  final cleaned = stats.where((s) => s.tag.trim().isNotEmpty).toList(growable: false);
-  final counts = <String, int>{};
+  final cleaned = stats
+      .where((s) => s.tag.trim().isNotEmpty)
+      .toList(growable: false);
+  if (cleaned.isEmpty) return const [];
+
+  final nodesByPath = <String, TagTreeNode>{};
+  final nodesById = <int, TagTreeNode>{};
+
   for (final stat in cleaned) {
-    counts[stat.tag.trim()] = stat.count;
-  }
-
-  final sorted = [...cleaned]..sort((a, b) => a.tag.compareTo(b.tag));
-  final root = TagTreeNode(key: '', text: '', count: 0);
-
-  for (final stat in sorted) {
-    final raw = stat.tag.trim();
-    if (raw.isEmpty) continue;
-    final parts = raw.split('/').where((p) => p.trim().isNotEmpty).toList(growable: false);
-    if (parts.isEmpty) continue;
-
-    var current = root;
-    var path = '';
-    for (var i = 0; i < parts.length; i++) {
-      final key = parts[i].trim();
-      if (key.isEmpty) continue;
-      path = path.isEmpty ? key : '$path/$key';
-      TagTreeNode? node;
-      for (final child in current.children) {
-        if (child.text == path) {
-          node = child;
-          break;
-        }
-      }
-      if (node == null) {
-        node = TagTreeNode(
+    final path = stat.path.trim();
+    if (path.isEmpty) continue;
+    final key = path.contains('/') ? path.split('/').last : path;
+    final existing = nodesByPath[path];
+    final node =
+        existing ??
+        TagTreeNode(
           key: key,
-          text: path,
-          count: counts[path] ?? 0,
+          path: path,
+          count: 0,
+          tagId: stat.tagId,
+          parentId: stat.parentId,
+          pinned: stat.pinned,
+          colorHex: stat.colorHex,
         );
-        current.children.add(node);
-      } else if (node.count == 0) {
-        node.count = counts[path] ?? node.count;
-      }
-      current = node;
+    if (existing == null) {
+      nodesByPath[path] = node;
+    }
+    node.count = stat.count;
+    node.effectiveColorHex ??= stat.colorHex;
+    if (stat.tagId != null) {
+      nodesById[stat.tagId!] = node;
     }
   }
 
-  _sortNodes(root.children);
-  return root.children;
+  final rootNodes = <TagTreeNode>[];
+  final attached = <String>{};
+
+  for (final node in nodesById.values) {
+    final parentId = node.parentId;
+    if (parentId != null && nodesById.containsKey(parentId)) {
+      nodesById[parentId]!.children.add(node);
+    } else {
+      rootNodes.add(node);
+    }
+    attached.add(node.path);
+  }
+
+  for (final node in nodesByPath.values) {
+    if (attached.contains(node.path)) continue;
+    _attachByPath(node, nodesByPath, rootNodes, attached);
+  }
+
+  _applyInheritedColors(rootNodes, null);
+  _sortNodes(rootNodes);
+  return rootNodes;
 }
 
 void _sortNodes(List<TagTreeNode> nodes) {
-  nodes.sort((a, b) => a.text.compareTo(b.text));
+  nodes.sort((a, b) {
+    if (a.pinned != b.pinned) return a.pinned ? -1 : 1;
+    return a.key.compareTo(b.key);
+  });
   for (final node in nodes) {
     if (node.children.isNotEmpty) {
       _sortNodes(node.children);
+    }
+  }
+}
+
+void _attachByPath(
+  TagTreeNode node,
+  Map<String, TagTreeNode> nodesByPath,
+  List<TagTreeNode> rootNodes,
+  Set<String> attached,
+) {
+  if (attached.contains(node.path)) return;
+  if (!node.path.contains('/')) {
+    rootNodes.add(node);
+    attached.add(node.path);
+    return;
+  }
+  final parentPath = node.path.substring(0, node.path.lastIndexOf('/'));
+  final parentNode = nodesByPath.putIfAbsent(
+    parentPath,
+    () => TagTreeNode(
+      key: parentPath.split('/').last,
+      path: parentPath,
+      count: 0,
+    ),
+  );
+  parentNode.children.add(node);
+  attached.add(node.path);
+  if (!attached.contains(parentNode.path)) {
+    _attachByPath(parentNode, nodesByPath, rootNodes, attached);
+  }
+}
+
+void _applyInheritedColors(List<TagTreeNode> nodes, String? inheritedHex) {
+  for (final node in nodes) {
+    final own = node.colorHex;
+    final resolved = own != null && own.trim().isNotEmpty ? own : inheritedHex;
+    node.effectiveColorHex = resolved;
+    if (node.children.isNotEmpty) {
+      _applyInheritedColors(node.children, resolved);
     }
   }
 }
@@ -82,6 +149,8 @@ class TagTreeList extends StatelessWidget {
     this.showCount = false,
     this.initiallyExpanded = true,
     this.compact = false,
+    this.onEdit,
+    this.selectedPath,
   });
 
   final List<TagTreeNode> nodes;
@@ -91,6 +160,8 @@ class TagTreeList extends StatelessWidget {
   final bool showCount;
   final bool initiallyExpanded;
   final bool compact;
+  final ValueChanged<TagTreeNode>? onEdit;
+  final String? selectedPath;
 
   @override
   Widget build(BuildContext context) {
@@ -109,6 +180,8 @@ class TagTreeList extends StatelessWidget {
             showCount: showCount,
             initiallyExpanded: initiallyExpanded,
             compact: compact,
+            onEdit: onEdit,
+            selectedPath: selectedPath,
           ),
       ],
     );
@@ -125,6 +198,8 @@ class _TagTreeItem extends StatefulWidget {
     required this.showCount,
     required this.initiallyExpanded,
     required this.compact,
+    required this.onEdit,
+    required this.selectedPath,
   });
 
   final TagTreeNode node;
@@ -135,6 +210,8 @@ class _TagTreeItem extends StatefulWidget {
   final bool showCount;
   final bool initiallyExpanded;
   final bool compact;
+  final ValueChanged<TagTreeNode>? onEdit;
+  final String? selectedPath;
 
   @override
   State<_TagTreeItem> createState() => _TagTreeItemState();
@@ -152,7 +229,7 @@ class _TagTreeItemState extends State<_TagTreeItem> {
   @override
   void didUpdateWidget(covariant _TagTreeItem oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.node.text != widget.node.text) {
+    if (oldWidget.node.path != widget.node.path) {
       _expanded = widget.initiallyExpanded;
     }
   }
@@ -166,11 +243,23 @@ class _TagTreeItemState extends State<_TagTreeItem> {
     final iconSize = widget.compact ? 18.0 : 20.0;
     final label = '#${node.key}';
     final count = widget.showCount && node.count > 1 ? ' (${node.count})' : '';
+    final normalizedSelectedPath = widget.selectedPath?.trim();
+    final isSelected =
+        normalizedSelectedPath != null &&
+        normalizedSelectedPath.isNotEmpty &&
+        normalizedSelectedPath == node.path;
     final accent = MemoFlowPalette.primary;
+    final colors = node.effectiveColorHex == null
+        ? null
+        : buildTagChipColors(
+            baseColor: parseTagColor(node.effectiveColorHex!) ?? accent,
+            surfaceColor: Theme.of(context).colorScheme.surface,
+            isDark: Theme.of(context).brightness == Brightness.dark,
+          );
 
     final row = InkWell(
       borderRadius: BorderRadius.circular(12),
-      onTap: () => widget.onSelect(node.text),
+      onTap: () => widget.onSelect(node.path),
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: 8, vertical: vertical),
         child: Row(
@@ -178,11 +267,20 @@ class _TagTreeItemState extends State<_TagTreeItem> {
             Icon(Icons.tag, size: iconSize, color: widget.textMuted),
             const SizedBox(width: 10),
             Expanded(
-              child: Text(
-                '$label$count',
-                style: TextStyle(fontWeight: FontWeight.w600, color: widget.textMain),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: TagBadge(
+                  label: '$label$count',
+                  colors: colors,
+                  compact: widget.compact,
+                ),
               ),
             ),
+            if (node.pinned)
+              Padding(
+                padding: const EdgeInsets.only(right: 4),
+                child: Icon(Icons.push_pin, size: 16, color: widget.textMuted),
+              ),
             if (hasChildren)
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
@@ -190,8 +288,21 @@ class _TagTreeItemState extends State<_TagTreeItem> {
                 child: AnimatedRotation(
                   turns: _expanded ? 0.25 : 0.0,
                   duration: const Duration(milliseconds: 160),
-                  child: Icon(Icons.chevron_right, size: 18, color: widget.textMuted),
+                  child: Icon(
+                    Icons.chevron_right,
+                    size: 18,
+                    color: widget.textMuted,
+                  ),
                 ),
+              ),
+            if (node.tagId != null &&
+                widget.onEdit != null &&
+                (!widget.compact || isSelected))
+              IconButton(
+                onPressed: () => widget.onEdit?.call(node),
+                icon: Icon(Icons.edit, size: 18, color: widget.textMuted),
+                tooltip: context.t.strings.legacy.msg_edit_tag,
+                visualDensity: VisualDensity.compact,
               ),
           ],
         ),
@@ -233,6 +344,8 @@ class _TagTreeItemState extends State<_TagTreeItem> {
                       showCount: widget.showCount,
                       initiallyExpanded: widget.initiallyExpanded,
                       compact: widget.compact,
+                      onEdit: widget.onEdit,
+                      selectedPath: widget.selectedPath,
                     ),
                 ],
               ),

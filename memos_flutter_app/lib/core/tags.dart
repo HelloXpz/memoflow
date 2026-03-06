@@ -8,6 +8,36 @@ bool _isValidTagRune(int rune) {
   return _tagRuneRe.hasMatch(String.fromCharCode(rune));
 }
 
+String normalizeTagPath(String raw) {
+  final trimmed = raw.trim();
+  if (trimmed.isEmpty) return '';
+  final withoutHash = trimmed.startsWith('#')
+      ? trimmed.substring(1)
+      : trimmed;
+  final parts = withoutHash.split('/');
+  final normalizedParts = <String>[];
+  for (final part in parts) {
+    final normalized = _normalizeTagSegment(part);
+    if (normalized.isEmpty) continue;
+    normalizedParts.add(normalized);
+  }
+  if (normalizedParts.isEmpty) return '';
+  return normalizedParts.join('/');
+}
+
+String _normalizeTagSegment(String raw) {
+  final trimmed = raw.trim();
+  if (trimmed.isEmpty) return '';
+  final buffer = StringBuffer();
+  for (final rune in trimmed.runes) {
+    if (rune == 0x2F) continue; // slash is a path separator
+    if (_isValidTagRune(rune)) {
+      buffer.writeCharCode(rune);
+    }
+  }
+  return buffer.toString().toLowerCase();
+}
+
 List<String> extractTags(String content) {
   final tags = <String>{};
   if (content.isEmpty) return const [];
