@@ -20,6 +20,7 @@ class DesktopTrayController with TrayListener {
   bool _initialized = false;
   TrayActionHandler? _onOpenSettings;
   TrayActionHandler? _onNewMemo;
+  TrayActionHandler? _onExit;
 
   bool get supported =>
       !kIsWeb &&
@@ -29,9 +30,11 @@ class DesktopTrayController with TrayListener {
   void configureActions({
     TrayActionHandler? onOpenSettings,
     TrayActionHandler? onNewMemo,
+    TrayActionHandler? onExit,
   }) {
     _onOpenSettings = onOpenSettings;
     _onNewMemo = onNewMemo;
+    _onExit = onExit;
   }
 
   Future<void> ensureInitialized() async {
@@ -101,7 +104,11 @@ class DesktopTrayController with TrayListener {
         unawaited(_invokeWithForeground(_onNewMemo));
         return;
       case _trayActionExit:
-        unawaited(_exitFromTray());
+        if (_onExit != null) {
+          unawaited(Future.sync(() => _onExit?.call()));
+        } else {
+          unawaited(_exitFromTray());
+        }
         return;
       default:
         return;
@@ -127,5 +134,14 @@ class DesktopTrayController with TrayListener {
       await windowManager.setSkipTaskbar(false);
     }
     await windowManager.close();
+  }
+
+  Future<void> dispose() async {
+    if (!_initialized) return;
+    trayManager.removeListener(this);
+    try {
+      await trayManager.destroy();
+    } catch (_) {}
+    _initialized = false;
   }
 }

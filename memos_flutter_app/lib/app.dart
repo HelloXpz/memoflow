@@ -10,6 +10,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'application/app/app_sync_orchestrator.dart';
 import 'application/desktop/desktop_quick_input_controller.dart';
 import 'application/desktop/desktop_window_manager.dart';
+import 'application/desktop/desktop_exit_coordinator.dart';
+import 'application/desktop/single_instance_coordinator.dart';
 import 'application/quick_input/quick_input_service.dart';
 import 'application/startup/startup_coordinator.dart';
 import 'application/sync/sync_feedback_presenter.dart';
@@ -53,6 +55,7 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
   late final StartupCoordinator _startupCoordinator;
   late final DesktopQuickInputController _desktopQuickInputController;
   late final DesktopWindowManager _desktopWindowManager;
+  DesktopExitCoordinator? _exitCoordinator;
   late final StatsWidgetUpdater _statsWidgetUpdater;
   late final UpdateAnnouncementRunner _updateAnnouncementRunner;
   late final SyncFeedbackPresenter _syncFeedbackPresenter;
@@ -166,6 +169,11 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
         setState(() {});
       },
     );
+    _exitCoordinator = DesktopExitCoordinator.init(
+      ref: ref,
+      quickInputController: _desktopQuickInputController,
+    );
+    unawaited(_exitCoordinator?.attachWindowListener());
     _updateAnnouncementRunner = UpdateAnnouncementRunner(
       bootstrapAdapter: _bootstrapAdapter,
       navigatorKey: _navigatorKey,
@@ -184,6 +192,9 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
       );
     });
     _desktopWindowManager.configureTrayActions();
+    SingleInstanceCoordinator.setActivationHandler(
+      DesktopExitCoordinator.activateMainWindow,
+    );
     _bootstrapAdapter.readLogManager(ref);
     HomeWidgetService.setLaunchHandler(_startupCoordinator.handleWidgetLaunch);
     ShareHandlerService.setShareHandler(_startupCoordinator.handleShareLaunch);
@@ -388,6 +399,7 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
     _startupCoordinator.dispose();
     _desktopWindowManager.unbindMethodHandler();
     unawaited(_desktopQuickInputController.unregisterHotKey());
+    unawaited(_exitCoordinator?.dispose());
     super.dispose();
   }
 }

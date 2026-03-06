@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/hash.dart';
 import '../../data/db/app_database.dart';
+import '../../data/db/database_registry.dart';
 import 'session_provider.dart';
 
 String databaseNameForAccountKey(String accountKey) {
@@ -16,6 +19,10 @@ final databaseProvider = Provider<AppDatabase>((ref) {
 
   final dbName = databaseNameForAccountKey(accountKey);
   final db = AppDatabase(dbName: dbName);
-  ref.onDispose(db.close);
+  DatabaseRegistry.register(db);
+  ref.onDispose(() {
+    DatabaseRegistry.unregister(db);
+    unawaited(db.close());
+  });
   return db;
 });

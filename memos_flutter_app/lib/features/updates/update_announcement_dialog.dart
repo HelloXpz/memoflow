@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/memoflow_palette.dart';
 import '../../data/updates/update_config.dart';
+import '../../application/desktop/desktop_exit_coordinator.dart';
 import 'donors_wall_screen.dart';
 import 'version_announcement_dialog.dart';
 import '../../i18n/strings.g.dart';
@@ -307,7 +308,14 @@ class UpdateAnnouncementDialog extends StatelessWidget {
                         if (isForce)
                           TextButton(
                             onPressed: () {
-                              SystemNavigator.pop();
+                              if (defaultTargetPlatform ==
+                                  TargetPlatform.windows) {
+                                DesktopExitCoordinator.requestExit(
+                                  reason: 'force_update_exit',
+                                );
+                              } else {
+                                SystemNavigator.pop();
+                              }
                             },
                             child: Text(
                               context.t.strings.legacy.msg_exit_app,

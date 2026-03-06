@@ -170,6 +170,10 @@ class _DesktopQuickInputWindowScreenState
       await _bringWindowToFront();
       return true;
     }
+    if (call.method == desktopSubWindowExitMethod) {
+      unawaited(_closeWindowForExit());
+      return true;
+    }
     if (call.method == desktopSubWindowIsVisibleMethod) {
       try {
         await windowManager.ensureInitialized();
@@ -179,6 +183,19 @@ class _DesktopQuickInputWindowScreenState
       }
     }
     return null;
+  }
+
+  Future<void> _closeWindowForExit() async {
+    try {
+      await windowManager.ensureInitialized();
+    } catch (_) {}
+    try {
+      await WindowController.fromWindowId(widget.windowId).close();
+      return;
+    } catch (_) {}
+    try {
+      await windowManager.close();
+    } catch (_) {}
   }
 
   Future<void> _bringWindowToFront() async {

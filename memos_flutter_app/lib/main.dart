@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:cryptography/cryptography.dart';
@@ -14,6 +15,7 @@ import 'package:window_manager/window_manager.dart';
 
 import 'app.dart';
 import 'application/desktop/desktop_tray_controller.dart';
+import 'application/desktop/single_instance_coordinator.dart';
 import 'core/debug_ephemeral_storage.dart';
 import 'core/startup_timing.dart';
 import 'data/logs/log_manager.dart';
@@ -66,6 +68,16 @@ void main(List<String> args) {
       StartupTiming.bindFirstFrameTiming();
       final isMultiWindow =
           !kIsWeb && args.isNotEmpty && args.first == 'multi_window';
+      if (!kIsWeb &&
+          defaultTargetPlatform == TargetPlatform.windows &&
+          !isMultiWindow) {
+        final instance = await SingleInstanceCoordinator.ensureSingleInstance(
+          enable: true,
+        );
+        if (!instance.isPrimary) {
+          exit(0);
+        }
+      }
       await prepareEphemeralDebugStorage(clearExisting: !isMultiWindow);
       StartupTiming.markStep('debug_storage_ready');
 

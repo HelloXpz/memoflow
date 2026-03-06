@@ -311,9 +311,13 @@ class _DesktopSettingsWindowScreenState
     String? currentKey,
   }) async {
     try {
+      final args = <String, dynamic>{'reason': reason};
+      if (reason == 'session_key' || currentKey != null) {
+        args['currentKey'] = currentKey;
+      }
       await _invokeMainWindowMethod(
         desktopMainReloadWorkspaceMethod,
-        <String, dynamic>{'reason': reason, 'currentKey': currentKey},
+        args,
       );
     } catch (_) {}
   }
@@ -386,6 +390,10 @@ class _DesktopSettingsWindowScreenState
       await _bringWindowToFront();
       return true;
     }
+    if (call.method == desktopSubWindowExitMethod) {
+      unawaited(_closeWindowForExit());
+      return true;
+    }
     if (call.method == desktopSubWindowIsVisibleMethod) {
       try {
         await windowManager.ensureInitialized();
@@ -402,6 +410,19 @@ class _DesktopSettingsWindowScreenState
       return true;
     }
     return null;
+  }
+
+  Future<void> _closeWindowForExit() async {
+    try {
+      await windowManager.ensureInitialized();
+    } catch (_) {}
+    try {
+      await WindowController.fromWindowId(widget.windowId).close();
+      return;
+    } catch (_) {}
+    try {
+      await windowManager.close();
+    } catch (_) {}
   }
 
   Future<void> _reloadSessionFromStorage() async {

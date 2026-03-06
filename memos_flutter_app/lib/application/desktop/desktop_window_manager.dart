@@ -10,6 +10,7 @@ import '../../core/desktop_quick_input_channel.dart';
 import 'desktop_settings_window.dart';
 import '../../core/desktop/shortcuts.dart';
 import 'desktop_tray_controller.dart';
+import 'desktop_exit_coordinator.dart';
 import '../../state/memos/app_bootstrap_adapter_provider.dart';
 import 'desktop_quick_input_controller.dart';
 
@@ -59,6 +60,7 @@ class DesktopWindowManager {
     DesktopTrayController.instance.configureActions(
       onOpenSettings: _handleOpenSettingsFromTray,
       onNewMemo: _handleCreateMemoFromTray,
+      onExit: () => DesktopExitCoordinator.requestExit(reason: 'tray_exit'),
     );
   }
 
