@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import '../../core/storage_read.dart';
 import '../models/local_library.dart';
 
 class LocalLibraryState {
@@ -34,17 +35,37 @@ class LocalLibraryRepository {
 
   final FlutterSecureStorage _storage;
 
-  Future<LocalLibraryState> read() async {
-    final raw = await _storage.read(key: _kStateKey);
+  Future<StorageReadResult<LocalLibraryState>> readWithStatus() async {
+    String? raw;
+    try {
+      raw = await _storage.read(key: _kStateKey);
+    } catch (error, stackTrace) {
+      return StorageReadResult.failure(cause: error, stackTrace: stackTrace);
+    }
     if (raw == null || raw.trim().isEmpty) {
-      return const LocalLibraryState(libraries: []);
+      return StorageReadResult.empty();
     }
     try {
       final decoded = jsonDecode(raw);
       if (decoded is Map) {
-        return LocalLibraryState.fromJson(decoded.cast<String, dynamic>());
+        return StorageReadResult.success(
+          LocalLibraryState.fromJson(decoded.cast<String, dynamic>()),
+        );
       }
-    } catch (_) {}
+      return StorageReadResult.failure(
+        cause: const FormatException('Expected JSON object'),
+        stackTrace: StackTrace.current,
+      );
+    } catch (error, stackTrace) {
+      return StorageReadResult.failure(cause: error, stackTrace: stackTrace);
+    }
+  }
+
+  Future<LocalLibraryState> read() async {
+    final result = await readWithStatus();
+    if (result.isSuccess) {
+      return result.data!;
+    }
     return const LocalLibraryState(libraries: []);
   }
 

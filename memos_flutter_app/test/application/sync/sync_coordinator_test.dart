@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:memos_flutter_app/application/sync/sync_coordinator.dart';
+import 'package:memos_flutter_app/application/sync/sync_dependencies.dart';
 import 'package:memos_flutter_app/application/sync/sync_error.dart';
 import 'package:memos_flutter_app/application/sync/sync_request.dart';
 import 'package:memos_flutter_app/application/sync/sync_types.dart';
@@ -27,6 +28,7 @@ import 'package:memos_flutter_app/state/system/local_library_provider.dart';
 import 'package:memos_flutter_app/state/memos/memos_providers.dart';
 import 'package:memos_flutter_app/state/system/session_provider.dart';
 import 'package:memos_flutter_app/state/sync/sync_controller_base.dart';
+import 'package:memos_flutter_app/state/sync/sync_coordinator_provider.dart';
 import 'package:memos_flutter_app/state/webdav/webdav_backup_provider.dart';
 import 'package:memos_flutter_app/state/webdav/webdav_settings_provider.dart';
 
@@ -94,7 +96,10 @@ class FakeWebDavSyncService implements WebDavSyncService {
 }
 
 class FakeWebDavBackupService implements WebDavBackupService {
-  FakeWebDavBackupService(this.calls, {this.result = const WebDavBackupSuccess()});
+  FakeWebDavBackupService(
+    this.calls, {
+    this.result = const WebDavBackupSuccess(),
+  });
 
   final List<String> calls;
   WebDavBackupResult result;
@@ -359,9 +364,7 @@ class FakeAppSessionController extends AppSessionController {
   }
 
   @override
-  String resolveEffectiveServerVersionForAccount({
-    required Account account,
-  }) {
+  String resolveEffectiveServerVersionForAccount({required Account account}) {
     throw UnimplementedError();
   }
 
@@ -394,23 +397,38 @@ ProviderContainer _buildContainer({
   final settingsRepo = FakeWebDavSettingsRepository(
     webDavSettings ?? WebDavSettings.defaults.copyWith(enabled: true),
   );
+  final backupStateRepo = FakeWebDavBackupStateRepository();
+  final backupPasswordRepo = FakeWebDavBackupPasswordRepository();
+  const localLibrary = LocalLibrary(
+    key: 'local',
+    name: 'Local',
+    rootPath: 'c:\\tmp',
+  );
   return ProviderContainer(
     overrides: [
       appSessionProvider.overrideWith((ref) => session),
       databaseProvider.overrideWithValue(db),
-      currentLocalLibraryProvider.overrideWithValue(
-        const LocalLibrary(key: 'local', name: 'Local', rootPath: 'c:\\tmp'),
-      ),
+      currentLocalLibraryProvider.overrideWithValue(localLibrary),
       syncControllerProvider.overrideWith((ref) => syncController),
       webDavSettingsRepositoryProvider.overrideWithValue(settingsRepo),
-      webDavBackupStateRepositoryProvider.overrideWithValue(
-        FakeWebDavBackupStateRepository(),
-      ),
+      webDavBackupStateRepositoryProvider.overrideWithValue(backupStateRepo),
       webDavBackupPasswordRepositoryProvider.overrideWithValue(
-        FakeWebDavBackupPasswordRepository(),
+        backupPasswordRepo,
       ),
       syncCoordinatorProvider.overrideWith(
-        (ref) => SyncCoordinator(ref, webDavSyncService, webDavBackupService),
+        (ref) => SyncCoordinator(
+          SyncDependencies(
+            webDavSyncService: webDavSyncService,
+            webDavBackupService: webDavBackupService,
+            webDavBackupStateRepository: backupStateRepo,
+            readWebDavSettings: () => settingsRepo.settings,
+            readCurrentAccountKey: () => session.state.valueOrNull?.currentKey,
+            readCurrentAccount: () => session.state.valueOrNull?.currentAccount,
+            readCurrentLocalLibrary: () => localLibrary,
+            readDatabase: () => db,
+            runMemosSync: syncController.syncNow,
+          ),
+        ),
       ),
     ],
   );
@@ -424,9 +442,7 @@ void main() {
         retryable: true,
         message: 'fail',
       );
-      final syncController = FakeSyncController(
-        result: MemoSyncFailure(error),
-      );
+      final syncController = FakeSyncController(result: MemoSyncFailure(error));
       final db = FakeAppDatabase(retryableCount: 1);
       final calls = <String>[];
       final webDavSyncService = FakeWebDavSyncService(calls);
@@ -439,7 +455,9 @@ void main() {
       );
 
       unawaited(
-        container.read(syncCoordinatorProvider.notifier).requestSync(
+        container
+            .read(syncCoordinatorProvider.notifier)
+            .requestSync(
               const SyncRequest(
                 kind: SyncRequestKind.memos,
                 reason: SyncRequestReason.manual,
@@ -476,7 +494,9 @@ void main() {
       );
 
       unawaited(
-        container.read(syncCoordinatorProvider.notifier).requestSync(
+        container
+            .read(syncCoordinatorProvider.notifier)
+            .requestSync(
               const SyncRequest(
                 kind: SyncRequestKind.memos,
                 reason: SyncRequestReason.auto,
@@ -486,7 +506,9 @@ void main() {
       async.flushMicrotasks();
 
       unawaited(
-        container.read(syncCoordinatorProvider.notifier).requestSync(
+        container
+            .read(syncCoordinatorProvider.notifier)
+            .requestSync(
               const SyncRequest(
                 kind: SyncRequestKind.webDavBackup,
                 reason: SyncRequestReason.auto,
@@ -494,7 +516,9 @@ void main() {
             ),
       );
       unawaited(
-        container.read(syncCoordinatorProvider.notifier).requestSync(
+        container
+            .read(syncCoordinatorProvider.notifier)
+            .requestSync(
               const SyncRequest(
                 kind: SyncRequestKind.webDavSync,
                 reason: SyncRequestReason.manual,
@@ -502,7 +526,9 @@ void main() {
             ),
       );
       unawaited(
-        container.read(syncCoordinatorProvider.notifier).requestSync(
+        container
+            .read(syncCoordinatorProvider.notifier)
+            .requestSync(
               const SyncRequest(
                 kind: SyncRequestKind.webDavSync,
                 reason: SyncRequestReason.settings,
@@ -519,10 +545,7 @@ void main() {
 
       expect(calls.isNotEmpty, isTrue);
       expect(calls.first, 'webdavSync');
-      expect(
-        calls.where((c) => c == 'webdavSync').length,
-        1,
-      );
+      expect(calls.where((c) => c == 'webdavSync').length, 1);
 
       container.dispose();
     });
@@ -547,7 +570,9 @@ void main() {
       );
 
       unawaited(
-        container.read(syncCoordinatorProvider.notifier).requestSync(
+        container
+            .read(syncCoordinatorProvider.notifier)
+            .requestSync(
               const SyncRequest(
                 kind: SyncRequestKind.all,
                 reason: SyncRequestReason.auto,

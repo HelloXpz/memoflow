@@ -141,33 +141,55 @@ class LocalSyncController extends SyncControllerBase {
     syncStatusTracker.markSyncStarted();
     await db.recoverOutboxRunningTasks();
     syncQueueProgressTracker.markSyncStarted(totalTasks: totalPendingAtStart);
-    state = const AsyncValue.loading();
-    final next = await AsyncValue.guard(() async {
-      _bridgeSettingsSnapshot = await bridgeSettingsRepository.read();
-      await fileSystem.ensureStructure();
-      await _runSyncStage(
-        runId: runId,
-        stage: 'scan_pre_push',
-        action: () => _scanIncremental(stage: 'pre_push'),
-      );
-      await _runSyncStage(
-        runId: runId,
-        stage: 'push_outbox',
-        action: _processOutbox,
-      );
-      await _runSyncStage(
-        runId: runId,
-        stage: 'scan_reconcile',
-        action: () => _scanIncremental(stage: 'pull_reconcile'),
-      );
-      await _runSyncStage(
-        runId: runId,
-        stage: 'write_index',
-        action: _ensureIndex,
-      );
-    });
-    state = next;
-    runWatch.stop();
+    AsyncValue<void> next;
+    try {
+      if (!mounted) {
+        next = AsyncValue<void>.error(
+          StateError('Local sync controller was disposed before sync started.'),
+          StackTrace.current,
+        );
+      } else {
+        state = const AsyncValue.loading();
+        next = await AsyncValue.guard(() async {
+          _bridgeSettingsSnapshot = await bridgeSettingsRepository.read();
+          await fileSystem.ensureStructure();
+          await _runSyncStage(
+            runId: runId,
+            stage: 'scan_pre_push',
+            action: () => _scanIncremental(stage: 'pre_push'),
+          );
+          await _runSyncStage(
+            runId: runId,
+            stage: 'push_outbox',
+            action: _processOutbox,
+          );
+          await _runSyncStage(
+            runId: runId,
+            stage: 'scan_reconcile',
+            action: () => _scanIncremental(stage: 'pull_reconcile'),
+          );
+          await _runSyncStage(
+            runId: runId,
+            stage: 'write_index',
+            action: _ensureIndex,
+          );
+        });
+        if (mounted) {
+          state = next;
+        } else {
+          next = AsyncValue<void>.error(
+            StateError('Local sync controller was disposed during sync.'),
+            StackTrace.current,
+          );
+        }
+      }
+    } catch (error, stackTrace) {
+      next = AsyncValue<void>.error(error, stackTrace);
+    } finally {
+      runWatch.stop();
+      syncQueueProgressTracker.markSyncFinished();
+    }
+
     final pendingAtEnd = await db.countOutboxPending();
     final retryableAtEnd = await db.countOutboxRetryable();
     final failedAtEnd = await db.countOutboxFailed();
@@ -198,7 +220,6 @@ class LocalSyncController extends SyncControllerBase {
         },
       );
     }
-    syncQueueProgressTracker.markSyncFinished();
     if (next.hasError) {
       return MemoSyncFailure(_buildSyncError(next.error!));
     }

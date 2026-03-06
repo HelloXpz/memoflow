@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/app_localization.dart';
@@ -9,10 +11,17 @@ import '../../core/splash_tokens.g.dart';
 import '../../core/startup_timing.dart';
 import '../../data/models/app_preferences.dart';
 import '../startup/startup_screen.dart';
+import '../startup/storage_error_screen.dart';
+import '../startup/storage_error_banner.dart';
 import '../auth/login_screen.dart';
 import 'home_screen.dart';
 import '../onboarding/language_selection_screen.dart';
 import '../../state/memos/app_bootstrap_adapter_provider.dart';
+import '../../state/settings/preferences_provider.dart';
+import '../../state/system/local_library_provider.dart';
+import '../../state/system/session_provider.dart';
+import '../../state/system/storage_error_provider.dart';
+import '../../application/desktop/desktop_exit_coordinator.dart';
 
 class MainHomePage extends ConsumerStatefulWidget {
   const MainHomePage({super.key});
@@ -40,6 +49,8 @@ class _MainHomePageState extends ConsumerState<MainHomePage> {
   int? _startupMinRemainingMs;
   int? _startupElapsedAtFirstFrameMs;
   String? _lastDestination;
+  String? _lockedDestination;
+  Widget? _lockedContent;
 
   static const Duration _startupFadeDuration =
       Duration(milliseconds: SplashTokens.startupFadeDurationMs);
@@ -134,6 +145,21 @@ class _MainHomePageState extends ConsumerState<MainHomePage> {
     });
   }
 
+  Future<void> _retryStorageLoad() async {
+    final container = ProviderScope.containerOf(context, listen: false);
+    await container.read(appSessionProvider.notifier).reloadFromStorage();
+    await container.read(appPreferencesProvider.notifier).reloadFromStorage();
+    await container.read(localLibrariesProvider.notifier).reloadFromStorage();
+  }
+
+  void _exitApp() {
+    if (defaultTargetPlatform == TargetPlatform.windows) {
+      DesktopExitCoordinator.requestExit(reason: 'storage_error');
+    } else {
+      SystemNavigator.pop();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!_loggedBuildStart) {
@@ -170,6 +196,8 @@ class _MainHomePageState extends ConsumerState<MainHomePage> {
     final sessionAsync = adapter.watchSession(ref);
     final session = sessionAsync.valueOrNull;
     final localLibrary = adapter.watchCurrentLocalLibrary(ref);
+    final storageError = ref.watch(storageLoadErrorProvider);
+    final hasStorageError = storageError != null;
     final showStartupSlogan = !prefersEnglishFor(prefs.language);
     final waitingForReady =
         !prefsLoaded || (sessionAsync.isLoading && session == null);
@@ -321,7 +349,38 @@ class _MainHomePageState extends ConsumerState<MainHomePage> {
       );
     }
 
-    final showStartup = !_startupMinElapsed || waitingForReady;
+    if (!hasStorageError &&
+        _lastDestination != null &&
+        _lastDestination != 'splash') {
+      _lockedDestination = _lastDestination;
+      _lockedContent = content;
+    }
+
+    if (hasStorageError) {
+      if (_lockedContent == null) {
+        content = StorageErrorScreen(
+          error: storageError,
+          onRetry: _retryStorageLoad,
+          onExit: _exitApp,
+        );
+      } else {
+        content = Stack(
+          children: [
+            _lockedContent!,
+            StorageErrorBanner(
+              error: storageError,
+              onRetry: _retryStorageLoad,
+              onExit: _exitApp,
+            ),
+          ],
+        );
+      }
+    }
+
+    var showStartup = !_startupMinElapsed || waitingForReady;
+    if (hasStorageError) {
+      showStartup = false;
+    }
     if (showStartup && !_startupShownLogged) {
       _startupShownLogged = true;
       StartupTiming.markEvent(

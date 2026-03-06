@@ -48,9 +48,17 @@ ThemeData buildAppTheme(Brightness brightness) {
   final seedColor = brightness == Brightness.dark
       ? MemoFlowPalette.primaryDark
       : MemoFlowPalette.primary;
-  final colorScheme = ColorScheme.fromSeed(
+  final baseScheme = ColorScheme.fromSeed(
     seedColor: seedColor,
     brightness: brightness,
+  );
+  final onPrimary =
+      ThemeData.estimateBrightnessForColor(seedColor) == Brightness.dark
+          ? Colors.white
+          : Colors.black;
+  final colorScheme = baseScheme.copyWith(
+    primary: seedColor,
+    onPrimary: onPrimary,
   );
 
   return ThemeData(

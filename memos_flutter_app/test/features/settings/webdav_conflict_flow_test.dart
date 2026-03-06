@@ -4,10 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:memos_flutter_app/application/sync/sync_coordinator.dart';
+import 'package:memos_flutter_app/application/sync/sync_dependencies.dart';
 import 'package:memos_flutter_app/application/sync/sync_error.dart';
 import 'package:memos_flutter_app/application/sync/sync_types.dart';
 import 'package:memos_flutter_app/application/sync/webdav_backup_service.dart';
 import 'package:memos_flutter_app/application/sync/webdav_sync_service.dart';
+import 'package:memos_flutter_app/data/db/app_database.dart';
 import 'package:memos_flutter_app/data/models/local_library.dart';
 import 'package:memos_flutter_app/data/models/webdav_settings.dart';
 import 'package:memos_flutter_app/data/models/account.dart';
@@ -16,6 +18,7 @@ import 'package:memos_flutter_app/data/models/webdav_backup_state.dart';
 import 'package:memos_flutter_app/data/models/webdav_backup.dart';
 import 'package:memos_flutter_app/data/models/webdav_export_status.dart';
 import 'package:memos_flutter_app/data/models/webdav_sync_meta.dart';
+import 'package:memos_flutter_app/data/logs/webdav_backup_progress_tracker.dart';
 import 'package:memos_flutter_app/data/repositories/webdav_backup_password_repository.dart';
 import 'package:memos_flutter_app/data/repositories/webdav_backup_state_repository.dart';
 import 'package:memos_flutter_app/data/repositories/webdav_settings_repository.dart';
@@ -23,6 +26,7 @@ import 'package:memos_flutter_app/features/settings/webdav_sync_screen.dart';
 import 'package:memos_flutter_app/i18n/strings.g.dart';
 import 'package:memos_flutter_app/state/system/local_library_provider.dart';
 import 'package:memos_flutter_app/state/system/session_provider.dart';
+import 'package:memos_flutter_app/state/sync/sync_coordinator_provider.dart';
 import 'package:memos_flutter_app/state/webdav/webdav_backup_provider.dart';
 import 'package:memos_flutter_app/state/webdav/webdav_settings_provider.dart';
 
@@ -267,7 +271,8 @@ class FakeWebDavSettingsController extends StateNotifier<WebDavSettings>
   void setPassword(String value) => state = state.copyWith(password: value);
 
   @override
-  void setAuthMode(WebDavAuthMode mode) => state = state.copyWith(authMode: mode);
+  void setAuthMode(WebDavAuthMode mode) =>
+      state = state.copyWith(authMode: mode);
 
   @override
   void setIgnoreTlsErrors(bool value) =>
@@ -277,7 +282,8 @@ class FakeWebDavSettingsController extends StateNotifier<WebDavSettings>
   void setRootPath(String value) => state = state.copyWith(rootPath: value);
 
   @override
-  void setVaultEnabled(bool value) => state = state.copyWith(vaultEnabled: value);
+  void setVaultEnabled(bool value) =>
+      state = state.copyWith(vaultEnabled: value);
 
   @override
   void setRememberVaultPassword(bool value) =>
@@ -403,9 +409,7 @@ class FakeAppSessionController extends AppSessionController {
   }
 
   @override
-  String resolveEffectiveServerVersionForAccount({
-    required Account account,
-  }) {
+  String resolveEffectiveServerVersionForAccount({required Account account}) {
     throw UnimplementedError();
   }
 
@@ -426,11 +430,7 @@ class FakeAppSessionController extends AppSessionController {
 }
 
 class RecordingSyncCoordinator extends SyncCoordinator {
-  RecordingSyncCoordinator(
-    super.ref,
-    super.webDavSyncService,
-    super.webDavBackupService,
-  );
+  RecordingSyncCoordinator(SyncDependencies deps) : super(deps);
 
   Map<String, bool>? lastWebDavResolutions;
 
@@ -450,6 +450,11 @@ void main() {
     final webDavSyncService = FakeWebDavSyncService(conflicts);
     final webDavBackupService = FakeWebDavBackupService();
     RecordingSyncCoordinator? coordinator;
+    final backupStateRepo = FakeWebDavBackupStateRepository();
+    final sessionController = FakeAppSessionController(
+      const AsyncValue.data(AppSessionState(accounts: [], currentKey: null)),
+    );
+    final db = AppDatabase(dbName: 'webdav_conflict_flow_test.db');
 
     final settings = WebDavSettings.defaults.copyWith(
       enabled: true,
@@ -458,6 +463,7 @@ void main() {
       password: 'pass',
     );
     final settingsController = FakeWebDavSettingsController(settings);
+    final progressTracker = WebDavBackupProgressTracker();
 
     await tester.pumpWidget(
       TranslationProvider(
@@ -470,22 +476,29 @@ void main() {
             webDavBackupPasswordRepositoryProvider.overrideWithValue(
               FakeWebDavBackupPasswordRepository(),
             ),
+            webDavBackupProgressTrackerProvider.overrideWith(
+              (ref) => progressTracker,
+            ),
             webDavBackupStateRepositoryProvider.overrideWithValue(
-              FakeWebDavBackupStateRepository(),
+              backupStateRepo,
             ),
             currentLocalLibraryProvider.overrideWithValue(null),
-            appSessionProvider.overrideWith(
-              (ref) => FakeAppSessionController(
-                const AsyncValue.data(
-                  AppSessionState(accounts: [], currentKey: null),
-                ),
-              ),
-            ),
+            appSessionProvider.overrideWith((ref) => sessionController),
             syncCoordinatorProvider.overrideWith((ref) {
               coordinator = RecordingSyncCoordinator(
-                ref,
-                webDavSyncService,
-                webDavBackupService,
+                SyncDependencies(
+                  webDavSyncService: webDavSyncService,
+                  webDavBackupService: webDavBackupService,
+                  webDavBackupStateRepository: backupStateRepo,
+                  readWebDavSettings: () => settingsController.state,
+                  readCurrentAccountKey: () =>
+                      sessionController.state.valueOrNull?.currentKey,
+                  readCurrentAccount: () =>
+                      sessionController.state.valueOrNull?.currentAccount,
+                  readCurrentLocalLibrary: () => null,
+                  readDatabase: () => db,
+                  runMemosSync: () async => const MemoSyncSuccess(),
+                ),
               );
               return coordinator!;
             }),
@@ -493,8 +506,7 @@ void main() {
           child: MaterialApp(
             locale: AppLocale.en.flutterLocale,
             supportedLocales: AppLocaleUtils.supportedLocales,
-            localizationsDelegates:
-                GlobalMaterialLocalizations.delegates,
+            localizationsDelegates: GlobalMaterialLocalizations.delegates,
             home: const WebDavSyncScreen(),
           ),
         ),
@@ -515,5 +527,7 @@ void main() {
       coordinator?.lastWebDavResolutions,
       equals(const {'preferences.json': false}),
     );
+
+    await db.close();
   });
 }

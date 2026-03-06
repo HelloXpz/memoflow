@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import '../../core/storage_read.dart';
 import '../../data/api/memo_api_facade.dart';
 import '../../data/api/memo_api_version.dart';
 import '../../data/api/memos_api.dart';
@@ -17,6 +18,8 @@ import '../../data/repositories/ephemeral_secure_storage.dart';
 import '../../data/repositories/queued_secure_storage.dart';
 import '../../core/url.dart';
 import '../../core/debug_ephemeral_storage.dart';
+import 'storage_error_provider.dart';
+
 class AppSessionState {
   const AppSessionState({required this.accounts, required this.currentKey});
 
@@ -48,7 +51,7 @@ final appSessionProvider =
     StateNotifierProvider<AppSessionController, AsyncValue<AppSessionState>>((
       ref,
     ) {
-      return AppSessionNotifier(ref.watch(accountsRepositoryProvider));
+      return AppSessionNotifier(ref.watch(accountsRepositoryProvider), ref);
     });
 
 abstract class AppSessionController
@@ -101,7 +104,7 @@ abstract class AppSessionController
 }
 
 class AppSessionNotifier extends AppSessionController {
-  AppSessionNotifier(this._accountsRepository)
+  AppSessionNotifier(this._accountsRepository, this._ref)
     : super(const AsyncValue.loading()) {
     _loadFromStorage();
   }
@@ -113,6 +116,19 @@ class AppSessionNotifier extends AppSessionController {
         const AppSessionState(accounts: [], currentKey: null);
     final trimmed = key?.trim();
     final nextKey = (trimmed == null || trimmed.isEmpty) ? null : trimmed;
+
+    if (nextKey == current.currentKey) {
+      if (kDebugMode) {
+        LogManager.instance.info(
+          'Session: set_current_key_skipped',
+          context: <String, Object?>{
+            'currentKey': current.currentKey,
+            'accountCount': current.accounts.length,
+          },
+        );
+      }
+      return;
+    }
 
     if (kDebugMode) {
       LogManager.instance.info(
@@ -135,6 +151,7 @@ class AppSessionNotifier extends AppSessionController {
   }
 
   final AccountsRepository _accountsRepository;
+  final Ref _ref;
 
   Future<void> _loadFromStorage() async {
     if (kDebugMode) {
@@ -142,9 +159,32 @@ class AppSessionNotifier extends AppSessionController {
     }
     final stateBeforeLoad = state;
     try {
-      final stored = await _accountsRepository.read();
+      final result = await _accountsRepository.readWithStatus();
       if (!mounted) return;
       if (!identical(state, stateBeforeLoad)) return;
+      if (result.isError) {
+        final error = StorageLoadError(
+          source: 'session',
+          error: result.error!,
+          stackTrace: result.stackTrace ?? StackTrace.current,
+        );
+        state = stateBeforeLoad;
+        LogManager.instance.error(
+          'Failed to load session from secure storage.',
+          error: error.error,
+          stackTrace: error.stackTrace,
+        );
+        _setStorageError(error);
+        return;
+      }
+      _setStorageError(null);
+      if (result.isEmpty) {
+        state = const AsyncValue.data(
+          AppSessionState(accounts: [], currentKey: null),
+        );
+        return;
+      }
+      final stored = result.data!;
       state = AsyncValue.data(
         AppSessionState(
           accounts: stored.accounts,
@@ -162,14 +202,18 @@ class AppSessionNotifier extends AppSessionController {
       }
     } catch (error, stackTrace) {
       LogManager.instance.error(
-        'Failed to load session from secure storage. Falling back to empty session.',
+        'Failed to load session from secure storage.',
         error: error,
         stackTrace: stackTrace,
       );
       if (!mounted) return;
       if (!identical(state, stateBeforeLoad)) return;
-      state = const AsyncValue.data(
-        AppSessionState(accounts: [], currentKey: null),
+      _setStorageError(
+        StorageLoadError(
+          source: 'session',
+          error: error,
+          stackTrace: stackTrace,
+        ),
       );
     }
   }
@@ -177,6 +221,10 @@ class AppSessionNotifier extends AppSessionController {
   @override
   Future<void> reloadFromStorage() async {
     await _loadFromStorage();
+  }
+
+  void _setStorageError(StorageLoadError? error) {
+    _ref.read(appSessionStorageErrorProvider.notifier).state = error;
   }
 
   Future<AppSessionState> _upsertAccount({

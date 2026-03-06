@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/logs/log_manager.dart';
 import '../../data/models/local_library.dart';
 import '../../data/repositories/local_library_repository.dart';
+import '../../core/storage_read.dart';
 import 'session_provider.dart';
+import 'storage_error_provider.dart';
 
 final localLibraryRepositoryProvider = Provider<LocalLibraryRepository>((ref) {
   return LocalLibraryRepository(ref.watch(secureStorageProvider));
@@ -18,18 +20,20 @@ final localLibrariesProvider =
       Future.microtask(() => loadedState.state = false);
       return LocalLibrariesController(
         ref.watch(localLibraryRepositoryProvider),
+        ref,
         onLoaded: () => loadedState.state = true,
       );
     });
 
 class LocalLibrariesController extends StateNotifier<List<LocalLibrary>> {
-  LocalLibrariesController(this._repo, {void Function()? onLoaded})
+  LocalLibrariesController(this._repo, this._ref, {void Function()? onLoaded})
     : _onLoaded = onLoaded,
       super(const []) {
     _loadFromStorage();
   }
 
   final LocalLibraryRepository _repo;
+  final Ref _ref;
   final void Function()? _onLoaded;
   Future<void> _writeChain = Future<void>.value();
 
@@ -42,7 +46,7 @@ class LocalLibrariesController extends StateNotifier<List<LocalLibrary>> {
       LogManager.instance.info('LocalLibrary: load_start');
     }
     final stateBeforeLoad = state;
-    final stored = await _repo.read();
+    final result = await _repo.readWithStatus();
     if (!mounted) return;
     if (!identical(state, stateBeforeLoad)) {
       if (kDebugMode) {
@@ -54,14 +58,40 @@ class LocalLibrariesController extends StateNotifier<List<LocalLibrary>> {
       _onLoaded?.call();
       return;
     }
-    state = stored.libraries;
+    if (result.isError) {
+      final error = StorageLoadError(
+        source: 'local_library',
+        error: result.error!,
+        stackTrace: result.stackTrace ?? StackTrace.current,
+      );
+      LogManager.instance.error(
+        'Failed to load local library state.',
+        error: error.error,
+        stackTrace: error.stackTrace,
+      );
+      // Keep previous state on error.
+      _setStorageError(error);
+      _onLoaded?.call();
+      return;
+    }
+    _setStorageError(null);
+    if (result.isEmpty) {
+      state = const [];
+      _onLoaded?.call();
+      return;
+    }
+    state = result.data!.libraries;
     if (kDebugMode) {
       LogManager.instance.info(
         'LocalLibrary: load_complete',
-        context: {'libraryCount': stored.libraries.length},
+        context: {'libraryCount': state.length},
       );
     }
     _onLoaded?.call();
+  }
+
+  void _setStorageError(StorageLoadError? error) {
+    _ref.read(localLibraryStorageErrorProvider.notifier).state = error;
   }
 
   void upsert(LocalLibrary library) {

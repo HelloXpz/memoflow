@@ -9,6 +9,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../sync/sync_coordinator_provider.dart';
 import '../../application/sync/sync_request.dart';
 import '../../core/app_localization.dart';
+import '../../core/storage_read.dart';
 import '../../core/debug_ephemeral_storage.dart';
 import '../../core/desktop/shortcuts.dart';
 import '../../core/hash.dart';
@@ -16,6 +17,7 @@ import '../../core/theme_colors.dart';
 import '../../data/models/app_preferences.dart';
 import '../../data/logs/log_manager.dart';
 import '../system/session_provider.dart';
+import '../system/storage_error_provider.dart';
 
 export '../../data/models/app_preferences.dart';
 final appPreferencesRepositoryProvider = Provider<AppPreferencesRepository>((
@@ -55,17 +57,40 @@ class AppPreferencesController extends StateNotifier<AppPreferences> {
   final void Function()? _onLoaded;
   Future<void> _writeChain = Future<void>.value();
 
+  Future<void> reloadFromStorage() async {
+    await _loadFromStorage();
+  }
+
   Future<void> _loadFromStorage() async {
     if (kDebugMode) {
       LogManager.instance.info('Prefs: load_start');
     }
     final stateBeforeLoad = state;
     try {
-      final stored = await _repo.read();
+      final result = await _repo.readWithStatus();
       if (!mounted) return;
       if (!identical(state, stateBeforeLoad)) {
         return;
       }
+      if (result.isError) {
+        final error = StorageLoadError(
+          source: 'preferences',
+          error: result.error!,
+          stackTrace: result.stackTrace ?? StackTrace.current,
+        );
+        LogManager.instance.error(
+          'Failed to load app preferences.',
+          error: error.error,
+          stackTrace: error.stackTrace,
+        );
+        _ref.read(appPreferencesStorageErrorProvider.notifier).state = error;
+        return;
+      }
+      _ref.read(appPreferencesStorageErrorProvider.notifier).state = null;
+      final stored = result.data ?? AppPreferences.defaults.copyWith(
+        language: AppLanguage.system,
+        hasSelectedLanguage: false,
+      );
       state = stored;
       if (kDebugMode) {
         LogManager.instance.info(
@@ -81,7 +106,7 @@ class AppPreferencesController extends StateNotifier<AppPreferences> {
       }
     } catch (error, stackTrace) {
       LogManager.instance.error(
-        'Failed to load app preferences. Falling back to defaults.',
+        'Failed to load app preferences.',
         error: error,
         stackTrace: stackTrace,
       );
@@ -89,10 +114,13 @@ class AppPreferencesController extends StateNotifier<AppPreferences> {
       if (!identical(state, stateBeforeLoad)) {
         return;
       }
-      state = AppPreferences.defaults.copyWith(
-        language: AppLanguage.system,
-        hasSelectedLanguage: false,
-      );
+      _ref.read(appPreferencesStorageErrorProvider.notifier).state =
+          StorageLoadError(
+            source: 'preferences',
+            error: error,
+            stackTrace: stackTrace,
+          );
+      return;
     } finally {
       if (mounted) {
         _onLoaded?.call();
@@ -318,9 +346,13 @@ class AppPreferencesRepository {
     return '$_kStatePrefix$key';
   }
 
-  Future<String?> _safeStorageRead(String key) async {
+  Future<StorageReadResult<String?>> _storageReadWithStatus(String key) async {
     try {
-      return await _storage.read(key: key);
+      final raw = await _storage.read(key: key);
+      if (raw == null || raw.trim().isEmpty) {
+        return StorageReadResult.empty();
+      }
+      return StorageReadResult.success(raw);
     } catch (error, stackTrace) {
       LogManager.instance.warn(
         'Secure storage read failed in preferences repository.',
@@ -328,7 +360,7 @@ class AppPreferencesRepository {
         stackTrace: stackTrace,
         context: {'key': key},
       );
-      return null;
+      return StorageReadResult.failure(cause: error, stackTrace: stackTrace);
     }
   }
 
@@ -401,26 +433,53 @@ class AppPreferencesRepository {
     } catch (_) {}
   }
 
-  Future<AppPreferences> read() async {
+  Future<StorageReadResult<AppPreferences>> readWithStatus() async {
     final storageKey = _storageKey;
     if (storageKey == null) {
-      final device = await _readDevice() ?? await _readFallback(_kDeviceKey);
+      final deviceResult = await _readDeviceWithStatus();
+      if (deviceResult.isError) {
+        return StorageReadResult.failure(
+          cause: deviceResult.error!,
+          stackTrace: deviceResult.stackTrace ?? StackTrace.current,
+        );
+      }
+      final device = deviceResult.data ?? await _readFallback(_kDeviceKey);
       if (device != null) {
         await _safeStorageWrite(_kDeviceKey, jsonEncode(device.toJson()));
         await _writeFallback(_kDeviceKey, device);
       }
-      return device ?? _defaultsForFirstRun();
+      return StorageReadResult.success(device ?? _defaultsForFirstRun());
     }
 
-    final device = await _readDevice() ?? await _readFallback(_kDeviceKey);
+    final deviceResult = await _readDeviceWithStatus();
+    if (deviceResult.isError) {
+        return StorageReadResult.failure(
+          cause: deviceResult.error!,
+          stackTrace: deviceResult.stackTrace ?? StackTrace.current,
+        );
+    }
+    final device = deviceResult.data ?? await _readFallback(_kDeviceKey);
     if (device != null) {
       await _safeStorageWrite(_kDeviceKey, jsonEncode(device.toJson()));
       await _writeFallback(_kDeviceKey, device);
     }
 
-    final raw = await _safeStorageRead(storageKey);
-    if (raw == null || raw.trim().isEmpty) {
-      final legacy = await _readLegacy();
+    final rawResult = await _storageReadWithStatus(storageKey);
+    if (rawResult.isError) {
+      return StorageReadResult.failure(
+        cause: rawResult.error!,
+        stackTrace: rawResult.stackTrace ?? StackTrace.current,
+      );
+    }
+    if (rawResult.isEmpty) {
+      final legacyResult = await _readLegacyWithStatus();
+      if (legacyResult.isError) {
+        return StorageReadResult.failure(
+          cause: legacyResult.error!,
+          stackTrace: legacyResult.stackTrace ?? StackTrace.current,
+        );
+      }
+      final legacy = legacyResult.data;
       if (legacy != null) {
         var normalized = _normalizeLegacyForAccount(legacy);
         if (device != null) {
@@ -428,30 +487,30 @@ class AppPreferencesRepository {
         }
         final resolved = _inheritDeviceOnboarding(normalized, device);
         await write(resolved);
-        return resolved;
+        return StorageReadResult.success(resolved);
       }
       if (device != null) {
         await write(device);
-        return device;
+        return StorageReadResult.success(device);
       }
       final fallback = await _readFallback(storageKey);
       if (fallback != null) {
         await write(fallback);
-        return fallback;
+        return StorageReadResult.success(fallback);
       }
-      return _defaultsForFirstRun();
+      return StorageReadResult.success(_defaultsForFirstRun());
     }
     try {
-      final decoded = jsonDecode(raw);
+      final decoded = jsonDecode(rawResult.data!);
       if (decoded is Map) {
         final parsed = AppPreferences.fromJson(decoded.cast<String, dynamic>());
         final resolved = _inheritDeviceOnboarding(parsed, device);
         if (resolved != parsed) {
           await write(resolved);
-          return resolved;
+          return StorageReadResult.success(resolved);
         }
         await _syncDeviceOnboarding(parsed);
-        return parsed;
+        return StorageReadResult.success(parsed);
       }
     } catch (_) {
       // Fall through to fallback file.
@@ -460,9 +519,14 @@ class AppPreferencesRepository {
     if (fallback != null) {
       final resolved = _inheritDeviceOnboarding(fallback, device);
       await write(resolved);
-      return resolved;
+      return StorageReadResult.success(resolved);
     }
-    return _defaultsForFirstRun();
+    return StorageReadResult.success(_defaultsForFirstRun());
+  }
+
+  Future<AppPreferences> read() async {
+    final result = await readWithStatus();
+    return result.data ?? _defaultsForFirstRun();
   }
 
   AppPreferences _defaultsForFirstRun() {
@@ -491,28 +555,50 @@ class AppPreferencesRepository {
     await _deleteFallback(storageKey);
   }
 
-  Future<AppPreferences?> _readDevice() async {
-    final raw = await _safeStorageRead(_kDeviceKey);
-    if (raw == null || raw.trim().isEmpty) return null;
+  Future<StorageReadResult<AppPreferences?>> _readDeviceWithStatus() async {
+    final raw = await _storageReadWithStatus(_kDeviceKey);
+    if (raw.isError) {
+      return StorageReadResult.failure(
+        cause: raw.error!,
+        stackTrace: raw.stackTrace ?? StackTrace.current,
+      );
+    }
+    if (raw.isEmpty) return StorageReadResult.success(null);
     try {
-      final decoded = jsonDecode(raw);
+      final decoded = jsonDecode(raw.data!);
       if (decoded is Map) {
-        return AppPreferences.fromJson(decoded.cast<String, dynamic>());
+        return StorageReadResult.success(
+          AppPreferences.fromJson(decoded.cast<String, dynamic>()),
+        );
       }
     } catch (_) {}
-    return null;
+    return StorageReadResult.failure(
+      cause: const FormatException('Invalid device preferences'),
+      stackTrace: StackTrace.current,
+    );
   }
 
-  Future<AppPreferences?> _readLegacy() async {
-    final raw = await _safeStorageRead(_kLegacyKey);
-    if (raw == null || raw.trim().isEmpty) return null;
+  Future<StorageReadResult<AppPreferences?>> _readLegacyWithStatus() async {
+    final raw = await _storageReadWithStatus(_kLegacyKey);
+    if (raw.isError) {
+      return StorageReadResult.failure(
+        cause: raw.error!,
+        stackTrace: raw.stackTrace ?? StackTrace.current,
+      );
+    }
+    if (raw.isEmpty) return StorageReadResult.success(null);
     try {
-      final decoded = jsonDecode(raw);
+      final decoded = jsonDecode(raw.data!);
       if (decoded is Map) {
-        return AppPreferences.fromJson(decoded.cast<String, dynamic>());
+        return StorageReadResult.success(
+          AppPreferences.fromJson(decoded.cast<String, dynamic>()),
+        );
       }
     } catch (_) {}
-    return null;
+    return StorageReadResult.failure(
+      cause: const FormatException('Invalid legacy preferences'),
+      stackTrace: StackTrace.current,
+    );
   }
 
   AppPreferences _normalizeLegacyForAccount(AppPreferences prefs) {
@@ -561,5 +647,13 @@ class AppPreferencesRepository {
     );
     await _safeStorageWrite(_kDeviceKey, jsonEncode(next.toJson()));
     await _writeFallback(_kDeviceKey, next);
+  }
+
+  Future<AppPreferences?> _readDevice() async {
+    final result = await _readDeviceWithStatus();
+    if (result.isError) {
+      return null;
+    }
+    return result.data;
   }
 }

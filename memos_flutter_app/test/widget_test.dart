@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import 'package:memos_flutter_app/app.dart';
+import 'package:memos_flutter_app/core/storage_read.dart';
 import 'package:memos_flutter_app/data/models/account.dart';
 import 'package:memos_flutter_app/data/models/instance_profile.dart';
 import 'package:memos_flutter_app/features/auth/login_screen.dart';
@@ -31,6 +32,7 @@ void main() {
       ),
     );
 
+    await tester.pump(const Duration(seconds: 4));
     await tester.pumpAndSettle();
     final unauthenticatedEntry = find.byWidgetPredicate(
       (widget) => widget is LoginScreen || widget is LanguageSelectionScreen,
@@ -113,6 +115,13 @@ class _TestAppPreferencesRepository extends AppPreferencesRepository {
     : super(const FlutterSecureStorage(), accountKey: null);
 
   @override
+  Future<StorageReadResult<AppPreferences>> readWithStatus() async {
+    return StorageReadResult.success(
+      AppPreferences.defaultsForLanguage(AppLanguage.en),
+    );
+  }
+
+  @override
   Future<AppPreferences> read() async {
     return AppPreferences.defaultsForLanguage(AppLanguage.en);
   }
@@ -134,4 +143,3 @@ class _TestAppPreferencesController extends AppPreferencesController {
         },
       );
 }
-
