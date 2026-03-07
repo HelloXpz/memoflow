@@ -39,6 +39,7 @@ import '../settings/memoflow_bridge_settings_provider.dart';
 import '../system/network_log_provider.dart';
 import '../system/session_provider.dart';
 import '../sync/sync_controller_base.dart';
+
 typedef MemosQuery = ({
   String searchQuery,
   String state,
@@ -1765,8 +1766,7 @@ class RemoteSyncController extends SyncControllerBase {
         return SyncError(
           code: SyncErrorCode.network,
           retryable: true,
-          presentationKey:
-              'legacy.msg_network_connection_failed_check_network',
+          presentationKey: 'legacy.msg_network_connection_failed_check_network',
           requestMethod: method,
           requestPath: path,
         );
@@ -1799,8 +1799,9 @@ class RemoteSyncController extends SyncControllerBase {
       500 => 'legacy.msg_server_error',
       _ => 'legacy.msg_request_failed',
     };
-    final presentationKey =
-        msg.isEmpty ? 'legacy.msg_http_2' : 'legacy.msg_http';
+    final presentationKey = msg.isEmpty
+        ? 'legacy.msg_http_2'
+        : 'legacy.msg_http';
     final code = switch (status) {
       400 => SyncErrorCode.invalidConfig,
       401 => SyncErrorCode.authFailed,
@@ -2048,9 +2049,7 @@ class RemoteSyncController extends SyncControllerBase {
     }
     LogManager.instance.info(
       'RemoteSync: controller_disposed',
-      context: <String, Object?>{
-        'controllerId': _controllerId,
-      },
+      context: <String, Object?>{'controllerId': _controllerId},
     );
     _isDisposed = true;
     super.dispose();
@@ -2810,7 +2809,13 @@ class RemoteSyncController extends SyncControllerBase {
             await db.deleteOutbox(id);
             break;
           case 'submit_log_report':
-            await _handleSubmitLogReport(payload);
+            LogManager.instance.info(
+              'RemoteSync outbox: submit_log_report_discarded',
+              context: <String, Object?>{
+                'id': id,
+                'reason': 'feature_disabled',
+              },
+            );
             await db.markOutboxDone(id);
             await db.deleteOutbox(id);
             break;
@@ -3593,169 +3598,6 @@ class RemoteSyncController extends SyncControllerBase {
       if (status == 404) return;
       rethrow;
     }
-  }
-
-  Future<void> _handleSubmitLogReport(Map<String, dynamic> payload) async {
-    final report = _readPayloadString(payload['report']);
-    if (report.isEmpty) {
-      throw const FormatException('submit_log_report missing report');
-    }
-
-    final createdAt =
-        _parsePayloadTime(payload['created_time']) ?? DateTime.now().toUtc();
-    final submissionId = _resolveLogSubmissionId(
-      raw: payload['submission_id'],
-      createdAt: createdAt,
-    );
-    final apiVersion = api.effectiveServerVersion.trim();
-    final title = _readPayloadString(payload['title']);
-    final memoTitle = title.isEmpty
-        ? 'MemoFlow Log Report (${apiVersion.isEmpty ? 'unknown' : apiVersion})'
-        : title;
-
-    final memoId = _buildLogReportMemoId(submissionId);
-    final memo = await _createLogReportMemoWith409Recovery(
-      memoId: memoId,
-      content: _buildLogReportMemoContent(
-        title: memoTitle,
-        apiVersion: apiVersion,
-        createdAt: createdAt,
-        report: report,
-      ),
-    );
-    final memoUid = memo.uid.trim();
-    if (memoUid.isEmpty) {
-      throw StateError('submit_log_report createMemo returned empty uid');
-    }
-
-    final attachmentName = await _createLogReportAttachment(
-      submissionId: submissionId,
-      createdAt: createdAt,
-      report: report,
-    );
-    await _bindLogReportAttachment(
-      memoUid: memoUid,
-      attachmentName: attachmentName,
-    );
-  }
-
-  Future<Memo> _createLogReportMemoWith409Recovery({
-    required String memoId,
-    required String content,
-  }) async {
-    try {
-      return await api.createMemo(
-        memoId: memoId,
-        content: content,
-        visibility: 'PRIVATE',
-        pinned: false,
-      );
-    } on DioException catch (e) {
-      final status = e.response?.statusCode ?? 0;
-      if (status != 409) rethrow;
-      return api.getMemo(memoUid: memoId);
-    }
-  }
-
-  Future<String> _createLogReportAttachment({
-    required String submissionId,
-    required DateTime createdAt,
-    required String report,
-  }) async {
-    final attachment = await _createAttachmentWith409Recovery(
-      attachmentId: _buildLogReportAttachmentId(submissionId),
-      filename: _buildLogReportFileName(createdAt),
-      mimeType: 'text/plain',
-      bytes: utf8.encode(report),
-      memoUid: null,
-    );
-    final name = attachment.name.trim();
-    if (name.isEmpty) {
-      throw StateError(
-        'submit_log_report createAttachment returned empty name',
-      );
-    }
-    return name;
-  }
-
-  Future<void> _bindLogReportAttachment({
-    required String memoUid,
-    required String attachmentName,
-  }) async {
-    try {
-      await api.setMemoAttachments(
-        memoUid: memoUid,
-        attachmentNames: <String>[attachmentName],
-      );
-    } on DioException catch (e) {
-      final status = e.response?.statusCode ?? 0;
-      if (status == 404 || status == 405) {
-        return;
-      }
-      rethrow;
-    }
-  }
-
-  String _buildLogReportMemoContent({
-    required String title,
-    required String apiVersion,
-    required DateTime createdAt,
-    required String report,
-  }) {
-    final normalizedReport = report.replaceAll('\r\n', '\n').trim();
-    const previewLimit = 1200;
-    final preview = normalizedReport.length <= previewLimit
-        ? normalizedReport
-        : '${normalizedReport.substring(0, previewLimit)}\n...[truncated, see attachment]';
-    final versionLabel = apiVersion.trim().isEmpty ? 'unknown' : apiVersion;
-
-    return <String>[
-      '# $title',
-      '',
-      '- Client time (UTC): ${createdAt.toUtc().toIso8601String()}',
-      '- API version: $versionLabel',
-      '- User: $currentUserName',
-      '- Report length: ${normalizedReport.length}',
-      '',
-      'Preview:',
-      '',
-      preview,
-    ].join('\n');
-  }
-
-  String _resolveLogSubmissionId({
-    required Object? raw,
-    required DateTime createdAt,
-  }) {
-    final direct = _readPayloadString(raw);
-    if (direct.isNotEmpty) {
-      final normalized = direct.replaceAll(RegExp(r'[^A-Za-z0-9_-]'), '');
-      if (normalized.isNotEmpty) return normalized;
-    }
-    return createdAt.toUtc().microsecondsSinceEpoch.toString();
-  }
-
-  String _buildLogReportMemoId(String submissionId) {
-    return 'memoflow-log-$submissionId';
-  }
-
-  String _buildLogReportAttachmentId(String submissionId) {
-    return 'memoflow-log-file-$submissionId';
-  }
-
-  String _buildLogReportFileName(DateTime createdAt) {
-    final compact = createdAt
-        .toUtc()
-        .toIso8601String()
-        .replaceAll(':', '')
-        .replaceAll('.', '_');
-    return 'MemoFlow_log_$compact.txt';
-  }
-
-  String _readPayloadString(Object? raw) {
-    if (raw is String) return raw.trim();
-    if (raw == null) return '';
-    return raw.toString().trim();
   }
 
   Future<int> _countPendingAttachmentUploads(String memoUid) async {

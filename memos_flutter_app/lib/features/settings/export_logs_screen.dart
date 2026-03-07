@@ -13,19 +13,18 @@ import '../../core/top_toast.dart';
 import '../../state/system/debug_log_provider.dart';
 import '../../state/system/logging_provider.dart';
 import '../../state/system/network_log_provider.dart';
-import '../../state/memos/submit_logs_providers.dart';
 import '../../state/settings/preferences_provider.dart';
 import '../../state/webdav/webdav_log_provider.dart';
 import '../../i18n/strings.g.dart';
 
-class SubmitLogsScreen extends ConsumerStatefulWidget {
-  const SubmitLogsScreen({super.key});
+class ExportLogsScreen extends ConsumerStatefulWidget {
+  const ExportLogsScreen({super.key});
 
   @override
-  ConsumerState<SubmitLogsScreen> createState() => _SubmitLogsScreenState();
+  ConsumerState<ExportLogsScreen> createState() => _ExportLogsScreenState();
 }
 
-class _SubmitLogsScreenState extends ConsumerState<SubmitLogsScreen> {
+class _ExportLogsScreenState extends ConsumerState<ExportLogsScreen> {
   final _noteController = TextEditingController();
 
   var _includeErrors = true;
@@ -33,45 +32,6 @@ class _SubmitLogsScreenState extends ConsumerState<SubmitLogsScreen> {
   var _busy = false;
   var _clearing = false;
   String? _lastPath;
-  String? _lastExportId;
-
-  void _showNonBlockingHint(String message) {
-    if (!mounted) return;
-    final messenger = ScaffoldMessenger.maybeOf(context);
-    if (messenger == null) return;
-    messenger.showSnackBar(SnackBar(content: Text(message)));
-  }
-
-  void _queueSubmissionInBackground({
-    required String reportText,
-    required String reportPath,
-  }) {
-    unawaited(() async {
-      try {
-        final result = await _queueServerLogSubmission(
-          reportText: reportText,
-          reportPath: reportPath,
-        );
-        if (!mounted) return;
-        switch (result) {
-          case LogQueueResult.queued:
-            _showNonBlockingHint('Log submission queued in background.');
-            break;
-          case LogQueueResult.skipped:
-            _showNonBlockingHint('Log file saved. Submission not queued.');
-            break;
-          case LogQueueResult.failed:
-            _showNonBlockingHint(
-              'Log file saved, but failed to queue submission.',
-            );
-            break;
-        }
-      } catch (e) {
-        if (!mounted) return;
-        _showNonBlockingHint('Log file saved, but failed to queue submission.');
-      }
-    }());
-  }
 
   @override
   void dispose() {
@@ -87,11 +47,6 @@ class _SubmitLogsScreenState extends ConsumerState<SubmitLogsScreen> {
       userNote: _noteController.text,
       exportId: exportId,
     );
-  }
-
-  Future<void> _copyReport() async {
-    final text = await _buildReport();
-    await Clipboard.setData(ClipboardData(text: text));
   }
 
   String _generateExportId() {
@@ -158,13 +113,11 @@ class _SubmitLogsScreenState extends ConsumerState<SubmitLogsScreen> {
       if (!mounted) return;
       setState(() {
         _lastPath = bundleFile.path;
-        _lastExportId = exportId;
       });
       showTopToast(
         context,
         '${context.t.strings.legacy.msg_log_file_created}: ${bundleFile.path} (ExportId: $exportId)',
       );
-      _queueSubmissionInBackground(reportText: text, reportPath: reportPath);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -212,27 +165,10 @@ class _SubmitLogsScreenState extends ConsumerState<SubmitLogsScreen> {
       ref.read(networkLogBufferProvider).clear();
       ref.read(syncStatusTrackerProvider).reset();
       if (!mounted) return;
-      showTopToast(
-        context,
-        context.t.strings.legacy.msg_logs_cleared,
-      );
+      showTopToast(context, context.t.strings.legacy.msg_logs_cleared);
     } finally {
       if (mounted) setState(() => _clearing = false);
     }
-  }
-
-  Future<LogQueueResult> _queueServerLogSubmission({
-    required String reportText,
-    required String reportPath,
-  }) async {
-    return ref
-        .read(submitLogsControllerProvider)
-        .queueServerLogSubmission(
-          reportText: reportText,
-          reportPath: reportPath,
-          includeErrors: _includeErrors,
-          includeOutbox: _includeOutbox,
-        );
   }
 
   @override
@@ -475,9 +411,22 @@ class _SubmitLogsScreenState extends ConsumerState<SubmitLogsScreen> {
                 ),
               ],
               const SizedBox(height: 16),
+              Text(
+                context.t.strings.legacy.msg_logs_export_local_only,
+                style: TextStyle(
+                  fontSize: 12,
+                  height: 1.4,
+                  color: textMuted.withValues(alpha: 0.8),
+                ),
+              ),
+              const SizedBox(height: 12),
               if (!networkLoggingEnabled) ...[
                 Text(
-                  'For login/sync/backup issues, enable network logging before exporting.',
+                  context
+                      .t
+                      .strings
+                      .legacy
+                      .msg_enable_network_logging_before_exporting,
                   style: TextStyle(
                     fontSize: 12,
                     height: 1.4,

@@ -1029,7 +1029,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               textMuted: textMuted,
                             ),
                             Text(
-                              'Before sign-in, only the core APIs of the selected server version are probed.',
+                              context.t.strings.common.serverVersionProbeHint,
                               style: TextStyle(
                                 fontSize: 12,
                                 color: textMuted,

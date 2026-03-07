@@ -24,7 +24,6 @@ export 'note_input_providers.dart';
 export 'onboarding_providers.dart';
 export 'search_history_provider.dart';
 export 'stats_providers.dart';
-export 'submit_logs_providers.dart';
 export 'sync_queue_controller.dart';
 export 'sync_queue_models.dart';
 export 'sync_queue_provider.dart';

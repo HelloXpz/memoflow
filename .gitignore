@@ -54,3 +54,5 @@ memos_flutter_app/windows/runner/resources/*
 
 update_config/
 .stfolder/
+_tmp/
+memos_flutter_app/dist/
