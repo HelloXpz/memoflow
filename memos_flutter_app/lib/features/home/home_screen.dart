@@ -9,6 +9,7 @@ import '../../state/sync/sync_coordinator_provider.dart';
 import '../../application/sync/sync_request.dart';
 import '../../application/sync/sync_types.dart';
 import '../../core/memoflow_palette.dart';
+import '../../i18n/strings.g.dart';
 import '../../data/logs/log_manager.dart';
 import '../../data/logs/sync_queue_progress_tracker.dart';
 import '../../state/system/home_loading_overlay_provider.dart';
@@ -464,7 +465,7 @@ class _HomeLoadingOverlay extends StatelessWidget {
                   ),
                   const SizedBox(height: 14),
                   Text(
-                    '\u52A0\u8F7D\u7B14\u8BB0\u4E2D...',
+                    context.t.strings.legacy.msg_loading_memos,
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
@@ -504,7 +505,7 @@ class _HomeLoadingOverlay extends StatelessWidget {
                           vertical: 10,
                         ),
                       ),
-                      child: const Text('\u5173\u95ED'),
+                      child: Text(context.t.strings.legacy.msg_close),
                     ),
                   ],
                 ],

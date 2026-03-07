@@ -51,7 +51,10 @@ class _SystemLogsScreenState extends ConsumerState<SystemLogsScreen> {
     final text = _lines.join('\n');
     await Clipboard.setData(ClipboardData(text: text));
     if (!mounted) return;
-    showTopToast(context, 'System logs copied (${_lines.length} lines)');
+    showTopToast(
+      context,
+      context.t.strings.legacy.msg_system_logs_copied(lines: _lines.length),
+    );
   }
 
   String _generateExportId() {
@@ -120,13 +123,22 @@ class _SystemLogsScreenState extends ConsumerState<SystemLogsScreen> {
       if (!mounted) return;
       showTopToast(
         context,
-        'Log bundle created: ${bundleFile.path} (ExportId: $exportId)',
+        context.t.strings.legacy.msg_log_bundle_created(
+          path: bundleFile.path,
+          exportId: exportId,
+        ),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Failed to export logs: $e')));
+      ).showSnackBar(
+        SnackBar(
+          content: Text(
+            context.t.strings.legacy.msg_failed_export_logs(error: e),
+          ),
+        ),
+      );
     } finally {
       if (mounted) setState(() => _exporting = false);
     }
@@ -156,16 +168,18 @@ class _SystemLogsScreenState extends ConsumerState<SystemLogsScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).maybePop(),
         ),
-        title: const Text('System Logs'),
+        title: Text(context.t.strings.legacy.msg_system_logs),
         centerTitle: false,
         actions: [
           IconButton(
-            tooltip: 'Copy last $_maxLines lines',
+            tooltip: context.t.strings.legacy.msg_copy_last_lines(
+              lines: _maxLines,
+            ),
             icon: const Icon(Icons.copy_all_outlined),
             onPressed: _lines.isEmpty ? null : _copyLines,
           ),
           IconButton(
-            tooltip: 'Export logs bundle',
+            tooltip: context.t.strings.legacy.msg_export_logs_bundle,
             icon: _exporting
                 ? const SizedBox.square(
                     dimension: 18,
@@ -204,7 +218,9 @@ class _SystemLogsScreenState extends ConsumerState<SystemLogsScreen> {
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
             children: [
               Text(
-                'Showing last $_maxLines lines',
+                context.t.strings.legacy.msg_showing_last_lines(
+                  lines: _maxLines,
+                ),
                 style: TextStyle(fontSize: 12, color: textMuted),
               ),
               const SizedBox(height: 10),
@@ -222,7 +238,7 @@ class _SystemLogsScreenState extends ConsumerState<SystemLogsScreen> {
                   padding: const EdgeInsets.only(top: 24),
                   child: Center(
                     child: Text(
-                      'No system logs yet',
+                      context.t.strings.legacy.msg_no_system_logs_yet,
                       style: TextStyle(color: textMuted),
                     ),
                   ),

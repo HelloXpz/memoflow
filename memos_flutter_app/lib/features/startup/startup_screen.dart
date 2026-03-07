@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/splash_tokens.g.dart';
+import '../../i18n/strings.g.dart';
 
 class StartupScreen extends StatefulWidget {
   const StartupScreen({super.key, required this.showSlogan});
@@ -16,29 +17,26 @@ class _StartupScreenState extends State<StartupScreen>
   static const Color backgroundColor = SplashTokens.backgroundColor;
   static const Color primaryColor = SplashTokens.brandColor;
   static const String _logoAsset = SplashTokens.logoAsset;
-  static const String _sloganText = '让记录，自然流动';
   static const int _typewriterMsPerChar = 160;
 
-  late final List<int> _sloganRunes = _sloganText.runes.toList();
   AnimationController? _typewriterController;
+  int? _lastSloganLength;
 
   @override
   void initState() {
     super.initState();
-    if (widget.showSlogan) {
-      _startTypewriter();
-    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _syncTypewriter();
   }
 
   @override
   void didUpdateWidget(StartupScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.showSlogan && !oldWidget.showSlogan) {
-      _startTypewriter();
-    } else if (!widget.showSlogan && oldWidget.showSlogan) {
-      _typewriterController?.dispose();
-      _typewriterController = null;
-    }
+    _syncTypewriter(forceRestart: widget.showSlogan && !oldWidget.showSlogan);
   }
 
   @override
@@ -47,29 +45,50 @@ class _StartupScreenState extends State<StartupScreen>
     super.dispose();
   }
 
-  void _startTypewriter() {
+  String _sloganText(BuildContext context) =>
+      context.t.strings.legacy.msg_startup_slogan;
+
+  void _syncTypewriter({bool forceRestart = false}) {
+    final sloganLength = _sloganText(context).runes.length;
+    if (!widget.showSlogan) {
+      _typewriterController?.dispose();
+      _typewriterController = null;
+      _lastSloganLength = sloganLength;
+      return;
+    }
+    if (forceRestart ||
+        _typewriterController == null ||
+        _lastSloganLength != sloganLength) {
+      _startTypewriter(sloganLength);
+    }
+    _lastSloganLength = sloganLength;
+  }
+
+  void _startTypewriter(int sloganLength) {
     _typewriterController?.dispose();
-    final durationMs = _sloganRunes.length * _typewriterMsPerChar;
-    _typewriterController = AnimationController(
-      vsync: this,
-      duration: Duration(milliseconds: durationMs),
-    )..addListener(() {
-        if (!mounted) return;
-        setState(() {});
-      });
+    final durationMs = sloganLength * _typewriterMsPerChar;
+    _typewriterController =
+        AnimationController(
+          vsync: this,
+          duration: Duration(milliseconds: durationMs),
+        )..addListener(() {
+          if (!mounted) return;
+          setState(() {});
+        });
     _typewriterController?.forward();
   }
 
-  String _currentSloganText() {
+  String _currentSloganText(BuildContext context) {
     if (!widget.showSlogan) return '';
+    final sloganRunes = _sloganText(context).runes.toList();
     final controller = _typewriterController;
-    if (controller == null) return _sloganText;
-    final total = _sloganRunes.length;
+    if (controller == null) return String.fromCharCodes(sloganRunes);
+    final total = sloganRunes.length;
     var count = (total * controller.value).floor();
     if (count < 0) count = 0;
     if (count > total) count = total;
     if (count == 0) return '';
-    return String.fromCharCodes(_sloganRunes.sublist(0, count));
+    return String.fromCharCodes(sloganRunes.sublist(0, count));
   }
 
   @override
@@ -78,8 +97,7 @@ class _StartupScreenState extends State<StartupScreen>
     final scale = (shortestSide / 375).clamp(0.85, 1.1).toDouble();
     final logoSize = 96 * scale;
     final sloganSize = 14 * scale;
-    final memoFlowSize =
-        (sloganSize - (2 * scale)).clamp(10.0, sloganSize);
+    final memoFlowSize = (sloganSize - (2 * scale)).clamp(10.0, sloganSize);
     final sloganPadding = 48 * scale;
     final textGap = 6 * scale;
 
@@ -115,7 +133,7 @@ class _StartupScreenState extends State<StartupScreen>
                 children: [
                   if (widget.showSlogan)
                     Text(
-                      _currentSloganText(),
+                      _currentSloganText(context),
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: primaryColor.withValues(alpha: 0.85),

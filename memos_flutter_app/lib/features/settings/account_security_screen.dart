@@ -224,7 +224,7 @@ class AccountSecurityScreen extends ConsumerWidget {
       ref.read(localLibrariesProvider.notifier).upsert(library);
       await ref.read(appSessionProvider.notifier).switchWorkspace(key);
       if (result.encryptionEnabled && context.mounted) {
-        showTopToast(context, '加密功能当前仅占位，暂未真正生效。');
+        showTopToast(context, context.t.strings.legacy.msg_encryption_feature_placeholder);
       }
       if (!context.mounted) return;
       await WidgetsBinding.instance.endOfFrame;

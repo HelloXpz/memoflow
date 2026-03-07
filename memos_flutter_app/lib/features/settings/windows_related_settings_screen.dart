@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/memoflow_palette.dart';
+import '../../i18n/strings.g.dart';
 import '../../state/settings/preferences_provider.dart';
 import 'desktop_shortcuts_settings_screen.dart';
 
@@ -39,12 +40,12 @@ class WindowsRelatedSettingsScreen extends ConsumerWidget {
         automaticallyImplyLeading: showBackButton,
         leading: showBackButton
             ? IconButton(
-                tooltip: '\u8fd4\u56de',
+                tooltip: context.t.strings.common.back,
                 icon: const Icon(Icons.arrow_back),
                 onPressed: () => Navigator.of(context).maybePop(),
               )
             : null,
-        title: const Text('Windows\u76f8\u5173\u8bbe\u7f6e'),
+        title: Text(context.t.strings.legacy.msg_windows_related_settings),
         centerTitle: false,
       ),
       body: Stack(
@@ -64,7 +65,7 @@ class WindowsRelatedSettingsScreen extends ConsumerWidget {
           if (!Platform.isWindows)
             Center(
               child: Text(
-                '\u4ec5 Windows \u684c\u9762\u652f\u6301\u6b64\u8bbe\u7f6e\u3002',
+                context.t.strings.legacy.msg_only_windows_desktop_supports_this_setting,
                 style: TextStyle(color: textMuted, fontWeight: FontWeight.w600),
               ),
             )
@@ -77,9 +78,9 @@ class WindowsRelatedSettingsScreen extends ConsumerWidget {
                   divider: divider,
                   children: [
                     _ActionRow(
-                      label: '\u5feb\u6377\u952e\u8bbe\u7f6e',
+                      label: context.t.strings.legacy.msg_shortcut_settings,
                       subtitle:
-                          '\u914d\u7f6e Windows \u684c\u9762\u5feb\u6377\u952e',
+                          context.t.strings.legacy.msg_configure_windows_desktop_shortcuts,
                       textMain: textMain,
                       textMuted: textMuted,
                       onTap: () {
@@ -93,9 +94,9 @@ class WindowsRelatedSettingsScreen extends ConsumerWidget {
                     ),
                     _ToggleRow(
                       label:
-                          '\u5173\u95ed\u7a97\u53e3\u65f6\u6700\u5c0f\u5316\u5230\u6258\u76d8',
+                          context.t.strings.legacy.msg_close_window_minimize_to_tray,
                       subtitle:
-                          '\u542f\u7528\u540e\u70b9\u51fb\u53f3\u4e0a\u89d2\u5173\u95ed\u6309\u94ae\u4e0d\u4f1a\u9000\u51fa\u5e94\u7528\uff0c\u53ef\u5728\u7cfb\u7edf\u6258\u76d8\u6062\u590d\u7a97\u53e3\u3002',
+                          context.t.strings.legacy.msg_close_window_minimize_to_tray_desc,
                       value: prefs.windowsCloseToTray,
                       textMain: textMain,
                       textMuted: textMuted,

@@ -677,7 +677,7 @@ class _DebugToolsScreenState extends ConsumerState<DebugToolsScreen> {
           ? (lastDio?.response?.data['message']?.toString() ?? lastDio?.message)
           : lastError?.toString();
       await _logApi(
-        label: 'Sign in',
+        label: context.t.strings.legacy.msg_sign_3,
         method: lastDio?.requestOptions.method.toUpperCase() ?? 'POST',
         url:
             lastDio?.requestOptions.uri.toString() ??
@@ -711,7 +711,7 @@ class _DebugToolsScreenState extends ConsumerState<DebugToolsScreen> {
     });
     final responseBody = _stringifyBody(response.data);
     await _logApi(
-      label: 'Sign in',
+      label: context.t.strings.legacy.msg_sign_3,
       method: response.requestOptions.method.toUpperCase(),
       url: response.requestOptions.uri.toString(),
       status: response.statusCode,
@@ -1044,7 +1044,7 @@ class _DebugToolsScreenState extends ConsumerState<DebugToolsScreen> {
                   ),
                   if (kDebugMode && !screenshotMode)
                     _InfoRow(
-                      label: 'API Route',
+                      label: context.t.strings.legacy.msg_api_route,
                       value: apiRouteVersion,
                       textMain: textMain,
                       textMuted: textMuted,
@@ -1052,8 +1052,8 @@ class _DebugToolsScreenState extends ConsumerState<DebugToolsScreen> {
                   if (kDebugMode)
                     _SwitchRow(
                       icon: Icons.screenshot_monitor_outlined,
-                      label: 'Screenshot mode',
-                      detail: 'Hide status/navigation bars for clean captures',
+                      label: context.t.strings.legacy.msg_screenshot_mode,
+                      detail: context.t.strings.legacy.msg_screenshot_mode_detail,
                       value: screenshotMode,
                       textMain: textMain,
                       textMuted: textMuted,
@@ -1236,7 +1236,7 @@ class _DebugToolsScreenState extends ConsumerState<DebugToolsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     _Field(
-                      label: 'Token',
+                      label: context.t.strings.legacy.msg_token,
                       controller: _tokenController,
                       hintText: 'memos_pat_...',
                       obscureText: _obscureToken,
@@ -1456,7 +1456,7 @@ class _DebugToolsScreenState extends ConsumerState<DebugToolsScreen> {
                   ),
                   _ActionRow(
                     icon: Icons.subject_outlined,
-                    label: 'System Logs',
+                    label: context.t.strings.legacy.msg_system_logs,
                     textMain: textMain,
                     textMuted: textMuted,
                     onTap: () {

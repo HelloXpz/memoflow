@@ -15,6 +15,7 @@ import '../../core/top_toast.dart';
 import '../../data/models/app_preferences.dart';
 import '../../state/memos/app_bootstrap_adapter_provider.dart';
 import '../../features/memos/link_memo_sheet.dart';
+import '../../i18n/strings.g.dart';
 import '../quick_input/quick_input_service.dart';
 
 typedef DesktopSubWindowVisibilityUpdater =
@@ -88,23 +89,27 @@ class DesktopQuickInputController {
       await hotKeyManager.register(
         nextHotKey,
         keyDownHandler: (_) {
-          _bootstrapAdapter.readLogManager(_ref).info(
-            'Desktop shortcut matched',
-            context: const <String, Object?>{
-              'action': 'quickRecord',
-              'source': 'system_hotkey',
-            },
-          );
+          _bootstrapAdapter
+              .readLogManager(_ref)
+              .info(
+                'Desktop shortcut matched',
+                context: const <String, Object?>{
+                  'action': 'quickRecord',
+                  'source': 'system_hotkey',
+                },
+              );
           unawaited(handleHotKey());
         },
       );
       _desktopQuickInputHotKey = nextHotKey;
     } catch (error, stackTrace) {
-      _bootstrapAdapter.readLogManager(_ref).error(
-        'Register desktop quick input hotkey failed',
-        error: error,
-        stackTrace: stackTrace,
-      );
+      _bootstrapAdapter
+          .readLogManager(_ref)
+          .error(
+            'Register desktop quick input hotkey failed',
+            error: error,
+            stackTrace: stackTrace,
+          );
     }
   }
 
@@ -138,10 +143,7 @@ class DesktopQuickInputController {
       var window = await _ensureDesktopQuickInputWindowReady();
       try {
         await window.show();
-        _onSubWindowVisibilityChanged(
-          windowId: window.windowId,
-          visible: true,
-        );
+        _onSubWindowVisibilityChanged(windowId: window.windowId, visible: true);
         await _focusDesktopQuickInputWindow(window.windowId);
       } catch (_) {
         // The cached controller can be stale after user closed sub-window.
@@ -150,22 +152,26 @@ class DesktopQuickInputController {
         _onWindowIdChanged(null);
         window = await _ensureDesktopQuickInputWindowReady();
         await window.show();
-        _onSubWindowVisibilityChanged(
-          windowId: window.windowId,
-          visible: true,
-        );
+        _onSubWindowVisibilityChanged(windowId: window.windowId, visible: true);
         await _focusDesktopQuickInputWindow(window.windowId);
       }
     } catch (error, stackTrace) {
-      _bootstrapAdapter.readLogManager(_ref).error(
-        'Desktop quick input hotkey action failed',
-        error: error,
-        stackTrace: stackTrace,
-      );
+      _bootstrapAdapter
+          .readLogManager(_ref)
+          .error(
+            'Desktop quick input hotkey action failed',
+            error: error,
+            stackTrace: stackTrace,
+          );
       if (!_isMounted()) return;
       final context = _resolveDesktopUiContext();
       if (context?.mounted == true) {
-        showTopToast(context!, '快速输入失败：$error');
+        showTopToast(
+          context!,
+          context.t.strings.legacy.msg_quick_input_failed_with_error(
+            error: error,
+          ),
+        );
       }
     } finally {
       _desktopQuickInputWindowOpening = false;
@@ -201,19 +207,29 @@ class DesktopQuickInputController {
           if (!_isMounted()) return true;
           final context = _resolveDesktopUiContext();
           if (context?.mounted == true) {
-            showTopToast(context!, '已保存到 MemoFlow');
+            showTopToast(
+              context!,
+              context.t.strings.legacy.msg_saved_to_memoflow,
+            );
           }
           return true;
         } catch (error, stackTrace) {
-          _bootstrapAdapter.readLogManager(_ref).error(
-            'Desktop quick input submit from sub-window failed',
-            error: error,
-            stackTrace: stackTrace,
-          );
+          _bootstrapAdapter
+              .readLogManager(_ref)
+              .error(
+                'Desktop quick input submit from sub-window failed',
+                error: error,
+                stackTrace: stackTrace,
+              );
           if (!_isMounted()) return false;
           final context = _resolveDesktopUiContext();
           if (context?.mounted == true) {
-            showTopToast(context!, '快速输入失败：$error');
+            showTopToast(
+              context!,
+              context.t.strings.legacy.msg_quick_input_failed_with_error(
+                error: error,
+              ),
+            );
           }
           return false;
         }
@@ -221,10 +237,17 @@ class DesktopQuickInputController {
         final args = call.arguments;
         final map = args is Map ? args.cast<Object?, Object?>() : null;
         final labelRaw = map == null ? null : map['label'];
-        final label = (labelRaw as String? ?? '功能').trim();
         final context = _resolveDesktopUiContext();
+        final defaultLabel = context?.t.strings.legacy.msg_feature ?? 'Feature';
+        final label = (labelRaw as String? ?? defaultLabel).trim();
         if (context != null) {
-          showTopToast(context, '「$label」功能暂未实现（占位）。');
+          showTopToast(
+            context,
+            context.t.strings.legacy
+                .msg_feature_not_implemented_placeholder_with_label(
+                  label: label,
+                ),
+          );
         }
         return true;
       case desktopQuickInputPickLinkMemoMethod:

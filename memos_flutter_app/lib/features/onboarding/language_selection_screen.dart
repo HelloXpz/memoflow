@@ -199,7 +199,7 @@ class _LanguageSelectionScreenState
     if (result.encryptionEnabled && mounted) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('加密功能当前仅占位，暂未真正生效。')));
+      ).showSnackBar(SnackBar(content: Text(context.t.strings.legacy.msg_encryption_feature_placeholder)));
     }
     _logFlow('local_library_ready', context: {'workspaceKey': key});
     return key;

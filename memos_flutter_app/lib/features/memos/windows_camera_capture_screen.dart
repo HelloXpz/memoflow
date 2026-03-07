@@ -5,6 +5,8 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../i18n/strings.g.dart';
+
 class WindowsCameraCaptureScreen extends StatefulWidget {
   const WindowsCameraCaptureScreen({super.key});
 
@@ -58,7 +60,7 @@ class _WindowsCameraCaptureScreenState
         if (!mounted) return;
         setState(() {
           _initializing = false;
-          _errorMessage = 'No camera detected.';
+          _errorMessage = context.t.strings.legacy.msg_no_camera_detected;
           _permissionLikelyDenied = false;
         });
         return;
@@ -111,12 +113,12 @@ class _WindowsCameraCaptureScreenState
         message.contains('no device') ||
         message.contains('camera not found') ||
         message.contains('not found')) {
-      return 'No camera detected.';
+      return context.t.strings.legacy.msg_no_camera_detected;
     }
     if (message.contains('camera in use')) {
       return 'Camera is currently in use by another app.';
     }
-    return 'Camera failed: $error';
+    return context.t.strings.legacy.msg_camera_failed(error: error);
   }
 
   Future<void> _openWindowsCameraSettings() async {
@@ -124,7 +126,11 @@ class _WindowsCameraCaptureScreenState
     final launched = await launchUrl(uri);
     if (!mounted || launched) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Unable to open Windows camera settings.')),
+      SnackBar(
+        content: Text(
+          context.t.strings.legacy.msg_unable_open_windows_camera_settings,
+        ),
+      ),
     );
   }
 
@@ -160,7 +166,7 @@ class _WindowsCameraCaptureScreenState
   Widget build(BuildContext context) {
     final controller = _controller;
     return Scaffold(
-      appBar: AppBar(title: const Text('Capture Photo')),
+      appBar: AppBar(title: Text(context.t.strings.legacy.msg_capture_photo)),
       body: _initializing
           ? const Center(child: CircularProgressIndicator())
           : _errorMessage != null
@@ -177,7 +183,7 @@ class _WindowsCameraCaptureScreenState
                       const SizedBox(height: 12),
                       FilledButton(
                         onPressed: _openWindowsCameraSettings,
-                        child: const Text('Open Camera Settings'),
+                        child: Text(context.t.strings.legacy.msg_open_camera_settings),
                       ),
                     ],
                   ],

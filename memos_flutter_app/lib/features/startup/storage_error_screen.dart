@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/splash_tokens.g.dart';
 import '../../core/storage_read.dart';
+import '../../i18n/strings.g.dart';
 
 class StorageErrorScreen extends StatelessWidget {
   const StorageErrorScreen({
@@ -34,7 +35,7 @@ class StorageErrorScreen extends StatelessWidget {
                 Icon(Icons.warning_amber_rounded, size: 56, color: primary),
                 const SizedBox(height: 16),
                 Text(
-                  '本地存储不可用',
+                  context.t.strings.legacy.msg_local_storage_unavailable,
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
@@ -44,14 +45,14 @@ class StorageErrorScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '请检查系统权限或稍后重试。',
+                  context.t.strings.legacy.msg_check_system_permissions_or_retry_later,
                   style: TextStyle(fontSize: 13, color: detail, height: 1.4),
                   textAlign: TextAlign.center,
                 ),
                 if (error != null) ...[
                   const SizedBox(height: 10),
                   Text(
-                    '来源：${error!.source}',
+                    context.t.strings.legacy.msg_source_value(source: error!.source),
                     style: TextStyle(fontSize: 11, color: detail),
                   ),
                 ],
@@ -73,13 +74,13 @@ class StorageErrorScreen extends StatelessWidget {
                         ),
                         elevation: 0,
                       ),
-                      child: const Text('重试'),
+                      child: Text(context.t.strings.legacy.msg_retry),
                     ),
                     const SizedBox(width: 12),
                     TextButton(
                       onPressed: onExit,
                       child: Text(
-                        '退出',
+                        context.t.strings.legacy.msg_exit_app,
                         style: TextStyle(color: detail),
                       ),
                     ),

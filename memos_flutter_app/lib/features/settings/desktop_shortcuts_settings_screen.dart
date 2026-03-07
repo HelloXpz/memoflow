@@ -8,6 +8,51 @@ import '../../core/memoflow_palette.dart';
 import '../../core/top_toast.dart';
 import '../../i18n/strings.g.dart';
 import '../../state/settings/preferences_provider.dart';
+
+String _desktopShortcutActionLabel(
+  BuildContext context,
+  DesktopShortcutAction action,
+) {
+  switch (action) {
+    case DesktopShortcutAction.search:
+      return context.t.strings.legacy.msg_search;
+    case DesktopShortcutAction.quickRecord:
+      return context.t.strings.legacy.msg_quick_record;
+    case DesktopShortcutAction.quickInput:
+      return context.t.strings.legacy.msg_focus_input_area;
+    case DesktopShortcutAction.toggleSidebar:
+      return context.t.strings.legacy.msg_toggle_sidebar;
+    case DesktopShortcutAction.refresh:
+      return context.t.strings.legacy.msg_refresh;
+    case DesktopShortcutAction.backHome:
+      return context.t.strings.legacy.msg_back_home;
+    case DesktopShortcutAction.openSettings:
+      return context.t.strings.legacy.msg_open_settings;
+    case DesktopShortcutAction.enableAppLock:
+      return context.t.strings.legacy.msg_enable_app_lock;
+    case DesktopShortcutAction.toggleFlomo:
+      return context.t.strings.legacy.msg_show_hide_memoflow;
+    case DesktopShortcutAction.shortcutOverview:
+      return context.t.strings.legacy.msg_shortcuts_overview;
+    case DesktopShortcutAction.publishMemo:
+      return context.t.strings.legacy.msg_publish_memo;
+    case DesktopShortcutAction.bold:
+      return context.t.strings.legacy.msg_bold;
+    case DesktopShortcutAction.underline:
+      return context.t.strings.legacy.msg_underline;
+    case DesktopShortcutAction.highlight:
+      return context.t.strings.legacy.msg_highlight;
+    case DesktopShortcutAction.unorderedList:
+      return context.t.strings.legacy.msg_unordered_list;
+    case DesktopShortcutAction.orderedList:
+      return context.t.strings.legacy.msg_ordered_list;
+    case DesktopShortcutAction.undo:
+      return context.t.strings.legacy.msg_undo;
+    case DesktopShortcutAction.redo:
+      return context.t.strings.legacy.msg_redo;
+  }
+}
+
 class DesktopShortcutsSettingsScreen extends ConsumerWidget {
   const DesktopShortcutsSettingsScreen({super.key});
 
@@ -33,7 +78,7 @@ class DesktopShortcutsSettingsScreen extends ConsumerWidget {
       if (entry.value == captured) {
         showTopToast(
           context,
-          '${desktopShortcutBindingLabel(captured)} 已被「${desktopShortcutActionLabel(entry.key)}」占用。',
+          context.t.strings.legacy.msg_shortcut_binding_in_use(binding: desktopShortcutBindingLabel(captured), action: _desktopShortcutActionLabel(context, entry.key)),
         );
         return;
       }
@@ -62,13 +107,13 @@ class DesktopShortcutsSettingsScreen extends ConsumerWidget {
       children: [
         for (var i = 0; i < actions.length; i++) ...[
           _ShortcutRow(
-            label: desktopShortcutActionLabel(actions[i]),
+            label: _desktopShortcutActionLabel(context, actions[i]),
             value: desktopShortcutBindingLabel(
               bindings[actions[i]] ??
                   desktopShortcutDefaultBindings[actions[i]]!,
             ),
             caption: actions[i] == DesktopShortcutAction.publishMemo
-                ? '同时支持 Shift + 回车'
+                ? context.t.strings.legacy.msg_shift_enter_supported
                 : null,
             textMain: textMain,
             textMuted: textMuted,
@@ -109,7 +154,7 @@ class DesktopShortcutsSettingsScreen extends ConsumerWidget {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).maybePop(),
         ),
-        title: const Text('快捷键'),
+        title: Text(context.t.strings.legacy.msg_shortcuts),
         centerTitle: false,
         actions: [
           TextButton(
@@ -118,10 +163,10 @@ class DesktopShortcutsSettingsScreen extends ConsumerWidget {
                     ref
                         .read(appPreferencesProvider.notifier)
                         .resetDesktopShortcutBindings();
-                    showTopToast(context, '已恢复默认快捷键。');
+                    showTopToast(context, context.t.strings.legacy.msg_default_shortcuts_restored);
                   }
                 : null,
-            child: const Text('恢复默认'),
+            child: Text(context.t.strings.legacy.msg_restore_defaults),
           ),
         ],
       ),
@@ -136,7 +181,7 @@ class DesktopShortcutsSettingsScreen extends ConsumerWidget {
                 Padding(
                   padding: const EdgeInsets.all(16),
                   child: Text(
-                    '仅 Windows 和 macOS 支持快捷键设置。',
+                    context.t.strings.legacy.msg_shortcuts_supported_windows_macos,
                     style: TextStyle(color: textMuted, height: 1.35),
                   ),
                 ),
@@ -146,7 +191,7 @@ class DesktopShortcutsSettingsScreen extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(2, 0, 2, 8),
               child: Text(
-                '全局',
+                context.t.strings.legacy.msg_global,
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
@@ -167,7 +212,7 @@ class DesktopShortcutsSettingsScreen extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(2, 0, 2, 8),
               child: Text(
-                '编辑器',
+                context.t.strings.legacy.msg_editor,
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
@@ -189,7 +234,7 @@ class DesktopShortcutsSettingsScreen extends ConsumerWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 2),
                 child: Text(
-                  'Windows \u7ffb\u9875\uff1aPageUp \u4e0a\u4e00\u9875\uff0cPageDown \u4e0b\u4e00\u9875\u3002',
+                  context.t.strings.legacy.msg_windows_paging_note,
                   style: TextStyle(fontSize: 12, color: textMuted),
                 ),
               ),
@@ -198,7 +243,7 @@ class DesktopShortcutsSettingsScreen extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 2),
               child: Text(
-                '复制 / 粘贴 / 剪切使用系统默认快捷键。',
+                context.t.strings.legacy.msg_system_edit_shortcuts_note,
                 style: TextStyle(fontSize: 12, color: textMuted),
               ),
             ),
@@ -249,7 +294,7 @@ class _ShortcutCaptureDialogState extends State<_ShortcutCaptureDialog> {
     if (captured == null) {
       if (event is KeyDownEvent &&
           !isDesktopShortcutModifierKey(event.logicalKey)) {
-        setState(() => _error = '请至少包含一个修饰键（Ctrl/Cmd/Shift/Alt）。');
+        setState(() => _error = context.t.strings.legacy.msg_shortcut_requires_modifier);
       }
       return;
     }
@@ -287,17 +332,17 @@ class _ShortcutCaptureDialogState extends State<_ShortcutCaptureDialog> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                desktopShortcutActionLabel(widget.action),
+                _desktopShortcutActionLabel(context, widget.action),
                 style: TextStyle(fontWeight: FontWeight.w800, color: textMain),
               ),
               const SizedBox(height: 8),
               Text(
-                '当前：${desktopShortcutBindingLabel(widget.current)}',
+                context.t.strings.legacy.msg_current_shortcut(binding: desktopShortcutBindingLabel(widget.current)),
                 style: TextStyle(color: textMuted),
               ),
               const SizedBox(height: 10),
               Text(
-                '请按下新的快捷键…',
+                context.t.strings.legacy.msg_press_new_shortcut,
                 style: TextStyle(color: textMain, fontWeight: FontWeight.w600),
               ),
               if (_error != null) ...[

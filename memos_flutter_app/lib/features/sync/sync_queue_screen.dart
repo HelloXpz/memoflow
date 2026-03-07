@@ -137,7 +137,10 @@ class SyncQueueScreen extends ConsumerWidget {
 
     final settings = ref.read(memoFlowBridgeSettingsProvider);
     if (!settings.enabled) {
-      showTopToast(context, '请先启用同步桥。');
+      showTopToast(
+        context,
+        context.t.strings.legacy.msg_enable_sync_bridge_first,
+      );
       return;
     }
     if (!settings.isPaired) {
@@ -149,9 +152,9 @@ class SyncQueueScreen extends ConsumerWidget {
         await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('同步到 Obsidian'),
-            content: const Text(
-              '将当前本地库中的全部 memo（含附件）一次性同步到已配对的 Obsidian，是否继续？',
+            title: Text(context.t.strings.legacy.msg_sync_to_obsidian),
+            content: Text(
+              context.t.strings.legacy.msg_sync_to_obsidian_confirm,
             ),
             actions: [
               TextButton(
@@ -177,11 +180,18 @@ class SyncQueueScreen extends ConsumerWidget {
       if (!context.mounted) return;
       showTopToast(
         context,
-        '同步完成：成功 ${result.succeeded}/${result.total}，失败 ${result.failed}。',
+        context.t.strings.legacy.msg_sync_completed_summary(
+          succeeded: result.succeeded,
+          total: result.total,
+          failed: result.failed,
+        ),
       );
     } catch (e) {
       if (!context.mounted) return;
-      showTopToast(context, '同步失败：$e');
+      showTopToast(
+        context,
+        context.t.strings.legacy.msg_sync_failed_with_error(error: e),
+      );
     } finally {
       if (context.mounted) {
         ref.read(_bridgeBulkPushRunningProvider.notifier).state = false;
@@ -207,9 +217,7 @@ class SyncQueueScreen extends ConsumerWidget {
     final queueAsync = ref.watch(syncQueueItemsProvider);
     final items = queueAsync.valueOrNull ?? const <SyncQueueItem>[];
     final pendingCountAsync = ref.watch(syncQueuePendingCountProvider);
-    final failedCount = items
-        .where((item) => item.isFailed)
-        .length;
+    final failedCount = items.where((item) => item.isFailed).length;
     final activeCount = pendingCountAsync.valueOrNull ?? items.length;
     final pendingCount = (activeCount - failedCount) < 0
         ? 0
@@ -358,7 +366,13 @@ class SyncQueueScreen extends ConsumerWidget {
                         )
                       : const Icon(Icons.cloud_upload_outlined),
                   label: Text(
-                    bridgeBulkPushing ? '同步到 Obsidian 中...' : '同步到 Obsidian',
+                    bridgeBulkPushing
+                        ? context
+                              .t
+                              .strings
+                              .legacy
+                              .msg_sync_to_obsidian_in_progress
+                        : context.t.strings.legacy.msg_sync_to_obsidian,
                   ),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),

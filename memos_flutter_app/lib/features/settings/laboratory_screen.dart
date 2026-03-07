@@ -39,7 +39,7 @@ class _LaboratoryScreenState extends ConsumerState<LaboratoryScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('版本探测失败'),
+          title: Text(context.t.strings.legacy.msg_version_probe_failed),
           content: SizedBox(
             width: 520,
             child: SingleChildScrollView(child: SelectableText(diagnostics)),
@@ -49,13 +49,16 @@ class _LaboratoryScreenState extends ConsumerState<LaboratoryScreen> {
               onPressed: () async {
                 await Clipboard.setData(ClipboardData(text: diagnostics));
                 if (!mounted) return;
-                showTopToast(context, '诊断信息已复制');
+                showTopToast(
+                  context,
+                  context.t.strings.legacy.msg_diagnostics_copied,
+                );
               },
-              child: const Text('复制诊断'),
+              child: Text(context.t.strings.legacy.msg_copy_diagnostics),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('关闭'),
+              child: Text(context.t.strings.legacy.msg_close),
             ),
           ],
         );
@@ -69,7 +72,9 @@ class _LaboratoryScreenState extends ConsumerState<LaboratoryScreen> {
   }) async {
     setState(() => _probingVersion = true);
     try {
-      return await ref.read(laboratoryControllerProvider).probeSingleVersion(
+      return await ref
+          .read(laboratoryControllerProvider)
+          .probeSingleVersion(
             account: currentAccount,
             version: version,
             probeMemoNotice: context.t.strings.legacy.msg_probe_memo_can_delete,
@@ -159,7 +164,10 @@ class _LaboratoryScreenState extends ConsumerState<LaboratoryScreen> {
     final parsed = controller.parseVersion(result);
     if (parsed == null) {
       if (!mounted) return;
-      showTopToast(context, '不支持的版本：$result');
+      showTopToast(
+        context,
+        context.t.strings.legacy.msg_unsupported_version_value(version: result),
+      );
       return;
     }
 
@@ -230,7 +238,12 @@ class _LaboratoryScreenState extends ConsumerState<LaboratoryScreen> {
       cleanup: report.cleanup,
     );
     if (!mounted) return;
-    showTopToast(context, 'v${parsed.versionString} 探测通过');
+    showTopToast(
+      context,
+      context.t.strings.legacy.msg_version_probe_passed_with_version(
+        version: parsed.versionString,
+      ),
+    );
   }
 
   @override
@@ -496,7 +509,7 @@ class _CompatibilityCard extends StatelessWidget {
                         ? onReprobeVersion
                         : null,
                     icon: const Icon(Icons.science_outlined, size: 16),
-                    label: const Text('重新探测'),
+                    label: Text(context.t.strings.legacy.msg_retry),
                   ),
                 ),
               ],

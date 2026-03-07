@@ -415,12 +415,15 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
 
             final monthDate = DateTime(monthly.year, monthly.month, 1);
             final monthLabel = _formatMonth(monthDate);
-            final monthTitle = '$monthLabel 月度概览';
+            final monthTitle = context.t.strings.legacy.msg_monthly_overview(
+              month: monthLabel,
+            );
             final trendMonthLabel = DateFormat(
               'MMM yyyy',
               Localizations.localeOf(context).toLanguageTag(),
             ).format(monthDate);
             final growth = _buildMonthlyGrowthSummary(
+              context: context,
               current: monthly.totalMemos,
               previous: previous.totalMemos,
             );
@@ -439,33 +442,36 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
             );
             final activeWeekday = _mostActiveWeekday(stats.dailyCounts);
             final mostActiveWeekdayLabel = _weekdayLabel(
+              context,
               activeWeekday?.weekday,
             );
             final mostActiveWeekdayTooltip = activeWeekday == null
                 ? null
-                : '\u5171 ${_formatNumber(activeWeekday.count)} \u6b21';
+                : context.t.strings.legacy.msg_total_count_times(
+                    count: _formatNumber(activeWeekday.count),
+                  );
             final bottomItems = <_MetricItemNew>[
               _MetricItemNew(
                 icon: Icons.local_fire_department_outlined,
-                label: '\u8fde\u7eed\u8bb0\u5f55\uff08\u5929\uff09',
+                label: context.t.strings.legacy.msg_current_streak_days,
                 value: _formatNumber(currentStreak),
                 centerValue: true,
               ),
               _MetricItemNew(
                 icon: Icons.calendar_month_outlined,
-                label: '\u7d2f\u8ba1\u5929\u6570',
+                label: context.t.strings.legacy.msg_total_days,
                 value: _formatNumber(stats.daysSinceFirstMemo),
                 centerValue: true,
               ),
               _MetricItemNew(
                 icon: Icons.text_fields_rounded,
-                label: '\u5e73\u5747\u6bcf\u65e5\u5b57\u6570',
+                label: context.t.strings.legacy.msg_average_daily_characters,
                 value: _formatNumber(averageDailyChars),
                 centerValue: true,
               ),
               _MetricItemNew(
                 icon: Icons.emoji_events_outlined,
-                label: '\u6700\u957f\u8fde\u7eed\u8bb0\u5f55\uff08\u5929\uff09',
+                label: context.t.strings.legacy.msg_longest_streak_days,
                 value: _formatNumber(longestStreak),
                 centerValue: true,
               ),
@@ -473,25 +479,25 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
             final additionalBottomItems = <_MetricItemNew>[
               _MetricItemNew(
                 icon: Icons.article_outlined,
-                label: '\u603b\u7b14\u8bb0\uff08\u7bc7\uff09',
+                label: context.t.strings.legacy.msg_total_memos_metric,
                 value: _formatNumber(stats.totalMemos),
                 centerValue: true,
               ),
               _MetricItemNew(
                 icon: Icons.description_outlined,
-                label: '\u603b\u5b57\u6570\uff08\u5b57\uff09',
+                label: context.t.strings.legacy.msg_total_characters_metric,
                 value: _formatNumber(stats.totalChars),
                 centerValue: true,
               ),
               _MetricItemNew(
                 icon: Icons.schedule_outlined,
-                label: '\u5e38\u5199\u65f6\u95f4',
+                label: context.t.strings.legacy.msg_common_writing_time,
                 value: commonWritingTime,
                 centerValue: true,
               ),
               _MetricItemNew(
                 icon: Icons.today_outlined,
-                label: '\u6700\u6d3b\u8dc3\u65e5',
+                label: context.t.strings.legacy.msg_most_active_day,
                 value: mostActiveWeekdayLabel,
                 centerValue: true,
                 tooltip: mostActiveWeekdayTooltip,
@@ -1610,7 +1616,7 @@ class _MonthlyOverviewCardNew extends StatelessWidget {
                   children: [
                     _MetricKVNew(
                       value: _formatNumber(memos),
-                      label: '笔记数',
+                      label: context.t.strings.legacy.msg_memo_count,
                       textMain: textMain,
                       textMuted: textMuted,
                       big: true,
@@ -1618,7 +1624,7 @@ class _MonthlyOverviewCardNew extends StatelessWidget {
                     const SizedBox(height: 12),
                     _MetricKVNew(
                       value: _formatNumber(maxMemosPerDay),
-                      label: '每日最多',
+                      label: context.t.strings.legacy.msg_max_per_day,
                       textMain: textMain,
                       textMuted: textMuted,
                     ),
@@ -1632,7 +1638,8 @@ class _MonthlyOverviewCardNew extends StatelessWidget {
                   children: [
                     _MetricKVNew(
                       value: chars == null ? '--' : _formatNumber(chars!),
-                      label: '总字数',
+                      label:
+                          context.t.strings.legacy.msg_total_characters_short,
                       textMain: textMain,
                       textMuted: textMuted,
                       big: true,
@@ -1642,7 +1649,11 @@ class _MonthlyOverviewCardNew extends StatelessWidget {
                       value: maxCharsPerDay == null
                           ? '--'
                           : _formatNumber(maxCharsPerDay!),
-                      label: '单日最高字数',
+                      label: context
+                          .t
+                          .strings
+                          .legacy
+                          .msg_max_characters_single_day,
                       textMain: textMain,
                       textMuted: textMuted,
                     ),
@@ -1783,7 +1794,7 @@ class _DailyTrendCardNew extends StatelessWidget {
           Row(
             children: [
               Text(
-                '每日记录趋势',
+                context.t.strings.legacy.msg_daily_memo_trend,
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
@@ -1887,7 +1898,10 @@ class _DailyTrendCardNew extends StatelessWidget {
                       final date = DateTime(month.year, month.month, day);
                       final count = counts[day - 1];
                       return BarTooltipItem(
-                        '${DateFormat('yyyy-MM-dd').format(date)}\n${_formatNumber(count)}条笔记',
+                        context.t.strings.legacy.msg_date_memo_count_tooltip(
+                          date: DateFormat('yyyy-MM-dd').format(date),
+                          count: _formatNumber(count),
+                        ),
                         const TextStyle(
                           color: Colors.white,
                           fontSize: 11,
@@ -1918,7 +1932,8 @@ class _DailyTrendCardNew extends StatelessWidget {
                             alpha: isDark ? 0.95 : 0.86,
                           ),
                         ),
-                        labelResolver: (_) => '均值 $averageLabel',
+                        labelResolver: (_) => context.t.strings.legacy
+                            .msg_average_value(value: averageLabel),
                       ),
                     ),
                   ],
@@ -2064,7 +2079,7 @@ class _TagWordCloudNewState extends State<_TagWordCloudNew> {
         ),
         child: Center(
           child: Text(
-            '标签数量少于5个，请增加标签再试',
+            context.t.strings.legacy.msg_need_at_least_five_tags,
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w700,
@@ -2157,7 +2172,14 @@ class _TagWordCloudNewState extends State<_TagWordCloudNew> {
                             maxWidth: 260,
                           ),
                           child: Text(
-                            '${_formatNumber(hoverWord.count)} 条记录\n占比 ${_formatPercentInt(hoverWord.count, hoverWord.totalCount)}%\n最近一次：${_formatDateYmd(hoverWord.latestMemoAt)}',
+                            context.t.strings.legacy.msg_tag_cloud_tooltip(
+                              count: _formatNumber(hoverWord.count),
+                              percent: _formatPercentInt(
+                                hoverWord.count,
+                                hoverWord.totalCount,
+                              ),
+                              latest: _formatDateYmd(hoverWord.latestMemoAt),
+                            ),
                             textAlign: TextAlign.center,
                             softWrap: true,
                             maxLines: 3,
@@ -2527,7 +2549,9 @@ class _TagWordCloudNewState extends State<_TagWordCloudNew> {
         <String, ({int count, Color? color, DateTime? latestMemoAt})>{};
     for (final item in slices) {
       if (item.count <= 0 || item.isUntagged) continue;
-      final name = item.tag.trim().isEmpty ? '未命名标签' : item.tag.trim();
+      final name = item.tag.trim().isEmpty
+          ? context.t.strings.legacy.msg_unnamed_tag
+          : item.tag.trim();
       final old = merged[name];
       final preferredColor = old?.color ?? _tryParseHexColorNew(item.colorHex);
       final oldLatest = old?.latestMemoAt;
@@ -2756,7 +2780,7 @@ class _YearCharsTrendCardNew extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '年度字数趋势',
+                context.t.strings.legacy.msg_yearly_character_trend,
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w800,
@@ -2793,7 +2817,7 @@ class _YearCharsTrendChartNew extends StatelessWidget {
     if (points.isEmpty) {
       return Center(
         child: Text(
-          '暂无数据',
+          context.t.strings.legacy.msg_no_data,
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w700,
@@ -2902,7 +2926,10 @@ class _YearCharsTrendChartNew extends StatelessWidget {
                 final index = spot.x.round().clamp(0, normalized.length - 1);
                 final point = normalized[index];
                 return LineTooltipItem(
-                  '${DateFormat('yyyy-MM').format(point.month)}\n${_formatNumber(point.totalChars)}字',
+                  context.t.strings.legacy.msg_month_characters_tooltip(
+                    month: DateFormat('yyyy-MM').format(point.month),
+                    chars: _formatNumber(point.totalChars),
+                  ),
                   const TextStyle(
                     color: Colors.white,
                     fontSize: 11,
@@ -3192,32 +3219,35 @@ class _MonthGrowthSummaryNew {
 }
 
 _MonthGrowthSummaryNew _buildMonthlyGrowthSummary({
+  required BuildContext context,
   required int current,
   required int previous,
 }) {
   if (previous <= 0) {
     if (current <= 0) {
-      return const _MonthGrowthSummaryNew(
-        text: '较上月笔记条数持平',
+      return _MonthGrowthSummaryNew(
+        text: context.t.strings.legacy.msg_vs_last_month_same_memo_count,
         trend: _GrowthTrendNew.flat,
       );
     }
-    return const _MonthGrowthSummaryNew(
-      text: '较上月笔记条数增加',
+    return _MonthGrowthSummaryNew(
+      text: context.t.strings.legacy.msg_vs_last_month_increase_memo_count,
       trend: _GrowthTrendNew.up,
     );
   }
 
   final delta = current - previous;
   if (delta == 0) {
-    return const _MonthGrowthSummaryNew(
-      text: '较上月笔记条数持平',
+    return _MonthGrowthSummaryNew(
+      text: context.t.strings.legacy.msg_vs_last_month_same_memo_count,
       trend: _GrowthTrendNew.flat,
     );
   }
 
   return _MonthGrowthSummaryNew(
-    text: delta > 0 ? '较上月笔记条数增加' : '较上月笔记条数减少',
+    text: delta > 0
+        ? context.t.strings.legacy.msg_vs_last_month_increase_memo_count
+        : context.t.strings.legacy.msg_vs_last_month_decrease_memo_count,
     trend: delta > 0 ? _GrowthTrendNew.up : _GrowthTrendNew.down,
   );
 }
@@ -3335,22 +3365,22 @@ String _formatHourRange(int? hour) {
   return (weekday: bestWeekday, count: bestCount);
 }
 
-String _weekdayLabel(int? weekday) {
+String _weekdayLabel(BuildContext context, int? weekday) {
   switch (weekday) {
     case DateTime.monday:
-      return '\u5468\u4e00';
+      return context.t.strings.legacy.msg_weekday_monday;
     case DateTime.tuesday:
-      return '\u5468\u4e8c';
+      return context.t.strings.legacy.msg_weekday_tuesday;
     case DateTime.wednesday:
-      return '\u5468\u4e09';
+      return context.t.strings.legacy.msg_weekday_wednesday;
     case DateTime.thursday:
-      return '\u5468\u56db';
+      return context.t.strings.legacy.msg_weekday_thursday;
     case DateTime.friday:
-      return '\u5468\u4e94';
+      return context.t.strings.legacy.msg_weekday_friday;
     case DateTime.saturday:
-      return '\u5468\u516d';
+      return context.t.strings.legacy.msg_weekday_saturday;
     case DateTime.sunday:
-      return '\u5468\u65e5';
+      return context.t.strings.legacy.msg_weekday_sunday;
     default:
       return '--';
   }

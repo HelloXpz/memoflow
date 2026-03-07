@@ -24,7 +24,7 @@ bool _supportsBridgeQrScannerOnCurrentPlatform() {
 void _showBridgeQrUnsupportedNotice(BuildContext context) {
   showTopToast(
     context,
-    'QR scan is not supported on this platform. Please pair manually with Host, Port, and Pair Code.',
+    context.t.strings.legacy.msg_qr_scan_not_supported_pair_manually,
   );
 }
 
@@ -828,14 +828,14 @@ class _MemoFlowPairQrScanScreenState extends State<MemoFlowPairQrScanScreen> {
               children: [
                 const Icon(Icons.qr_code_scanner, size: 40),
                 const SizedBox(height: 12),
-                const Text(
-                  'QR scan is not supported on this platform.\nUse manual pairing instead.',
+                Text(
+                  context.t.strings.legacy.msg_qr_scan_not_supported_use_manual_pairing,
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
                 FilledButton(
                   onPressed: () => Navigator.of(context).maybePop(),
-                  child: const Text('Back'),
+                  child: Text(context.t.strings.legacy.msg_back),
                 ),
               ],
             ),

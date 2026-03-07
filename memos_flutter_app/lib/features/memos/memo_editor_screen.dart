@@ -908,8 +908,11 @@ class _MemoEditorScreenState extends ConsumerState<MemoEditorScreen> {
   ) async {
     if (_saving) return;
     final items = templates.isEmpty
-        ? const <PopupMenuEntry<String>>[
-            PopupMenuItem<String>(enabled: false, child: Text('暂无模板')),
+        ? <PopupMenuEntry<String>>[
+            PopupMenuItem<String>(
+              enabled: false,
+              child: Text(context.t.strings.legacy.msg_no_templates_yet),
+            ),
           ]
         : templates
               .map(
@@ -971,15 +974,15 @@ class _MemoEditorScreenState extends ConsumerState<MemoEditorScreen> {
     final action = await showMenu<_TodoShortcutAction>(
       context: context,
       position: position,
-      items: const [
+      items: [
         PopupMenuItem(
           value: _TodoShortcutAction.checkbox,
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.check_box_outlined, size: 18),
-              SizedBox(width: 8),
-              Text('Checkbox'),
+              const Icon(Icons.check_box_outlined, size: 18),
+              const SizedBox(width: 8),
+              Text(context.t.strings.legacy.msg_checkbox),
             ],
           ),
         ),
@@ -988,9 +991,9 @@ class _MemoEditorScreenState extends ConsumerState<MemoEditorScreen> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.code, size: 18),
-              SizedBox(width: 8),
-              Text('Code block'),
+              const Icon(Icons.code, size: 18),
+              const SizedBox(width: 8),
+              Text(context.t.strings.legacy.msg_code_block),
             ],
           ),
         ),
@@ -1052,7 +1055,11 @@ class _MemoEditorScreenState extends ConsumerState<MemoEditorScreen> {
     }
     messenger.showSnackBar(
       SnackBar(
-        content: Text('$message. Enable location access in Windows settings.'),
+        content: Text(
+          context.t.strings.legacy.msg_windows_enable_location_access(
+            message: message,
+          ),
+        ),
         action: SnackBarAction(
           label: context.t.strings.legacy.msg_settings,
           onPressed: () {
@@ -1474,8 +1481,8 @@ class _MemoEditorScreenState extends ConsumerState<MemoEditorScreen> {
       if (!mounted) return;
       if (added.isEmpty) {
         final msg = missingPathCount > 0
-            ? 'Files unavailable from picker.'
-            : 'No files selected.';
+            ? context.t.strings.legacy.msg_files_unavailable_from_picker
+            : context.t.strings.legacy.msg_no_files_selected;
         showTopToast(context, msg);
         return;
       }
@@ -1484,19 +1491,32 @@ class _MemoEditorScreenState extends ConsumerState<MemoEditorScreen> {
         _pendingAttachments.addAll(added);
       });
       _scheduleDraftSave();
-      final suffix = added.length == 1 ? '' : 's';
       final skipped = [
-        if (missingPathCount > 0) '$missingPathCount unavailable',
+        if (missingPathCount > 0)
+          context.t.strings.legacy.msg_unavailable_file_count(
+            count: missingPathCount,
+          ),
       ];
       final summary = skipped.isEmpty
-          ? 'Added ${added.length} file$suffix.'
-          : 'Added ${added.length} file$suffix. Skipped ${skipped.join(', ')}.';
+          ? context.t.strings.legacy.msg_added_files(
+              count: added.length,
+            )
+          : context.t.strings.legacy.msg_added_files_with_skipped(
+              count: added.length,
+              details: skipped.join(', '),
+            );
       showTopToast(context, summary);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('File selection failed: $e')));
+      ).showSnackBar(
+        SnackBar(
+          content: Text(
+            context.t.strings.legacy.msg_file_selection_failed(error: e),
+          ),
+        ),
+      );
     }
   }
 
@@ -1512,7 +1532,9 @@ class _MemoEditorScreenState extends ConsumerState<MemoEditorScreen> {
       final path = photo.path;
       if (path.trim().isEmpty) {
         messenger.showSnackBar(
-          const SnackBar(content: Text('Camera file missing.')),
+          SnackBar(
+            content: Text(context.t.strings.legacy.msg_camera_file_missing),
+          ),
         );
         return;
       }
@@ -1520,7 +1542,9 @@ class _MemoEditorScreenState extends ConsumerState<MemoEditorScreen> {
       final file = File(path);
       if (!file.existsSync()) {
         messenger.showSnackBar(
-          const SnackBar(content: Text('Camera file missing.')),
+          SnackBar(
+            content: Text(context.t.strings.legacy.msg_camera_file_missing),
+          ),
         );
         return;
       }
@@ -1544,20 +1568,25 @@ class _MemoEditorScreenState extends ConsumerState<MemoEditorScreen> {
         _pickedImages.add(photo);
       });
       _scheduleDraftSave();
-      showTopToast(context, 'Added photo attachment.');
+      showTopToast(
+        context,
+        context.t.strings.legacy.msg_added_photo_attachment,
+      );
     } catch (e) {
       if (!mounted) return;
       if (_isWindowsNoCameraError(e)) {
         messenger.showSnackBar(
-          const SnackBar(content: Text('No camera detected.')),
+          SnackBar(
+            content: Text(context.t.strings.legacy.msg_no_camera_detected),
+          ),
         );
         return;
       }
       if (_isWindowsCameraPermissionError(e)) {
         messenger.showSnackBar(
           SnackBar(
-            content: const Text(
-              'Camera permission denied. Enable camera access in Windows settings.',
+            content: Text(
+              context.t.strings.legacy.msg_camera_permission_denied_windows,
             ),
             action: SnackBarAction(
               label: context.t.strings.legacy.msg_settings,
@@ -1569,7 +1598,11 @@ class _MemoEditorScreenState extends ConsumerState<MemoEditorScreen> {
         );
         return;
       }
-      messenger.showSnackBar(SnackBar(content: Text('Camera failed: $e')));
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(context.t.strings.legacy.msg_camera_failed(error: e)),
+        ),
+      );
     }
   }
 
@@ -2572,7 +2605,7 @@ class _MemoEditorScreenState extends ConsumerState<MemoEditorScreen> {
                                   children: [
                                     IconButton(
                                       key: _tagMenuKey,
-                                      tooltip: 'Tag',
+                                      tooltip: context.t.strings.legacy.msg_tag,
                                       onPressed: _saving
                                           ? null
                                           : () async {
@@ -2588,7 +2621,7 @@ class _MemoEditorScreenState extends ConsumerState<MemoEditorScreen> {
                                     ),
                                     IconButton(
                                       key: _templateMenuKey,
-                                      tooltip: '模板',
+                                      tooltip: context.t.strings.legacy.msg_template,
                                       onPressed: _saving
                                           ? null
                                           : () async {
@@ -2606,7 +2639,7 @@ class _MemoEditorScreenState extends ConsumerState<MemoEditorScreen> {
                                       ),
                                     ),
                                     IconButton(
-                                      tooltip: 'Attachment',
+                                      tooltip: context.t.strings.legacy.msg_attachment,
                                       onPressed: _saving
                                           ? null
                                           : () async {
@@ -2622,7 +2655,7 @@ class _MemoEditorScreenState extends ConsumerState<MemoEditorScreen> {
                                     ),
                                     IconButton(
                                       key: _todoMenuKey,
-                                      tooltip: 'Todo',
+                                      tooltip: context.t.strings.legacy.msg_todo,
                                       onPressed: _saving
                                           ? null
                                           : () async {
@@ -2639,7 +2672,7 @@ class _MemoEditorScreenState extends ConsumerState<MemoEditorScreen> {
                                       ),
                                     ),
                                     IconButton(
-                                      tooltip: 'Link',
+                                      tooltip: context.t.strings.legacy.msg_link,
                                       onPressed: _saving
                                           ? null
                                           : () async {
@@ -2675,7 +2708,7 @@ class _MemoEditorScreenState extends ConsumerState<MemoEditorScreen> {
                                             : null,
                                       ),
                                       child: IconButton(
-                                        tooltip: 'More',
+                                        tooltip: context.t.strings.legacy.msg_more,
                                         onPressed: _saving
                                             ? null
                                             : _toggleMoreToolbar,

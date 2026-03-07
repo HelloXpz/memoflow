@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../i18n/strings.g.dart';
+
 enum MemoComposePrimaryAction { tag, template, attachment, todo, link }
 
 const kMemoComposePrimaryActions = <MemoComposePrimaryAction>[
@@ -23,11 +25,11 @@ extension MemoComposePrimaryActionX on MemoComposePrimaryAction {
 
   String get tooltip {
     return switch (this) {
-      MemoComposePrimaryAction.tag => 'Tag',
-      MemoComposePrimaryAction.template => '模板',
-      MemoComposePrimaryAction.attachment => 'Attachment',
-      MemoComposePrimaryAction.todo => 'Todo',
-      MemoComposePrimaryAction.link => 'Link',
+      MemoComposePrimaryAction.tag => t.strings.legacy.msg_tag,
+      MemoComposePrimaryAction.template => t.strings.legacy.msg_template,
+      MemoComposePrimaryAction.attachment => t.strings.legacy.msg_attachment,
+      MemoComposePrimaryAction.todo => t.strings.legacy.msg_todo,
+      MemoComposePrimaryAction.link => t.strings.legacy.msg_link,
     };
   }
 }
@@ -145,7 +147,7 @@ class MemoComposePrimaryToolbar extends StatelessWidget {
               border: moreOpen ? Border.all(color: moreBorder, width: 1) : null,
             ),
             child: IconButton(
-              tooltip: 'More',
+              tooltip: t.strings.legacy.msg_more,
               onPressed: busy ? null : onToggleMorePressed,
               icon: Icon(Icons.more_horiz, color: toolbarIconColor),
             ),

@@ -1,10 +1,12 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/memo_template_renderer.dart';
 import '../../../data/models/memo_template_settings.dart';
 import '../../../state/settings/location_settings_provider.dart';
 import '../../../state/settings/memo_template_settings_provider.dart';
+import '../../../i18n/strings.g.dart';
+
 class DesktopQuickInputDialog extends ConsumerStatefulWidget {
   const DesktopQuickInputDialog({
     super.key,
@@ -123,8 +125,11 @@ class _DesktopQuickInputDialogState
     if (overlay is! RenderBox || box is! RenderBox) return;
 
     final items = templates.isEmpty
-        ? const <PopupMenuEntry<String>>[
-            PopupMenuItem<String>(enabled: false, child: Text('暂无模板')),
+        ? <PopupMenuEntry<String>>[
+            PopupMenuItem<String>(
+              enabled: false,
+              child: Text(context.t.strings.legacy.msg_no_templates_yet),
+            ),
           ]
         : templates
               .map(
@@ -209,12 +214,12 @@ class _DesktopQuickInputDialogState
                     ),
                     const Spacer(),
                     IconButton(
-                      tooltip: '缃《锛堥鐣欙級',
+                      tooltip: context.t.strings.legacy.msg_pin,
                       onPressed: null,
                       icon: Icon(Icons.push_pin_outlined, color: textMuted),
                     ),
                     IconButton(
-                      tooltip: '鍏抽棴',
+                      tooltip: context.t.strings.legacy.msg_close,
                       onPressed: () => Navigator.of(context).maybePop(),
                       icon: Icon(Icons.close, color: textMuted),
                     ),
@@ -237,7 +242,8 @@ class _DesktopQuickInputDialogState
                       height: 1.45,
                     ),
                     decoration: InputDecoration(
-                      hintText: '鐜板湪鐨勬兂娉曟槸...',
+                      hintText:
+                          context.t.strings.legacy.msg_write_current_thought,
                       hintStyle: TextStyle(color: textMuted),
                       border: InputBorder.none,
                     ),
@@ -251,13 +257,13 @@ class _DesktopQuickInputDialogState
                 child: Row(
                   children: [
                     _ToolbarButton(
-                      tooltip: '鏍囩',
+                      tooltip: context.t.strings.legacy.msg_tag,
                       onTap: () => _insertText('#'),
                       icon: Icons.tag_outlined,
                     ),
                     _ToolbarButton(
                       buttonKey: _templateMenuKey,
-                      tooltip: '模板',
+                      tooltip: context.t.strings.legacy.msg_template,
                       onTap: () => _openTemplateMenuFromKey(
                         _templateMenuKey,
                         availableTemplates,
@@ -265,27 +271,27 @@ class _DesktopQuickInputDialogState
                       icon: Icons.description_outlined,
                     ),
                     _ToolbarButton(
-                      tooltip: '鍥剧墖',
+                      tooltip: context.t.strings.legacy.msg_image,
                       onTap: widget.onImagePressed,
                       icon: Icons.image_outlined,
                     ),
                     _ToolbarButton(
-                      tooltip: '鍔犵矖',
+                      tooltip: context.t.strings.legacy.msg_bold,
                       onTap: _toggleBold,
                       icon: Icons.text_fields,
                     ),
                     _ToolbarButton(
-                      tooltip: '鏃犲簭鍒楄〃',
+                      tooltip: context.t.strings.legacy.msg_unordered_list,
                       onTap: () => _insertText('- '),
                       icon: Icons.format_list_bulleted,
                     ),
                     _ToolbarButton(
-                      tooltip: '鏈夊簭鍒楄〃',
+                      tooltip: context.t.strings.legacy.msg_ordered_list,
                       onTap: () => _insertText('1. '),
                       icon: Icons.format_list_numbered,
                     ),
                     _ToolbarButton(
-                      tooltip: '鍏宠仈',
+                      tooltip: context.t.strings.legacy.msg_link,
                       onTap: () => _insertText('@'),
                       icon: Icons.alternate_email_rounded,
                     ),

@@ -180,7 +180,11 @@ class _VoiceRecordScreenState extends ConsumerState<VoiceRecordScreen>
         if (devices.isEmpty) {
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No recording input device found.')),
+            SnackBar(
+              content: Text(
+                context.t.strings.legacy.msg_no_recording_input_device_found,
+              ),
+            ),
           );
           return;
         }
@@ -632,7 +636,7 @@ class _VoiceRecordScreenState extends ConsumerState<VoiceRecordScreen>
                           top: 14,
                           right: 14,
                           child: IconButton(
-                            tooltip: 'Close',
+                            tooltip: context.t.strings.legacy.msg_close,
                             onPressed: _processing
                                 ? null
                                 : () => unawaited(_closeScreen()),

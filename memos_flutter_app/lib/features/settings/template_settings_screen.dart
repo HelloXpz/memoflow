@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/memoflow_palette.dart';
 import '../../core/uid.dart';
 import '../../data/models/memo_template_settings.dart';
+import '../../i18n/strings.g.dart';
 import '../../state/settings/memo_template_settings_provider.dart';
+
 class TemplateSettingsScreen extends ConsumerWidget {
   const TemplateSettingsScreen({super.key});
 
@@ -54,16 +56,20 @@ class TemplateSettingsScreen extends ConsumerWidget {
           await showDialog<bool>(
             context: context,
             builder: (context) => AlertDialog(
-              title: const Text('删除模板'),
-              content: Text('确定删除“${template.name}”吗？'),
+              title: Text(context.t.strings.legacy.msg_delete_template),
+              content: Text(
+                context.t.strings.legacy.msg_delete_template_confirm_with_name(
+                  name: template.name,
+                ),
+              ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('取消'),
+                  child: Text(context.t.strings.common.cancel),
                 ),
                 FilledButton(
                   onPressed: () => Navigator.of(context).pop(true),
-                  child: const Text('删除'),
+                  child: Text(context.t.strings.legacy.msg_delete),
                 ),
               ],
             ),
@@ -75,7 +81,7 @@ class TemplateSettingsScreen extends ConsumerWidget {
 
     Widget buildTemplateCard(MemoTemplate template) {
       final subtitle = template.content.trim().isEmpty
-          ? '空内容'
+          ? context.t.strings.legacy.msg_empty_content
           : template.content.trim().replaceAll('\n', ' ');
       return Container(
         margin: const EdgeInsets.only(bottom: 10),
@@ -100,12 +106,12 @@ class TemplateSettingsScreen extends ConsumerWidget {
             spacing: 4,
             children: [
               IconButton(
-                tooltip: '编辑',
+                tooltip: context.t.strings.legacy.msg_edit,
                 onPressed: () => openTemplateEditor(initial: template),
                 icon: Icon(Icons.edit_outlined, color: textMuted),
               ),
               IconButton(
-                tooltip: '删除',
+                tooltip: context.t.strings.legacy.msg_delete,
                 onPressed: () => deleteTemplate(template),
                 icon: Icon(Icons.delete_outline, color: textMuted),
               ),
@@ -124,7 +130,7 @@ class TemplateSettingsScreen extends ConsumerWidget {
             borderRadius: BorderRadius.circular(18),
           ),
           child: Text(
-            '暂无模板，点击“新增模板”创建。',
+            context.t.strings.legacy.msg_no_templates_click_add,
             style: TextStyle(fontSize: 13, color: textMuted),
           ),
         );
@@ -154,9 +160,15 @@ class TemplateSettingsScreen extends ConsumerWidget {
     final templates = settings.templates;
     final weatherSummary = settings.variables.weatherEnabled
         ? (settings.variables.weatherCity.trim().isEmpty
-              ? '天气变量已启用（未设置城市）'
-              : '天气变量：${settings.variables.weatherCity}')
-        : '天气变量已关闭';
+              ? context
+                    .t
+                    .strings
+                    .legacy
+                    .msg_weather_variables_enabled_city_not_set
+              : context.t.strings.legacy.msg_weather_variables_city(
+                  city: settings.variables.weatherCity,
+                ))
+        : context.t.strings.legacy.msg_weather_variables_disabled;
 
     return Scaffold(
       backgroundColor: bg,
@@ -166,11 +178,11 @@ class TemplateSettingsScreen extends ConsumerWidget {
         scrolledUnderElevation: 0,
         surfaceTintColor: Colors.transparent,
         leading: IconButton(
-          tooltip: '返回',
+          tooltip: context.t.strings.common.back,
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).maybePop(),
         ),
-        title: const Text('模板'),
+        title: Text(context.t.strings.legacy.msg_template),
         centerTitle: false,
       ),
       body: ListView(
@@ -189,7 +201,7 @@ class TemplateSettingsScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '启用模板功能',
+                        context.t.strings.legacy.msg_template_feature_title,
                         style: TextStyle(
                           fontWeight: FontWeight.w700,
                           color: textMain,
@@ -197,7 +209,7 @@ class TemplateSettingsScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '启用后可在编辑器工具栏选择模板，选择后将覆盖输入框内容。',
+                        context.t.strings.legacy.msg_template_feature_desc,
                         style: TextStyle(
                           fontSize: 12,
                           color: textMuted,
@@ -218,7 +230,7 @@ class TemplateSettingsScreen extends ConsumerWidget {
           Row(
             children: [
               Text(
-                '模板列表',
+                context.t.strings.legacy.msg_template_list,
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
@@ -229,20 +241,20 @@ class TemplateSettingsScreen extends ConsumerWidget {
               FilledButton.icon(
                 onPressed: () => openTemplateEditor(),
                 icon: const Icon(Icons.add, size: 16),
-                label: const Text('新增模板'),
+                label: Text(context.t.strings.legacy.msg_new_template),
               ),
             ],
           ),
           const SizedBox(height: 6),
           Text(
-            '模板较多时，此区域支持上下滑动查看。',
+            context.t.strings.legacy.msg_many_templates_support_scroll,
             style: TextStyle(fontSize: 12, color: textMuted),
           ),
           const SizedBox(height: 10),
           buildTemplateList(templates),
           const SizedBox(height: 8),
           Text(
-            '变量设置',
+            context.t.strings.legacy.msg_variable_settings,
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,
@@ -268,7 +280,7 @@ class TemplateSettingsScreen extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '模板变量',
+                            context.t.strings.legacy.msg_template_variables,
                             style: TextStyle(
                               fontWeight: FontWeight.w700,
                               color: textMain,
@@ -307,7 +319,11 @@ class TemplateSettingsScreen extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '可用变量说明',
+                            context
+                                .t
+                                .strings
+                                .legacy
+                                .msg_available_variable_docs,
                             style: TextStyle(
                               fontWeight: FontWeight.w700,
                               color: textMain,
@@ -315,7 +331,11 @@ class TemplateSettingsScreen extends ConsumerWidget {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            '点击后在中间弹出变量表格与含义说明。',
+                            context
+                                .t
+                                .strings
+                                .legacy
+                                .msg_available_variable_docs_desc,
                             style: TextStyle(fontSize: 12, color: textMuted),
                           ),
                         ],
@@ -349,56 +369,81 @@ class _VariableDocsDialogState extends State<_VariableDocsDialog> {
   late final ScrollController _verticalController;
   late final ScrollController _horizontalController;
 
-  static const _docs = <_VariableDoc>[
-    _VariableDoc(token: '{{date}}', meaning: '当前日期', example: '2026-02-21'),
-    _VariableDoc(token: '{{time}}', meaning: '当前时间', example: '09:30'),
+  List<_VariableDoc> _docs(BuildContext context) => <_VariableDoc>[
+    _VariableDoc(
+      token: '{{date}}',
+      meaning: context.t.strings.legacy.msg_current_date,
+      example: '2026-02-21',
+    ),
+    _VariableDoc(
+      token: '{{time}}',
+      meaning: context.t.strings.legacy.msg_current_time,
+      example: '09:30',
+    ),
     _VariableDoc(
       token: '{{datetime}}',
-      meaning: '当前日期时间',
+      meaning: context.t.strings.legacy.msg_current_datetime,
       example: '2026-02-21 09:30',
     ),
-    _VariableDoc(token: '{{weekday}}', meaning: '星期名称', example: '星期六'),
+    _VariableDoc(
+      token: '{{weekday}}',
+      meaning: context.t.strings.legacy.msg_weekday_name,
+      example: context.t.strings.legacy.msg_example_saturday,
+    ),
     _VariableDoc(
       token: '{{weather}}',
-      meaning: '天气 + 温度（不含城市）',
-      example: '晴 25℃',
+      meaning:
+          context.t.strings.legacy.msg_weather_plus_temperature_without_city,
+      example: context.t.strings.legacy.msg_example_sunny_25c,
     ),
     _VariableDoc(
       token: '{{weather.summary}}',
-      meaning: '城市 + 天气 + 温度',
-      example: '北京 晴 25℃',
+      meaning: context.t.strings.legacy.msg_city_plus_weather_plus_temperature,
+      example: context.t.strings.legacy.msg_example_beijing_sunny_25c,
     ),
-    _VariableDoc(token: '{{weather.city}}', meaning: '天气城市', example: '北京'),
+    _VariableDoc(
+      token: '{{weather.city}}',
+      meaning: context.t.strings.legacy.msg_weather_city_label,
+      example: context.t.strings.legacy.msg_example_beijing,
+    ),
     _VariableDoc(
       token: '{{weather.province}}',
-      meaning: '天气省份',
-      example: '北京市',
+      meaning: context.t.strings.legacy.msg_weather_province,
+      example: context.t.strings.legacy.msg_example_beijing_city,
     ),
-    _VariableDoc(token: '{{weather.condition}}', meaning: '天气现象', example: '晴'),
+    _VariableDoc(
+      token: '{{weather.condition}}',
+      meaning: context.t.strings.legacy.msg_weather_condition,
+      example: context.t.strings.legacy.msg_example_sunny,
+    ),
     _VariableDoc(
       token: '{{weather.temperature}}',
-      meaning: '温度（不带单位）',
+      meaning: context.t.strings.legacy.msg_temperature_without_unit,
       example: '25',
     ),
     _VariableDoc(
       token: '{{weather.humidity}}',
-      meaning: '湿度（不带 %）',
+      meaning: context.t.strings.legacy.msg_humidity_without_percent,
       example: '65',
     ),
     _VariableDoc(
       token: '{{weather.wind_direction}}',
-      meaning: '风向',
-      example: '东北',
+      meaning: context.t.strings.legacy.msg_wind_direction,
+      example: context.t.strings.legacy.msg_example_northeast,
     ),
-    _VariableDoc(token: '{{weather.wind_power}}', meaning: '风力', example: '3'),
+    _VariableDoc(
+      token: '{{weather.wind_power}}',
+      meaning: context.t.strings.legacy.msg_wind_power,
+      example: '3',
+    ),
     _VariableDoc(
       token: '{{weather.report_time}}',
-      meaning: '天气上报时间',
+      meaning: context.t.strings.legacy.msg_weather_report_time,
       example: '2026-02-21 09:00:00',
     ),
     _VariableDoc(
       token: '{{weather.adcode}}',
-      meaning: '行政区编码',
+      meaning: context.t.strings.legacy.msg_adcode,
       example: '110000',
     ),
   ];
@@ -431,6 +476,7 @@ class _VariableDocsDialogState extends State<_VariableDocsDialog> {
     final tokenColor = isDark
         ? const Color(0xFFE0E7FF)
         : const Color(0xFF27438F);
+    final docs = _docs(context);
 
     Widget cell({
       required String text,
@@ -464,7 +510,7 @@ class _VariableDocsDialogState extends State<_VariableDocsDialog> {
     }
 
     return AlertDialog(
-      title: const Text('可用变量说明'),
+      title: Text(context.t.strings.legacy.msg_available_variable_docs),
       content: SizedBox(
         width: 760,
         child: Column(
@@ -472,7 +518,7 @@ class _VariableDocsDialogState extends State<_VariableDocsDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '日期/时间变量受“变量设置”中的格式影响；天气变量依赖高德天气配置。',
+              context.t.strings.legacy.msg_date_time_weather_variable_desc,
               style: TextStyle(fontSize: 12, color: textMuted, height: 1.35),
             ),
             const SizedBox(height: 10),
@@ -504,17 +550,25 @@ class _VariableDocsDialogState extends State<_VariableDocsDialog> {
                           children: [
                             TableRow(
                               children: [
-                                cell(text: '变量', isHeader: true, width: 240),
-                                cell(text: '含义', isHeader: true, width: 220),
                                 cell(
-                                  text: '示例',
+                                  text: context.t.strings.legacy.msg_variable,
+                                  isHeader: true,
+                                  width: 240,
+                                ),
+                                cell(
+                                  text: context.t.strings.legacy.msg_meaning,
+                                  isHeader: true,
+                                  width: 220,
+                                ),
+                                cell(
+                                  text: context.t.strings.legacy.msg_example,
                                   isHeader: true,
                                   width: 220,
                                   rightBorder: false,
                                 ),
                               ],
                             ),
-                            ..._docs.map(
+                            ...docs.map(
                               (item) => TableRow(
                                 children: [
                                   cell(
@@ -551,7 +605,7 @@ class _VariableDocsDialogState extends State<_VariableDocsDialog> {
       actions: [
         FilledButton(
           onPressed: () => Navigator.of(context).maybePop(),
-          child: const Text('我知道了'),
+          child: Text(context.t.strings.legacy.msg_got_it),
         ),
       ],
     );
@@ -621,32 +675,42 @@ class _TemplateEditorDialogState extends State<_TemplateEditorDialog> {
     final textMuted = textMain.withValues(alpha: isDark ? 0.55 : 0.6);
 
     return AlertDialog(
-      title: Text(widget.initial == null ? '新增模板' : '编辑模板'),
+      title: Text(
+        widget.initial == null
+            ? context.t.strings.legacy.msg_new_template
+            : context.t.strings.legacy.msg_edit_template,
+      ),
       content: SizedBox(
         width: 480,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('模板名称', style: TextStyle(fontSize: 12, color: textMuted)),
+            Text(
+              context.t.strings.legacy.msg_template_name,
+              style: TextStyle(fontSize: 12, color: textMuted),
+            ),
             const SizedBox(height: 6),
             TextField(
               controller: _nameController,
               maxLength: 32,
-              decoration: const InputDecoration(
-                hintText: '例如：晨间复盘',
+              decoration: InputDecoration(
+                hintText: context.t.strings.legacy.msg_template_name_example,
                 counterText: '',
               ),
             ),
             const SizedBox(height: 10),
-            Text('模板内容', style: TextStyle(fontSize: 12, color: textMuted)),
+            Text(
+              context.t.strings.legacy.msg_template_content,
+              style: TextStyle(fontSize: 12, color: textMuted),
+            ),
             const SizedBox(height: 6),
             TextField(
               controller: _contentController,
               minLines: 4,
               maxLines: 8,
-              decoration: const InputDecoration(
-                hintText: '可使用变量，例如：{{date}} {{weather}}',
+              decoration: InputDecoration(
+                hintText: context.t.strings.legacy.msg_template_content_example,
               ),
             ),
           ],
@@ -655,9 +719,12 @@ class _TemplateEditorDialogState extends State<_TemplateEditorDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).maybePop(),
-          child: const Text('取消'),
+          child: Text(context.t.strings.common.cancel),
         ),
-        FilledButton(onPressed: _save, child: const Text('保存')),
+        FilledButton(
+          onPressed: _save,
+          child: Text(context.t.strings.common.save),
+        ),
       ],
     );
   }
@@ -745,7 +812,7 @@ class _TemplateVariableSettingsDialogState
     final textMuted = textMain.withValues(alpha: isDark ? 0.55 : 0.6);
 
     return AlertDialog(
-      title: const Text('模板变量设置'),
+      title: Text(context.t.strings.legacy.msg_template_variable_settings),
       content: SizedBox(
         width: 520,
         child: SingleChildScrollView(
@@ -753,21 +820,30 @@ class _TemplateVariableSettingsDialogState
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('日期格式（{{date}}）', style: TextStyle(color: textMuted)),
+              Text(
+                context.t.strings.legacy.msg_date_format_variable,
+                style: TextStyle(color: textMuted),
+              ),
               const SizedBox(height: 6),
               TextField(
                 controller: _dateFormatController,
                 decoration: const InputDecoration(hintText: 'yyyy-MM-dd'),
               ),
               const SizedBox(height: 10),
-              Text('时间格式（{{time}}）', style: TextStyle(color: textMuted)),
+              Text(
+                context.t.strings.legacy.msg_time_format_variable,
+                style: TextStyle(color: textMuted),
+              ),
               const SizedBox(height: 6),
               TextField(
                 controller: _timeFormatController,
                 decoration: const InputDecoration(hintText: 'HH:mm'),
               ),
               const SizedBox(height: 10),
-              Text('日期时间格式（{{datetime}}）', style: TextStyle(color: textMuted)),
+              Text(
+                context.t.strings.legacy.msg_datetime_format_variable,
+                style: TextStyle(color: textMuted),
+              ),
               const SizedBox(height: 6),
               TextField(
                 controller: _dateTimeFormatController,
@@ -777,19 +853,31 @@ class _TemplateVariableSettingsDialogState
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 value: _weatherEnabled,
-                title: const Text('启用天气变量'),
-                subtitle: const Text('变量：{{weather}} / {{weather.*}}'),
+                title: Text(
+                  context.t.strings.legacy.msg_enable_weather_variables,
+                ),
+                subtitle: Text(
+                  context.t.strings.legacy.msg_weather_variable_tokens,
+                ),
                 onChanged: (value) => setState(() => _weatherEnabled = value),
               ),
               if (_weatherEnabled) ...[
-                Text('天气城市（adcode 或城市名）', style: TextStyle(color: textMuted)),
+                Text(
+                  context.t.strings.legacy.msg_weather_city_adcode_or_name,
+                  style: TextStyle(color: textMuted),
+                ),
                 const SizedBox(height: 6),
                 TextField(
                   controller: _weatherCityController,
-                  decoration: const InputDecoration(hintText: '例如：110000'),
+                  decoration: InputDecoration(
+                    hintText: context.t.strings.legacy.msg_weather_city_example,
+                  ),
                 ),
                 const SizedBox(height: 10),
-                Text('天气变量兜底文本', style: TextStyle(color: textMuted)),
+                Text(
+                  context.t.strings.legacy.msg_weather_fallback_text,
+                  style: TextStyle(color: textMuted),
+                ),
                 const SizedBox(height: 6),
                 TextField(
                   controller: _weatherFallbackController,
@@ -800,8 +888,12 @@ class _TemplateVariableSettingsDialogState
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 value: _keepUnknownVariables,
-                title: const Text('未知变量保留原文'),
-                subtitle: const Text('关闭后，未知变量会替换为空字符串'),
+                title: Text(
+                  context.t.strings.legacy.msg_keep_unknown_variables_raw,
+                ),
+                subtitle: Text(
+                  context.t.strings.legacy.msg_keep_unknown_variables_raw_desc,
+                ),
                 onChanged: (value) =>
                     setState(() => _keepUnknownVariables = value),
               ),
@@ -812,9 +904,12 @@ class _TemplateVariableSettingsDialogState
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).maybePop(),
-          child: const Text('取消'),
+          child: Text(context.t.strings.common.cancel),
         ),
-        FilledButton(onPressed: _save, child: const Text('保存')),
+        FilledButton(
+          onPressed: _save,
+          child: Text(context.t.strings.common.save),
+        ),
       ],
     );
   }

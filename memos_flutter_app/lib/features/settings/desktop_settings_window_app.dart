@@ -277,6 +277,30 @@ class _DesktopSettingsWindowScreenState
     } catch (_) {}
   }
 
+  void _syncWorkspaceSnapshotFromLocalState({String? currentKeyOverride}) {
+    final container = ProviderScope.containerOf(context, listen: false);
+    final session = container.read(appSessionProvider).valueOrNull;
+    final currentKey = currentKeyOverride ?? session?.currentKey;
+    final libraries = container.read(localLibrariesProvider);
+    final hasLocalLibrary =
+        currentKey != null &&
+        libraries.any((library) => library.key == currentKey);
+    container
+        .read(desktopSettingsWorkspaceSnapshotProvider.notifier)
+        .state = DesktopWorkspaceSnapshot(
+      currentKey: currentKey,
+      hasCurrentAccount: session?.currentAccount != null,
+      hasLocalLibrary: hasLocalLibrary,
+    );
+  }
+
+  Future<void> _reloadWorkspaceStateFromStorage() async {
+    final container = ProviderScope.containerOf(context, listen: false);
+    await container.read(appSessionProvider.notifier).reloadFromStorage();
+    await container.read(localLibrariesProvider.notifier).reloadFromStorage();
+    _syncWorkspaceSnapshotFromLocalState();
+  }
+
   void _bindWorkspaceChangeListeners() {
     if (_workspaceListenersBound) return;
     final container = ProviderScope.containerOf(context, listen: false);
@@ -284,6 +308,7 @@ class _DesktopSettingsWindowScreenState
       appSessionProvider.select((state) => state.valueOrNull?.currentKey),
       (prev, next) {
         if (prev == next) return;
+        _syncWorkspaceSnapshotFromLocalState(currentKeyOverride: next);
         unawaited(
           _notifyMainWindowWorkspaceChanged(
             reason: 'session_key',
@@ -296,6 +321,7 @@ class _DesktopSettingsWindowScreenState
       localLibrariesProvider,
       (prev, next) {
         if (_sameLocalLibraryKeys(prev, next)) return;
+        _syncWorkspaceSnapshotFromLocalState();
         unawaited(_notifyMainWindowWorkspaceChanged(reason: 'local_libraries'));
       },
     );
@@ -410,6 +436,7 @@ class _DesktopSettingsWindowScreenState
       }
     }
     if (call.method == desktopSettingsRefreshSessionMethod) {
+      await _reloadWorkspaceStateFromStorage();
       await _refreshWorkspaceSnapshotWithRetry(showErrorOnFailure: false);
       return true;
     }
@@ -678,7 +705,10 @@ class _DesktopSettingsWorkbenchState extends State<_DesktopSettingsWorkbench> {
         builder: (_) => DesktopShortcutsOverviewScreen(bindings: bindings),
       ),
     );
-    showTopToast(context, '已打开快捷键总览。');
+    showTopToast(
+      context,
+      context.t.strings.legacy.msg_shortcuts_overview_opened,
+    );
     return true;
   }
 

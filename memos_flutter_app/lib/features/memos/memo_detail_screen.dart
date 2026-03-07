@@ -293,7 +293,11 @@ class _MemoDetailScreenState extends ConsumerState<MemoDetailScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Update failed: $e')));
+      ).showSnackBar(
+        SnackBar(
+          content: Text(context.t.strings.legacy.msg_update_failed(e: e)),
+        ),
+      );
     }
   }
 

@@ -1,13 +1,20 @@
-﻿import 'package:flutter/services.dart';
+import 'dart:async';
+
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:memos_flutter_app/core/desktop_quick_input_channel.dart';
 import 'package:memos_flutter_app/core/storage_read.dart';
 import 'package:memos_flutter_app/data/models/account.dart';
 import 'package:memos_flutter_app/data/models/instance_profile.dart';
+import 'package:memos_flutter_app/data/models/local_library.dart';
+import 'package:memos_flutter_app/data/models/user.dart';
+import 'package:memos_flutter_app/data/repositories/local_library_repository.dart';
 import 'package:memos_flutter_app/features/settings/desktop_settings_window_app.dart';
 import 'package:memos_flutter_app/state/settings/preferences_provider.dart';
+import 'package:memos_flutter_app/state/system/local_library_provider.dart';
 import 'package:memos_flutter_app/state/system/session_provider.dart';
 
 const MethodChannel _windowManagerChannel = MethodChannel('window_manager');
@@ -19,12 +26,33 @@ const MethodChannel _multiWindowEventChannel = MethodChannel(
 );
 
 class _TestSessionController extends AppSessionController {
-  _TestSessionController()
-    : super(
-        const AsyncValue.data(AppSessionState(accounts: [], currentKey: null)),
-      );
+  _TestSessionController({
+    AppSessionState initialState = const AppSessionState(
+      accounts: [],
+      currentKey: null,
+    ),
+    this.reloadState,
+  }) : super(AsyncValue.data(initialState));
 
   int reloadCalls = 0;
+  AppSessionState? reloadState;
+
+  static Account account({required String key, required String username}) {
+    return Account(
+      key: key,
+      baseUrl: Uri.parse('https://example.com'),
+      personalAccessToken: 'token-$key',
+      user: User(
+        name: username,
+        username: username,
+        displayName: username,
+        avatarUrl: '',
+        description: '',
+      ),
+      instanceProfile: const InstanceProfile.empty(),
+      serverVersionOverride: '0.26.0',
+    );
+  }
 
   @override
   Future<void> addAccountWithPat({
@@ -50,7 +78,13 @@ class _TestSessionController extends AppSessionController {
   Future<void> switchAccount(String accountKey) async {}
 
   @override
-  Future<void> setCurrentKey(String? key) async {}
+  Future<void> setCurrentKey(String? key) async {
+    final current = state.valueOrNull;
+    if (current == null) return;
+    state = AsyncValue.data(
+      AppSessionState(accounts: current.accounts, currentKey: key),
+    );
+  }
 
   @override
   Future<void> switchWorkspace(String workspaceKey) async {}
@@ -61,6 +95,9 @@ class _TestSessionController extends AppSessionController {
   @override
   Future<void> reloadFromStorage() async {
     reloadCalls += 1;
+    if (reloadState != null) {
+      state = AsyncValue.data(reloadState!);
+    }
   }
 
   @override
@@ -87,6 +124,41 @@ class _TestSessionController extends AppSessionController {
   @override
   Future<InstanceProfile> detectCurrentAccountInstanceProfile() async {
     return const InstanceProfile.empty();
+  }
+}
+
+class _TestLocalLibraryRepository extends LocalLibraryRepository {
+  _TestLocalLibraryRepository({LocalLibraryState? initialState})
+    : _state = initialState ?? const LocalLibraryState(libraries: []),
+      super(const FlutterSecureStorage());
+
+  LocalLibraryState _state;
+  int readCalls = 0;
+
+  void setState(LocalLibraryState state) {
+    _state = state;
+  }
+
+  @override
+  Future<StorageReadResult<LocalLibraryState>> readWithStatus() async {
+    readCalls += 1;
+    return StorageReadResult.success(_state);
+  }
+
+  @override
+  Future<LocalLibraryState> read() async {
+    readCalls += 1;
+    return _state;
+  }
+
+  @override
+  Future<void> write(LocalLibraryState state) async {
+    _state = state;
+  }
+
+  @override
+  Future<void> clear() async {
+    _state = const LocalLibraryState(libraries: []);
   }
 }
 
@@ -122,6 +194,28 @@ class _TestAppPreferencesController extends AppPreferencesController {
           ref.read(appPreferencesLoadedProvider.notifier).state = true;
         },
       );
+}
+
+Future<dynamic> _dispatchIncomingMultiWindowMethod(
+  String method, {
+  int fromWindowId = 0,
+  dynamic arguments,
+}) async {
+  final completer = Completer<ByteData?>();
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+      .handlePlatformMessage(
+        _multiWindowEventChannel.name,
+        const StandardMethodCodec().encodeMethodCall(
+          MethodCall(method, <String, dynamic>{
+            'fromWindowId': fromWindowId,
+            'arguments': arguments,
+          }),
+        ),
+        completer.complete,
+      );
+  final result = await completer.future;
+  if (result == null) return null;
+  return const StandardMethodCodec().decodeEnvelope(result);
 }
 
 void main() {
@@ -217,5 +311,185 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
-}
 
+  testWidgets('refreshSession reloads local workspace state before redraw', (
+    tester,
+  ) async {
+    final oldAccount = _TestSessionController.account(
+      key: 'users/old',
+      username: 'old',
+    );
+    final newAccount = _TestSessionController.account(
+      key: 'users/new',
+      username: 'new',
+    );
+    final sessionController = _TestSessionController(
+      initialState: AppSessionState(
+        accounts: [oldAccount],
+        currentKey: oldAccount.key,
+      ),
+      reloadState: AppSessionState(
+        accounts: [newAccount],
+        currentKey: newAccount.key,
+      ),
+    );
+    final localLibraryRepo = _TestLocalLibraryRepository(
+      initialState: const LocalLibraryState(
+        libraries: [
+          LocalLibrary(
+            key: 'old-library',
+            name: 'Old Library',
+            rootPath: 'C:/old',
+          ),
+        ],
+      ),
+    );
+    var snapshot = <String, dynamic>{
+      'currentKey': oldAccount.key,
+      'hasCurrentAccount': true,
+      'hasLocalLibrary': false,
+    };
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(_multiWindowEventChannel, (call) async {
+          switch (call.method) {
+            case 'desktop.quickInput.ping':
+            case 'desktop.settings.ping':
+            case 'desktop.subWindow.visibility':
+            case 'desktop.main.reloadWorkspace':
+              return true;
+            case 'desktop.main.getWorkspaceSnapshot':
+              return snapshot;
+          }
+          return true;
+        });
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appSessionProvider.overrideWith((ref) => sessionController),
+          localLibraryRepositoryProvider.overrideWith(
+            (ref) => localLibraryRepo,
+          ),
+          appPreferencesProvider.overrideWith(
+            (ref) => _TestAppPreferencesController(ref),
+          ),
+        ],
+        child: const DesktopSettingsWindowApp(windowId: 7),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    localLibraryRepo.setState(
+      const LocalLibraryState(
+        libraries: [
+          LocalLibrary(
+            key: 'new-library',
+            name: 'New Library',
+            rootPath: 'C:/new',
+          ),
+        ],
+      ),
+    );
+    snapshot = <String, dynamic>{
+      'currentKey': newAccount.key,
+      'hasCurrentAccount': true,
+      'hasLocalLibrary': false,
+    };
+
+    await _dispatchIncomingMultiWindowMethod(
+      desktopSettingsRefreshSessionMethod,
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(DesktopSettingsWindowApp)),
+      listen: false,
+    );
+    expect(sessionController.reloadCalls, 1);
+    expect(localLibraryRepo.readCalls, greaterThanOrEqualTo(2));
+    expect(
+      container.read(appSessionProvider).valueOrNull?.currentKey,
+      newAccount.key,
+    );
+    expect(container.read(localLibrariesProvider).map((e) => e.key), [
+      'new-library',
+    ]);
+    expect(
+      container.read(desktopSettingsWorkspaceSnapshotProvider)?.currentKey,
+      newAccount.key,
+    );
+  });
+
+  testWidgets('local workspace switch updates desktop snapshot immediately', (
+    tester,
+  ) async {
+    final account = _TestSessionController.account(
+      key: 'users/active',
+      username: 'active',
+    );
+    final sessionController = _TestSessionController(
+      initialState: AppSessionState(
+        accounts: [account],
+        currentKey: account.key,
+      ),
+    );
+    final localLibraryRepo = _TestLocalLibraryRepository(
+      initialState: const LocalLibraryState(
+        libraries: [
+          LocalLibrary(
+            key: 'local-workspace',
+            name: 'Local Workspace',
+            rootPath: 'C:/workspace',
+          ),
+        ],
+      ),
+    );
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(_multiWindowEventChannel, (call) async {
+          switch (call.method) {
+            case 'desktop.quickInput.ping':
+            case 'desktop.settings.ping':
+            case 'desktop.subWindow.visibility':
+            case 'desktop.main.reloadWorkspace':
+              return true;
+            case 'desktop.main.getWorkspaceSnapshot':
+              return <String, dynamic>{
+                'currentKey': account.key,
+                'hasCurrentAccount': true,
+                'hasLocalLibrary': false,
+              };
+          }
+          return true;
+        });
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appSessionProvider.overrideWith((ref) => sessionController),
+          localLibraryRepositoryProvider.overrideWith(
+            (ref) => localLibraryRepo,
+          ),
+          appPreferencesProvider.overrideWith(
+            (ref) => _TestAppPreferencesController(ref),
+          ),
+        ],
+        child: const DesktopSettingsWindowApp(windowId: 7),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    await sessionController.setCurrentKey('local-workspace');
+    await tester.pump();
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(DesktopSettingsWindowApp)),
+      listen: false,
+    );
+    final snapshot = container.read(desktopSettingsWorkspaceSnapshotProvider);
+    expect(snapshot?.currentKey, 'local-workspace');
+    expect(snapshot?.hasLocalLibrary, isTrue);
+  });
+}

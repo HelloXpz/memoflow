@@ -5,11 +5,14 @@ import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../../../i18n/strings.g.dart';
+import '../../../core/app_localization.dart';
+import '../../../core/app_theme.dart';
 import '../../../core/desktop/shortcuts.dart';
 import '../../../core/desktop_quick_input_channel.dart';
 import '../../../core/memo_template_renderer.dart';
@@ -32,17 +35,43 @@ import '../../memos/link_memo_sheet.dart';
 import '../../memos/memo_video_grid.dart';
 import '../../memos/windows_camera_capture_screen.dart';
 
-class DesktopQuickInputWindowApp extends StatelessWidget {
+class DesktopQuickInputWindowApp extends ConsumerWidget {
   const DesktopQuickInputWindowApp({super.key, required this.windowId});
 
   final int windowId;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final prefs = ref.watch(appPreferencesProvider);
+    final appLocale = appLocaleForLanguage(prefs.language);
+    LocaleSettings.setLocale(appLocale);
+
     return TranslationProvider(
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'MemoFlow',
+        theme: applyPreferencesToTheme(buildAppTheme(Brightness.light), prefs),
+        darkTheme: applyPreferencesToTheme(
+          buildAppTheme(Brightness.dark),
+          prefs,
+        ),
+        themeMode: themeModeFor(prefs.themeMode),
+        locale: appLocale.flutterLocale,
+        supportedLocales: AppLocaleUtils.supportedLocales,
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        builder: (context, child) {
+          final media = MediaQuery.of(context);
+          return MediaQuery(
+            data: media.copyWith(
+              textScaler: TextScaler.linear(textScaleFor(prefs.fontSize)),
+            ),
+            child: child ?? const SizedBox.shrink(),
+          );
+        },
         home: DesktopQuickInputWindowScreen(windowId: windowId),
       ),
     );
@@ -156,7 +185,7 @@ class _DesktopQuickInputWindowScreenState
     } catch (_) {
       if (!mounted) return;
       setState(() => _alwaysOnTopSupported = false);
-      _showSnack('当前窗口暂不支持置顶。');
+      _showSnack(context.t.strings.legacy.msg_current_window_pin_not_supported);
     } finally {
       if (mounted) {
         setState(() => _pinning = false);
@@ -447,8 +476,11 @@ class _DesktopQuickInputWindowScreenState
     if (!mounted) return;
 
     final items = tags.isEmpty
-        ? const <PopupMenuEntry<String>>[
-            PopupMenuItem<String>(enabled: false, child: Text('No tags yet')),
+        ? <PopupMenuEntry<String>>[
+            PopupMenuItem<String>(
+              enabled: false,
+              child: Text(context.t.strings.legacy.msg_no_tags_yet),
+            ),
           ]
         : tags
               .map(
@@ -489,8 +521,11 @@ class _DesktopQuickInputWindowScreenState
     if (overlay is! RenderBox || box is! RenderBox) return;
 
     final items = templates.isEmpty
-        ? const <PopupMenuEntry<String>>[
-            PopupMenuItem<String>(enabled: false, child: Text('暂无模板')),
+        ? <PopupMenuEntry<String>>[
+            PopupMenuItem<String>(
+              enabled: false,
+              child: Text(context.t.strings.legacy.msg_no_templates_yet),
+            ),
           ]
         : templates
               .map(
@@ -658,15 +693,15 @@ class _DesktopQuickInputWindowScreenState
     final action = await showMenu<MemoComposeTodoShortcutAction>(
       context: context,
       position: RelativeRect.fromRect(rect, Offset.zero & overlay.size),
-      items: const [
+      items: [
         PopupMenuItem(
           value: MemoComposeTodoShortcutAction.checkbox,
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.check_box_outlined, size: 18),
-              SizedBox(width: 8),
-              Text('待办复选框'),
+              const Icon(Icons.check_box_outlined, size: 18),
+              const SizedBox(width: 8),
+              Text(context.t.strings.legacy.msg_checkbox),
             ],
           ),
         ),
@@ -675,9 +710,9 @@ class _DesktopQuickInputWindowScreenState
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.code, size: 18),
-              SizedBox(width: 8),
-              Text('代码块'),
+              const Icon(Icons.code, size: 18),
+              const SizedBox(width: 8),
+              Text(context.t.strings.legacy.msg_code_block),
             ],
           ),
         ),
@@ -713,10 +748,19 @@ class _DesktopQuickInputWindowScreenState
     final selection = await showMenu<String>(
       context: context,
       position: RelativeRect.fromRect(rect, Offset.zero & overlay.size),
-      items: const [
-        PopupMenuItem(value: 'PRIVATE', child: Text('私密')),
-        PopupMenuItem(value: 'PROTECTED', child: Text('工作区')),
-        PopupMenuItem(value: 'PUBLIC', child: Text('公开')),
+      items: [
+        PopupMenuItem(
+          value: 'PRIVATE',
+          child: Text(context.t.strings.legacy.msg_private_2),
+        ),
+        PopupMenuItem(
+          value: 'PROTECTED',
+          child: Text(context.t.strings.legacy.msg_protected),
+        ),
+        PopupMenuItem(
+          value: 'PUBLIC',
+          child: Text(context.t.strings.legacy.msg_public),
+        ),
       ],
     );
 
@@ -745,7 +789,7 @@ class _DesktopQuickInputWindowScreenState
         _linkedMemos.add(_LinkedMemo(name: name, label: label));
       });
     } catch (error) {
-      _showSnack('Link memo failed: $error');
+      _showSnack(context.t.strings.legacy.msg_action_failed(e: error));
     }
   }
 
@@ -826,14 +870,20 @@ class _DesktopQuickInputWindowScreenState
       }
 
       if (added.isEmpty) {
-        _showSnack('未选择有效文件。');
+        _showSnack(context.t.strings.legacy.msg_no_valid_files_selected);
         return;
       }
 
       setState(() => _pendingAttachments.addAll(added));
-      _showSnack('已添加 ${added.length} 个附件。');
+      _showSnack(
+        context.t.strings.legacy.msg_added_attachment_count(
+          count: added.length,
+        ),
+      );
     } catch (error) {
-      _showSnack('选择文件失败：$error');
+      _showSnack(
+        context.t.strings.legacy.msg_file_selection_failed(error: error),
+      );
     }
   }
 
@@ -999,7 +1049,9 @@ class _DesktopQuickInputWindowScreenState
     } else if (isVideo && file != null) {
       final entry = MemoVideoEntry(
         id: attachment.uid,
-        title: attachment.filename.isNotEmpty ? attachment.filename : 'video',
+        title: attachment.filename.isNotEmpty
+            ? attachment.filename
+            : context.t.strings.legacy.msg_untitled,
         mimeType: attachment.mimeType,
         size: attachment.size,
         localFile: file,
@@ -1109,13 +1161,13 @@ class _DesktopQuickInputWindowScreenState
 
       final path = photo.path.trim();
       if (path.isEmpty) {
-        _showSnack('未找到拍照文件。');
+        _showSnack(context.t.strings.legacy.msg_camera_file_missing);
         return;
       }
 
       final file = File(path);
       if (!file.existsSync()) {
-        _showSnack('未找到拍照文件。');
+        _showSnack(context.t.strings.legacy.msg_camera_file_missing);
         return;
       }
 
@@ -1132,9 +1184,9 @@ class _DesktopQuickInputWindowScreenState
         );
       });
 
-      _showSnack('已添加照片附件。');
+      _showSnack(context.t.strings.legacy.msg_added_photo_attachment);
     } catch (error) {
-      _showSnack('拍照失败：$error');
+      _showSnack(context.t.strings.legacy.msg_camera_failed(error: error));
     }
   }
 
@@ -1152,17 +1204,20 @@ class _DesktopQuickInputWindowScreenState
   String _locationErrorText(Object error) {
     if (error is LocationException) {
       return switch (error.code) {
-        'service_disabled' => '定位服务未开启。',
-        'permission_denied' => '定位权限被拒绝。',
-        'permission_denied_forever' => '定位权限被永久拒绝。',
-        'timeout' => '定位超时，请重试。',
-        _ => '获取定位失败。',
+        'service_disabled' =>
+          context.t.strings.legacy.msg_location_services_disabled,
+        'permission_denied' =>
+          context.t.strings.legacy.msg_location_permission_denied,
+        'permission_denied_forever' =>
+          context.t.strings.legacy.msg_location_permission_denied_permanently,
+        'timeout' => context.t.strings.legacy.msg_location_timed_try,
+        _ => context.t.strings.legacy.msg_failed_get_location,
       };
     }
     if (error is TimeoutException) {
-      return '定位超时，请重试。';
+      return context.t.strings.legacy.msg_location_timed_try;
     }
-    return '获取定位失败。';
+    return context.t.strings.legacy.msg_failed_get_location;
   }
 
   Future<void> _requestLocation() async {
@@ -1193,7 +1248,13 @@ class _DesktopQuickInputWindowScreenState
       );
       if (!mounted) return;
       setState(() => _location = next);
-      _showSnack('定位已更新：${next.displayText(fractionDigits: 6)}');
+      _showSnack(
+        context.t.strings.legacy.msg_location_updated(
+          next_displayText_fractionDigits_6: next.displayText(
+            fractionDigits: 6,
+          ),
+        ),
+      );
     } catch (error) {
       _showSnack(_locationErrorText(error));
     } finally {
@@ -1222,18 +1283,24 @@ class _DesktopQuickInputWindowScreenState
       final result = await _invokeSubmitToMainWindow(payload);
 
       if (result is bool && !result) {
-        _showSnack('保存失败，请检查内容后重试。');
+        _showSnack(
+          context.t.strings.legacy.msg_save_failed_check_content_retry,
+        );
         return;
       }
 
       await _closeWindow();
     } on MissingPluginException {
-      _showSnack('快速输入通道未就绪，请重新打开主窗口后重试。');
+      _showSnack(
+        context.t.strings.legacy.msg_quick_input_channel_not_ready_retry,
+      );
     } on PlatformException catch (error) {
       if (_isMainWindowChannelMissing(error)) {
-        _showSnack('快速输入通道未就绪，请重新打开主窗口后重试。');
+        _showSnack(
+          context.t.strings.legacy.msg_quick_input_channel_not_ready_retry,
+        );
       } else {
-        _showSnack('保存失败：$error');
+        _showSnack(context.t.strings.legacy.msg_save_failed_2(e: error));
       }
     } finally {
       if (mounted) {
@@ -1268,9 +1335,21 @@ class _DesktopQuickInputWindowScreenState
 
   (String label, IconData icon, Color color) _visibilityStyle() {
     return switch (_visibility) {
-      'PUBLIC' => ('公开', Icons.public, const Color(0xFF2E8B57)),
-      'PROTECTED' => ('工作区', Icons.verified_user, const Color(0xFF4C7CC8)),
-      _ => ('私密', Icons.lock_outline, const Color(0xFFB26A2B)),
+      'PUBLIC' => (
+        context.t.strings.legacy.msg_public,
+        Icons.public,
+        const Color(0xFF2E8B57),
+      ),
+      'PROTECTED' => (
+        context.t.strings.legacy.msg_protected,
+        Icons.verified_user,
+        const Color(0xFF4C7CC8),
+      ),
+      _ => (
+        context.t.strings.legacy.msg_private_2,
+        Icons.lock_outline,
+        const Color(0xFFB26A2B),
+      ),
     };
   }
 
@@ -1322,7 +1401,7 @@ class _DesktopQuickInputWindowScreenState
                       ),
                       if (_alwaysOnTopSupported)
                         IconButton(
-                          tooltip: 'Pin',
+                          tooltip: context.t.strings.legacy.msg_pin,
                           onPressed: (_pinning || !_alwaysOnTopSupported)
                               ? null
                               : _toggleAlwaysOnTop,
@@ -1345,7 +1424,7 @@ class _DesktopQuickInputWindowScreenState
                                 ),
                         ),
                       IconButton(
-                        tooltip: 'Close',
+                        tooltip: context.t.strings.legacy.msg_close,
                         onPressed: _submitting ? null : _closeWindow,
                         icon: Icon(Icons.close, color: textMuted),
                       ),
@@ -1397,7 +1476,7 @@ class _DesktopQuickInputWindowScreenState
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          '正在定位...',
+                          context.t.strings.legacy.msg_locating,
                           style: TextStyle(fontSize: 12, color: chipText),
                         ),
                       ],
@@ -1442,7 +1521,8 @@ class _DesktopQuickInputWindowScreenState
                         height: 1.45,
                       ),
                       decoration: InputDecoration(
-                        hintText: '写下此刻想法...',
+                        hintText:
+                            context.t.strings.legacy.msg_write_current_thought,
                         hintStyle: TextStyle(color: textMuted),
                         border: InputBorder.none,
                       ),
@@ -1486,7 +1566,8 @@ class _DesktopQuickInputWindowScreenState
                           isDark: isDark,
                           busy: _submitting,
                           moreOpen: _moreToolbarOpen,
-                          visibilityMessage: '可见性：$visibilityLabel',
+                          visibilityMessage: context.t.strings.legacy
+                              .msg_visibility_value(value: visibilityLabel),
                           visibilityIcon: visibilityIcon,
                           visibilityColor: visibilityColor,
                           tagButtonKey: _tagMenuKey,

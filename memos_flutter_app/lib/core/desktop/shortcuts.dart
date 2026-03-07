@@ -87,41 +87,41 @@ const List<DesktopShortcutAction> desktopShortcutEditorActions =
 String desktopShortcutActionLabel(DesktopShortcutAction action) {
   switch (action) {
     case DesktopShortcutAction.search:
-      return '搜索';
+      return 'Search';
     case DesktopShortcutAction.quickRecord:
-      return '快速输入';
+      return 'Quick input';
     case DesktopShortcutAction.quickInput:
-      return '聚焦输入区';
+      return 'Focus input area';
     case DesktopShortcutAction.toggleSidebar:
-      return '切换侧边栏';
+      return 'Toggle sidebar';
     case DesktopShortcutAction.refresh:
-      return '刷新';
+      return 'Refresh';
     case DesktopShortcutAction.backHome:
-      return '返回首页';
+      return 'Back home';
     case DesktopShortcutAction.openSettings:
-      return '打开设置';
+      return 'Open settings';
     case DesktopShortcutAction.enableAppLock:
-      return '启用应用锁';
+      return 'Enable app lock';
     case DesktopShortcutAction.toggleFlomo:
-      return '显示/隐藏 MemoFlow';
+      return 'Show / hide MemoFlow';
     case DesktopShortcutAction.shortcutOverview:
-      return '快捷键总览';
+      return 'Shortcuts overview';
     case DesktopShortcutAction.publishMemo:
-      return '发布笔记';
+      return 'Publish memo';
     case DesktopShortcutAction.bold:
-      return '加粗';
+      return 'Bold';
     case DesktopShortcutAction.underline:
-      return '下划线';
+      return 'Underline';
     case DesktopShortcutAction.highlight:
-      return '高亮';
+      return 'Highlight';
     case DesktopShortcutAction.unorderedList:
-      return '无序列表';
+      return 'Unordered list';
     case DesktopShortcutAction.orderedList:
-      return '有序列表';
+      return 'Ordered list';
     case DesktopShortcutAction.undo:
-      return '撤销';
+      return 'Undo';
     case DesktopShortcutAction.redo:
-      return '重做';
+      return 'Redo';
   }
 }
 
@@ -423,11 +423,11 @@ String desktopShortcutBindingLabel(DesktopShortcutBinding binding) {
 }
 
 String _desktopShortcutKeyLabel(LogicalKeyboardKey key) {
-  if (key == LogicalKeyboardKey.enter) return '回车';
+  if (key == LogicalKeyboardKey.enter) return 'Enter';
   if (key == LogicalKeyboardKey.slash) return '/';
   if (key == LogicalKeyboardKey.backslash) return r'\';
   if (key == LogicalKeyboardKey.comma) return ',';
-  if (key == LogicalKeyboardKey.space) return '空格';
+  if (key == LogicalKeyboardKey.space) return 'Space';
   if (key == LogicalKeyboardKey.f1) return 'F1';
 
   final raw = key.keyLabel.trim();
@@ -439,5 +439,5 @@ String _desktopShortcutKeyLabel(LogicalKeyboardKey key) {
   if (debug != null && debug.isNotEmpty) {
     return debug.replaceAll('Logical Keyboard Key ', '');
   }
-  return '按键';
+  return 'Key';
 }

@@ -1399,12 +1399,13 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
 
   Future<void> _openQuickRecordFromShortcut() async {
     if (!isDesktopShortcutEnabled()) {
-      _showShortcutPlaceholder('快速输入');
+      _showShortcutPlaceholder(context.t.strings.legacy.msg_quick_record);
       return;
     }
     final content = await DesktopQuickInputDialog.show(
       context,
-      onImagePressed: () => _showShortcutPlaceholder('插入图片'),
+      onImagePressed: () =>
+          _showShortcutPlaceholder(context.t.strings.legacy.msg_image),
     );
     if (!mounted || content == null) return;
     await _submitDesktopQuickInput(content);
@@ -1443,7 +1444,7 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
             ),
       );
       if (!mounted) return;
-      showTopToast(context, '已保存到 MemoFlow');
+      showTopToast(context, context.t.strings.legacy.msg_saved_to_memoflow);
     } catch (error, stackTrace) {
       ref
           .read(logManagerProvider)
@@ -1453,7 +1454,12 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
             stackTrace: stackTrace,
           );
       if (!mounted) return;
-      showTopToast(context, '快速输入保存失败：$error');
+      showTopToast(
+        context,
+        context.t.strings.legacy.msg_quick_input_save_failed_with_error(
+          error: error,
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() => _desktopQuickInputSubmitting = false);
@@ -1512,7 +1518,12 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
       await windowManager.focus();
     } catch (error) {
       if (!mounted) return;
-      showTopToast(context, '显示/隐藏 MemoFlow 失败：$error');
+      showTopToast(
+        context,
+        context.t.strings.legacy.msg_toggle_memoflow_failed_with_error(
+          error: error,
+        ),
+      );
     }
   }
 
@@ -1645,7 +1656,10 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
         reason: key == LogicalKeyboardKey.f1 ? 'f1_fallback' : null,
       );
       _openShortcutOverviewPage();
-      showTopToast(context, '已打开快捷键总览。');
+      showTopToast(
+        context,
+        context.t.strings.legacy.msg_shortcuts_overview_opened,
+      );
       return true;
     }
 
@@ -2019,7 +2033,8 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
                               context,
                               isDark: isDark,
                               autofocus: false,
-                              hintText: 'Quick search...',
+                              hintText:
+                                  context.t.strings.legacy.msg_quick_search,
                             )
                           : (showPillActions
                                 ? _buildPillActionsRow(
@@ -2082,19 +2097,21 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
                 const SizedBox(width: 8),
               ],
               _DesktopWindowIconButton(
-                tooltip: 'Minimize',
+                tooltip: context.t.strings.legacy.msg_minimize,
                 onPressed: () => unawaited(_minimizeDesktopWindow()),
                 icon: Icons.minimize_rounded,
               ),
               _DesktopWindowIconButton(
-                tooltip: _desktopWindowMaximized ? 'Restore' : 'Maximize',
+                tooltip: _desktopWindowMaximized
+                    ? context.t.strings.legacy.msg_restore_window
+                    : context.t.strings.legacy.msg_maximize,
                 onPressed: () => unawaited(_toggleDesktopWindowMaximize()),
                 icon: _desktopWindowMaximized
                     ? Icons.filter_none_rounded
                     : Icons.crop_square_rounded,
               ),
               _DesktopWindowIconButton(
-                tooltip: 'Close',
+                tooltip: context.t.strings.legacy.msg_close,
                 onPressed: () => unawaited(_closeDesktopWindow()),
                 icon: Icons.close_rounded,
                 destructive: true,
@@ -3090,7 +3107,11 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
     }
     messenger.showSnackBar(
       SnackBar(
-        content: Text('$message. Enable location access in Windows settings.'),
+        content: Text(
+          context.t.strings.legacy.msg_windows_enable_location_access(
+            message: message,
+          ),
+        ),
         action: SnackBarAction(
           label: context.t.strings.legacy.msg_settings,
           onPressed: () {
@@ -3259,14 +3280,18 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
       final path = photo.path.trim();
       if (path.isEmpty) {
         messenger.showSnackBar(
-          const SnackBar(content: Text('Camera file missing.')),
+          SnackBar(
+            content: Text(context.t.strings.legacy.msg_camera_file_missing),
+          ),
         );
         return;
       }
       final file = File(path);
       if (!file.existsSync()) {
         messenger.showSnackBar(
-          const SnackBar(content: Text('Camera file missing.')),
+          SnackBar(
+            content: Text(context.t.strings.legacy.msg_camera_file_missing),
+          ),
         );
         return;
       }
@@ -3285,20 +3310,25 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
           ),
         );
       });
-      showTopToast(context, 'Added photo attachment.');
+      showTopToast(
+        context,
+        context.t.strings.legacy.msg_added_photo_attachment,
+      );
     } catch (error) {
       if (!mounted) return;
       if (_isWindowsNoCameraError(error)) {
         messenger.showSnackBar(
-          const SnackBar(content: Text('No camera detected.')),
+          SnackBar(
+            content: Text(context.t.strings.legacy.msg_no_camera_detected),
+          ),
         );
         return;
       }
       if (_isWindowsCameraPermissionError(error)) {
         messenger.showSnackBar(
           SnackBar(
-            content: const Text(
-              'Camera permission denied. Enable camera access in Windows settings.',
+            content: Text(
+              context.t.strings.legacy.msg_camera_permission_denied_windows,
             ),
             action: SnackBarAction(
               label: context.t.strings.legacy.msg_settings,
@@ -3310,7 +3340,13 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
         );
         return;
       }
-      messenger.showSnackBar(SnackBar(content: Text('Camera failed: $error')));
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            context.t.strings.legacy.msg_camera_failed(error: error),
+          ),
+        ),
+      );
     }
   }
 
@@ -3426,8 +3462,11 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
   ) async {
     if (_inlineComposeBusy) return;
     final items = templates.isEmpty
-        ? const <PopupMenuEntry<String>>[
-            PopupMenuItem<String>(enabled: false, child: Text('暂无模板')),
+        ? <PopupMenuEntry<String>>[
+            PopupMenuItem<String>(
+              enabled: false,
+              child: Text(context.t.strings.legacy.msg_no_templates_yet),
+            ),
           ]
         : templates
               .map(
@@ -3489,7 +3528,7 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
     final action = await showMenu<MemoComposeTodoShortcutAction>(
       context: context,
       position: position,
-      items: const [
+      items: [
         PopupMenuItem(
           value: MemoComposeTodoShortcutAction.checkbox,
           child: Row(
@@ -3497,7 +3536,7 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
             children: [
               Icon(Icons.check_box_outlined, size: 18),
               SizedBox(width: 8),
-              Text('Checkbox'),
+              Text(context.t.strings.legacy.msg_checkbox),
             ],
           ),
         ),
@@ -3508,7 +3547,7 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
             children: [
               Icon(Icons.code, size: 18),
               SizedBox(width: 8),
-              Text('Code block'),
+              Text(context.t.strings.legacy.msg_code_block),
             ],
           ),
         ),
@@ -3706,8 +3745,8 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
       if (!mounted) return;
       if (added.isEmpty) {
         final msg = missingPathCount > 0
-            ? 'Files unavailable from picker.'
-            : 'No files selected.';
+            ? context.t.strings.legacy.msg_files_unavailable_from_picker
+            : context.t.strings.legacy.msg_no_files_selected;
         showTopToast(context, msg);
         return;
       }
@@ -3715,19 +3754,28 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
       setState(() {
         _inlinePendingAttachments.addAll(added);
       });
-      final suffix = added.length == 1 ? '' : 's';
       final skipped = [
-        if (missingPathCount > 0) '$missingPathCount unavailable',
+        if (missingPathCount > 0)
+          context.t.strings.legacy.msg_unavailable_file_count(
+            count: missingPathCount,
+          ),
       ];
       final summary = skipped.isEmpty
-          ? 'Added ${added.length} file$suffix.'
-          : 'Added ${added.length} file$suffix. Skipped ${skipped.join(', ')}.';
+          ? context.t.strings.legacy.msg_added_files(count: added.length)
+          : context.t.strings.legacy.msg_added_files_with_skipped(
+              count: added.length,
+              details: skipped.join(', '),
+            );
       showTopToast(context, summary);
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('File selection failed: $error')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            context.t.strings.legacy.msg_file_selection_failed(error: error),
+          ),
+        ),
+      );
     }
   }
 
@@ -4039,8 +4087,10 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
       if (relations.isNotEmpty) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please enter content before creating a link.'),
+          SnackBar(
+            content: Text(
+              context.t.strings.legacy.msg_enter_content_before_creating_link,
+            ),
           ),
         );
         return;
@@ -7215,11 +7265,7 @@ class _SearchQuickFilterBar extends StatelessWidget {
       (
         kind: QuickSearchKind.links,
         icon: Icons.link_outlined,
-        label: trByLanguage(
-          language: context.appLanguage,
-          zh: '链接',
-          en: 'Links',
-        ),
+        label: context.t.strings.legacy.msg_links_label,
       ),
       (
         kind: QuickSearchKind.voice,
@@ -7229,11 +7275,7 @@ class _SearchQuickFilterBar extends StatelessWidget {
       (
         kind: QuickSearchKind.onThisDay,
         icon: Icons.history_edu_outlined,
-        label: trByLanguage(
-          language: context.appLanguage,
-          zh: '那年今日',
-          en: 'On This Day',
-        ),
+        label: context.t.strings.legacy.msg_on_this_day,
       ),
     ];
 

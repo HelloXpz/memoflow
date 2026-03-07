@@ -313,7 +313,7 @@ class SettingsScreen extends ConsumerWidget
                     if (isWindowsDesktop)
                       _SettingRow(
                         icon: Icons.desktop_windows_outlined,
-                        label: 'Windows\u76f8\u5173\u8bbe\u7f6e',
+                        label: context.t.strings.legacy.msg_windows_related_settings,
                         textMain: textMain,
                         textMuted: textMuted,
                         onTap: () {

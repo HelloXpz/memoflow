@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/storage_read.dart';
+import '../../i18n/strings.g.dart';
 
 class StorageErrorBanner extends StatelessWidget {
   const StorageErrorBanner({
@@ -39,23 +40,27 @@ class StorageErrorBanner extends StatelessWidget {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                '存储读取失败，部分功能受限。',
+                context
+                    .t
+                    .strings
+                    .legacy
+                    .msg_storage_read_failed_some_features_limited,
                 style: const TextStyle(color: Colors.white, fontSize: 12.5),
               ),
             ),
             TextButton(
               onPressed: onRetry,
-              child: const Text(
-                '重试',
-                style: TextStyle(color: Colors.white),
+              child: Text(
+                context.t.strings.legacy.msg_retry,
+                style: const TextStyle(color: Colors.white),
               ),
             ),
             const SizedBox(width: 4),
             TextButton(
               onPressed: onExit,
-              child: const Text(
-                '退出',
-                style: TextStyle(color: Colors.white),
+              child: Text(
+                context.t.strings.legacy.msg_exit_app,
+                style: const TextStyle(color: Colors.white),
               ),
             ),
           ],

@@ -184,8 +184,8 @@ class ComponentsSettingsScreen extends ConsumerWidget {
               const SizedBox(height: 12),
               _ToggleCard(
                 card: card,
-                label: '模板',
-                description: '启用模板功能，管理模板名称、内容与变量。',
+                label: context.t.strings.legacy.msg_template,
+                description: context.t.strings.legacy.msg_template_feature_manage_desc,
                 value: templateSettings.enabled,
                 textMain: textMain,
                 textMuted: textMuted,

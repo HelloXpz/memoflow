@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import 'package:saf_util/saf_util.dart';
 
 import '../../data/logs/log_manager.dart';
+import '../../i18n/strings.g.dart';
 
 class LocalModeSetupResult {
   const LocalModeSetupResult({
@@ -169,7 +170,7 @@ class _LocalModeSetupScreenState extends State<LocalModeSetupScreen> {
         persistablePermission: true,
       );
       if (doc == null) return null;
-      final name = doc.name.trim().isEmpty ? '本地仓库' : doc.name.trim();
+      final name = doc.name.trim().isEmpty ? context.t.strings.legacy.msg_local_library : doc.name.trim();
       return _PickedLocation(
         treeUri: doc.uri,
         rootPath: null,
@@ -184,7 +185,7 @@ class _LocalModeSetupScreenState extends State<LocalModeSetupScreen> {
     return _PickedLocation(
       treeUri: null,
       rootPath: trimmed,
-      defaultName: name.isEmpty ? '本地仓库' : name,
+      defaultName: name.isEmpty ? context.t.strings.legacy.msg_local_library : name,
     );
   }
 
@@ -193,7 +194,7 @@ class _LocalModeSetupScreenState extends State<LocalModeSetupScreen> {
     if (rootPath.isNotEmpty) return rootPath;
     final treeUri = (_treeUri ?? '').trim();
     if (treeUri.isNotEmpty) return treeUri;
-    return '未选择';
+    return context.t.strings.legacy.msg_not_selected;
   }
 
   bool _hasLocation() {
@@ -223,12 +224,12 @@ class _LocalModeSetupScreenState extends State<LocalModeSetupScreen> {
     );
     if (!_hasLocation()) {
       _logFlow('submit_blocked_missing_location', warn: true);
-      _showMessage('请选择文件保存位置。');
+      _showMessage(context.t.strings.legacy.msg_select_file_save_location);
       return;
     }
     if (name.isEmpty) {
       _logFlow('submit_blocked_empty_name', warn: true);
-      _showMessage('请输入仓库名称。');
+      _showMessage(context.t.strings.legacy.msg_enter_repository_name_prompt);
       return;
     }
 
@@ -238,12 +239,12 @@ class _LocalModeSetupScreenState extends State<LocalModeSetupScreen> {
       final confirm = _confirmPasswordController.text;
       if (pwd.isEmpty || confirm.isEmpty) {
         _logFlow('submit_blocked_empty_password', warn: true);
-        _showMessage('请输入并确认密码。');
+        _showMessage(context.t.strings.legacy.msg_enter_and_confirm_password);
         return;
       }
       if (pwd != confirm) {
         _logFlow('submit_blocked_password_mismatch', warn: true);
-        _showMessage('两次输入的密码不一致。');
+        _showMessage(context.t.strings.legacy.msg_passwords_not_match);
         return;
       }
       password = pwd;
@@ -296,7 +297,7 @@ class _LocalModeSetupScreenState extends State<LocalModeSetupScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '文件保存位置',
+                    context.t.strings.legacy.msg_file_save_location,
                     style: theme.textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
@@ -312,7 +313,7 @@ class _LocalModeSetupScreenState extends State<LocalModeSetupScreen> {
                   FilledButton.icon(
                     onPressed: _pickLocation,
                     icon: const Icon(Icons.folder_open),
-                    label: const Text('选择位置'),
+                    label: Text(context.t.strings.legacy.msg_select_location),
                   ),
                 ],
               ),
@@ -326,7 +327,7 @@ class _LocalModeSetupScreenState extends State<LocalModeSetupScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '仓库名称',
+                    context.t.strings.legacy.msg_repository_name,
                     style: theme.textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
@@ -335,7 +336,7 @@ class _LocalModeSetupScreenState extends State<LocalModeSetupScreen> {
                   TextField(
                     controller: _nameController,
                     textInputAction: TextInputAction.next,
-                    decoration: const InputDecoration(hintText: '请输入仓库名称'),
+                    decoration: InputDecoration(hintText: context.t.strings.legacy.msg_enter_repository_name_hint),
                   ),
                 ],
               ),
@@ -349,8 +350,8 @@ class _LocalModeSetupScreenState extends State<LocalModeSetupScreen> {
                 children: [
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('加密保存（占位）'),
-                    subtitle: const Text('密码功能当前仅占位，暂未真正生效。'),
+                    title: Text(context.t.strings.legacy.msg_encrypt_save_placeholder),
+                    subtitle: Text(context.t.strings.legacy.msg_password_feature_placeholder),
                     value: _encryptionEnabled,
                     onChanged: (value) {
                       setState(() => _encryptionEnabled = value);
@@ -363,7 +364,7 @@ class _LocalModeSetupScreenState extends State<LocalModeSetupScreen> {
                       obscureText: _obscurePassword,
                       textInputAction: TextInputAction.next,
                       decoration: InputDecoration(
-                        labelText: '设置密码',
+                        labelText: context.t.strings.legacy.msg_password_2,
                         suffixIcon: IconButton(
                           onPressed: () {
                             setState(() {
@@ -385,7 +386,7 @@ class _LocalModeSetupScreenState extends State<LocalModeSetupScreen> {
                       textInputAction: TextInputAction.done,
                       onSubmitted: (_) => _submit(),
                       decoration: InputDecoration(
-                        labelText: '确认密码',
+                        labelText: context.t.strings.legacy.msg_confirm_password_2,
                         suffixIcon: IconButton(
                           onPressed: () {
                             setState(() {

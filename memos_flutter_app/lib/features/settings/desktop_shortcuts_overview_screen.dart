@@ -3,6 +3,52 @@ import 'package:flutter/material.dart';
 
 import '../../core/desktop/shortcuts.dart';
 import '../../core/memoflow_palette.dart';
+import '../../i18n/strings.g.dart';
+
+
+String _desktopShortcutActionLabel(
+  BuildContext context,
+  DesktopShortcutAction action,
+) {
+  switch (action) {
+    case DesktopShortcutAction.search:
+      return context.t.strings.legacy.msg_search;
+    case DesktopShortcutAction.quickRecord:
+      return context.t.strings.legacy.msg_quick_record;
+    case DesktopShortcutAction.quickInput:
+      return context.t.strings.legacy.msg_focus_input_area;
+    case DesktopShortcutAction.toggleSidebar:
+      return context.t.strings.legacy.msg_toggle_sidebar;
+    case DesktopShortcutAction.refresh:
+      return context.t.strings.legacy.msg_refresh;
+    case DesktopShortcutAction.backHome:
+      return context.t.strings.legacy.msg_back_home;
+    case DesktopShortcutAction.openSettings:
+      return context.t.strings.legacy.msg_open_settings;
+    case DesktopShortcutAction.enableAppLock:
+      return context.t.strings.legacy.msg_enable_app_lock;
+    case DesktopShortcutAction.toggleFlomo:
+      return context.t.strings.legacy.msg_show_hide_memoflow;
+    case DesktopShortcutAction.shortcutOverview:
+      return context.t.strings.legacy.msg_shortcuts_overview;
+    case DesktopShortcutAction.publishMemo:
+      return context.t.strings.legacy.msg_publish_memo;
+    case DesktopShortcutAction.bold:
+      return context.t.strings.legacy.msg_bold;
+    case DesktopShortcutAction.underline:
+      return context.t.strings.legacy.msg_underline;
+    case DesktopShortcutAction.highlight:
+      return context.t.strings.legacy.msg_highlight;
+    case DesktopShortcutAction.unorderedList:
+      return context.t.strings.legacy.msg_unordered_list;
+    case DesktopShortcutAction.orderedList:
+      return context.t.strings.legacy.msg_ordered_list;
+    case DesktopShortcutAction.undo:
+      return context.t.strings.legacy.msg_undo;
+    case DesktopShortcutAction.redo:
+      return context.t.strings.legacy.msg_redo;
+  }
+}
 
 class DesktopShortcutsOverviewScreen extends StatelessWidget {
   const DesktopShortcutsOverviewScreen({super.key, required this.bindings});
@@ -42,14 +88,14 @@ class DesktopShortcutsOverviewScreen extends StatelessWidget {
     }
 
     final editorItems = <({String action, String key})>[
-      (action: '复制', key: '$primary + C'),
-      (action: '粘贴', key: '$primary + V'),
-      (action: '剪切', key: '$primary + X'),
+      (action: context.t.strings.legacy.msg_copy, key: '$primary + C'),
+      (action: context.t.strings.legacy.msg_paste, key: '$primary + V'),
+      (action: context.t.strings.legacy.msg_cut, key: '$primary + X'),
       for (final action in desktopShortcutEditorActions)
         (
-          action: desktopShortcutActionLabel(action),
+          action: _desktopShortcutActionLabel(context, action),
           key: action == DesktopShortcutAction.publishMemo
-              ? '${desktopShortcutBindingLabel(resolved[action]!)} / Shift + 回车'
+              ? '${desktopShortcutBindingLabel(resolved[action]!)} / ${context.t.strings.legacy.msg_shift_enter_supported}'
               : desktopShortcutBindingLabel(resolved[action]!),
         ),
     ];
@@ -57,14 +103,14 @@ class DesktopShortcutsOverviewScreen extends StatelessWidget {
     final globalItems = <({String action, String key})>[
       for (final action in desktopShortcutGlobalActions)
         (
-          action: desktopShortcutActionLabel(action),
+          action: _desktopShortcutActionLabel(context, action),
           key: action == DesktopShortcutAction.shortcutOverview
               ? '${desktopShortcutBindingLabel(resolved[action]!)} / F1'
               : desktopShortcutBindingLabel(resolved[action]!),
         ),
       if (isWindows) ...[
-        (action: '\u4e0a\u4e00\u9875', key: 'PageUp'),
-        (action: '\u4e0b\u4e00\u9875', key: 'PageDown'),
+        (action: context.t.strings.legacy.msg_previous_page, key: 'PageUp'),
+        (action: context.t.strings.legacy.msg_next_page, key: 'PageDown'),
       ],
     ];
 
@@ -75,7 +121,7 @@ class DesktopShortcutsOverviewScreen extends StatelessWidget {
         elevation: 0,
         scrolledUnderElevation: 0,
         surfaceTintColor: Colors.transparent,
-        title: const Text('快捷键总览'),
+        title: Text(context.t.strings.legacy.msg_shortcuts_overview),
         centerTitle: false,
       ),
       body: ListView(
@@ -84,7 +130,7 @@ class DesktopShortcutsOverviewScreen extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(2, 0, 2, 10),
             child: Text(
-              '功能 - 快捷键',
+              context.t.strings.legacy.msg_action_shortcut,
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
@@ -92,11 +138,11 @@ class DesktopShortcutsOverviewScreen extends StatelessWidget {
               ),
             ),
           ),
-          _SectionTitle(title: '编辑器', textMuted: textMuted),
+          _SectionTitle(title: context.t.strings.legacy.msg_editor, textMuted: textMuted),
           const SizedBox(height: 8),
           _OverviewGroup(card: card, children: buildRows(editorItems)),
           const SizedBox(height: 12),
-          _SectionTitle(title: '全局', textMuted: textMuted),
+          _SectionTitle(title: context.t.strings.legacy.msg_global, textMuted: textMuted),
           const SizedBox(height: 8),
           _OverviewGroup(card: card, children: buildRows(globalItems)),
         ],

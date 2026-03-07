@@ -239,12 +239,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       barrierDismissible: false,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Version probe complete'),
-          content: Text('Currently using API ${version.versionString}.'),
+          title: Text(context.t.strings.legacy.msg_version_probe_complete),
+          content: Text(
+            context.t.strings.legacy.msg_currently_using_api(
+              version: version.versionString,
+            ),
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('OK'),
+              child: Text(context.t.strings.common.confirm),
             ),
           ],
         );
@@ -257,7 +261,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       opId,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Version probe failed'),
+          title: Text(context.t.strings.legacy.msg_version_probe_failed),
           content: SizedBox(
             width: 520,
             child: SingleChildScrollView(child: SelectableText(diagnostics)),
@@ -267,13 +271,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               onPressed: () async {
                 await Clipboard.setData(ClipboardData(text: diagnostics));
                 if (!mounted) return;
-                showTopToast(context, 'Diagnostics copied');
+                showTopToast(
+                  context,
+                  context.t.strings.legacy.msg_diagnostics_copied,
+                );
               },
-              child: const Text('Copy diagnostics'),
+              child: Text(context.t.strings.legacy.msg_copy_diagnostics),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Close'),
+              child: Text(context.t.strings.legacy.msg_close),
             ),
           ],
         );
@@ -314,7 +321,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (!_isLoginOpActive(opId)) return null;
       return report;
     } catch (error) {
-      _showSnackIfActive(opId, 'Probe failed: $error');
+      _showSnackIfActive(
+        opId,
+        context.t.strings.legacy.msg_probe_failed(error: error),
+      );
       return null;
     } finally {
       _setStateIfActive(opId, () => _probing = false);
@@ -355,7 +365,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       _showSnackIfActive(
         opId,
         context.t.strings.login.errors.connectionFailedWithMessage(
-          message: 'No active session after sign in',
+          message: context.t.strings.legacy.msg_no_active_session_after_sign_in,
         ),
       );
       return false;
