@@ -124,7 +124,7 @@ void main() {
 
     test('parses multilingual release note item contents', () {
       final config = UpdateAnnouncementConfig.fromJson({
-        'version_info': {'latest_version': '1.0.15'},
+        'version_info': {'latest_version': '1.0.16'},
         'announcement': {
           'id': 20260221,
           'title': 'Release',
@@ -134,7 +134,7 @@ void main() {
         },
         'release_notes': [
           {
-            'version': '1.0.15',
+            'version': '1.0.16',
             'date': '2026-02-21',
             'items': [
               {
