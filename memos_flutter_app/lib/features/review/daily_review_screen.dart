@@ -15,6 +15,7 @@ import '../../core/attachment_toast.dart';
 import '../../core/drawer_navigation.dart';
 import '../../core/memoflow_palette.dart';
 import '../../core/platform_layout.dart';
+import '../../core/tag_colors.dart';
 import '../../core/tags.dart';
 import '../../core/url.dart';
 import '../../data/models/attachment.dart';
@@ -24,6 +25,7 @@ import '../../state/memos/memo_timeline_provider.dart';
 import '../../state/memos/memos_providers.dart';
 import '../../state/settings/preferences_provider.dart';
 import '../../state/system/session_provider.dart';
+import '../../state/tags/tag_color_lookup.dart';
 import '../about/about_screen.dart';
 import '../explore/explore_screen.dart';
 import '../home/app_drawer.dart';
@@ -51,7 +53,8 @@ class DailyReviewScreen extends ConsumerStatefulWidget {
 }
 
 class _DailyReviewScreenState extends ConsumerState<DailyReviewScreen> {
-  final _swiperController = AppinioSwiperController();
+  static const double _collapsedFilterTagMaxHeight = 76;
+
   final _random = math.Random();
   late final _memosProvider = memosStreamProvider((
     searchQuery: '',
@@ -64,6 +67,7 @@ class _DailyReviewScreenState extends ConsumerState<DailyReviewScreen> {
 
   List<LocalMemo> _deck = const [];
   List<String> _memoIds = const [];
+  int _deckVersion = 0;
   int _cursor = 0;
   final _audioPlayer = AudioPlayer();
   final _audioPositionNotifier = ValueNotifier(Duration.zero);
@@ -142,7 +146,6 @@ class _DailyReviewScreenState extends ConsumerState<DailyReviewScreen> {
     _audioPositionNotifier.dispose();
     _audioDurationNotifier.dispose();
     _audioPlayer.dispose();
-    _swiperController.dispose();
     super.dispose();
   }
 
@@ -242,27 +245,9 @@ class _DailyReviewScreenState extends ConsumerState<DailyReviewScreen> {
 
     _memoIds = ids;
     _deck = List<LocalMemo>.from(memos)..shuffle(_random);
+    _deckVersion += 1;
     _cursor = 0;
     return true;
-  }
-
-  void _rotateLeft() {
-    if (_deck.length <= 1) return;
-    final first = _deck.first;
-    _deck = [..._deck.sublist(1), first];
-  }
-
-  void _rotateRight() {
-    if (_deck.length <= 1) return;
-    final last = _deck.last;
-    _deck = [last, ..._deck.sublist(0, _deck.length - 1)];
-  }
-
-  void _resetSwiperToFrontCardDeferred() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      _swiperController.setCardIndex(0);
-    });
   }
 
   void _startAudioProgressTimer() {
@@ -492,7 +477,9 @@ class _DailyReviewScreenState extends ConsumerState<DailyReviewScreen> {
   }
 
   List<LocalMemo> _filterMemos(List<LocalMemo> memos) {
+    final tagColors = ref.read(tagColorLookupProvider);
     final normalizedTagKeys = _selectedTags
+        .map(tagColors.resolveCanonicalPath)
         .map(_tagKey)
         .where((key) => key.isNotEmpty)
         .toSet();
@@ -523,6 +510,8 @@ class _DailyReviewScreenState extends ConsumerState<DailyReviewScreen> {
     for (final memo in memos) {
       if (hasTagFilter) {
         final memoTagKeys = memo.tags
+            .map(_normalizeTag)
+            .map(tagColors.resolveCanonicalPath)
             .map(_tagKey)
             .where((key) => key.isNotEmpty)
             .toSet();
@@ -542,19 +531,53 @@ class _DailyReviewScreenState extends ConsumerState<DailyReviewScreen> {
     return filtered;
   }
 
-  List<String> _availableTags() {
-    final tagMap = <String, String>{};
+  List<String> _availableTags(
+    List<TagStat> tagStats,
+    TagColorLookup tagColors,
+  ) {
+    final tagSet = <String>{};
     for (final memo in _allMemos) {
       for (final rawTag in memo.tags) {
         final normalized = _normalizeTag(rawTag);
-        final key = _tagKey(normalized);
-        if (key.isEmpty) continue;
-        tagMap.putIfAbsent(key, () => normalized);
+        if (normalized.isEmpty) continue;
+        final canonical = tagColors.resolveCanonicalPath(normalized);
+        final resolved = canonical.isEmpty ? normalized : canonical;
+        tagSet.add(resolved);
       }
     }
-    final tags = tagMap.values.toList(growable: false);
-    tags.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
-    return tags;
+
+    final ordered = <String>[];
+    final remaining = tagSet.toSet();
+    for (final stat in tagStats) {
+      final path = tagColors.resolveCanonicalPath(stat.path);
+      if (path.isEmpty || !remaining.remove(path)) continue;
+      ordered.add(path);
+    }
+
+    final leftovers = remaining.toList(growable: false)
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    return [...ordered, ...leftovers];
+  }
+
+  List<String> _sortTags(
+    Iterable<String> tags,
+    List<TagStat> tagStats,
+    TagColorLookup tagColors,
+  ) {
+    final orderedPaths = _availableTags(tagStats, tagColors);
+    final orderMap = <String, int>{
+      for (var i = 0; i < orderedPaths.length; i++) orderedPaths[i]: i,
+    };
+    final sorted = tags.toList(growable: false);
+    sorted.sort((a, b) {
+      final canonicalA = tagColors.resolveCanonicalPath(a);
+      final canonicalB = tagColors.resolveCanonicalPath(b);
+      final rankA = orderMap[canonicalA] ?? 1 << 20;
+      final rankB = orderMap[canonicalB] ?? 1 << 20;
+      if (rankA != rankB) return rankA.compareTo(rankB);
+      return canonicalA.compareTo(canonicalB);
+    });
+    return sorted;
   }
 
   String _normalizeTag(String raw) {
@@ -613,8 +636,10 @@ class _DailyReviewScreenState extends ConsumerState<DailyReviewScreen> {
     required Set<String> tags,
     required DateTimeRange? dateRange,
   }) {
+    final tagColors = ref.read(tagColorLookupProvider);
     final normalizedTags = tags
         .map(_normalizeTag)
+        .map(tagColors.resolveCanonicalPath)
         .where((tag) => tag.isNotEmpty)
         .toSet();
     final normalizedRange = dateRange == null
@@ -622,17 +647,17 @@ class _DailyReviewScreenState extends ConsumerState<DailyReviewScreen> {
         : _normalizeRange(dateRange);
     _selectedTags = normalizedTags;
     _selectedDateRange = normalizedRange;
-    final changed = _syncDeck(_filterMemos(_allMemos));
-    if (changed) {
-      _resetSwiperToFrontCardDeferred();
-    }
+    _syncDeck(_filterMemos(_allMemos));
     unawaited(_stopAudioPlayback());
     if (!mounted) return;
     setState(() {});
   }
 
   Future<void> _openFilterSheet() async {
-    final availableTags = _availableTags();
+    final tagStats =
+        ref.read(tagStatsProvider).valueOrNull ?? const <TagStat>[];
+    final tagColors = ref.read(tagColorLookupProvider);
+    final availableTags = _availableTags(tagStats, tagColors);
     var draftTags = Set<String>.from(_selectedTags);
     var draftRange = _selectedDateRange;
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -651,240 +676,415 @@ class _DailyReviewScreenState extends ConsumerState<DailyReviewScreen> {
         : MemoFlowPalette.backgroundLight;
     final accent = MemoFlowPalette.primary;
 
-    await showModalBottomSheet<void>(
+    TagChipColors? resolveTagChipColors(String tag) {
+      return tagColors.resolveChipColorsByPath(
+        tag,
+        surfaceColor: chipBg,
+        isDark: isDark,
+      );
+    }
+
+    Widget buildTagFilterChip(String tag, StateSetter setModalState) {
+      final selected = draftTags.contains(tag);
+      final colors = resolveTagChipColors(tag);
+      final defaultSelectedColor = accent.withValues(
+        alpha: isDark ? 0.24 : 0.15,
+      );
+      final defaultSelectedBorder = accent.withValues(
+        alpha: isDark ? 0.62 : 0.55,
+      );
+      final softTagBackground = colors?.background.withValues(
+        alpha: isDark ? 0.24 : 0.14,
+      );
+      return FilterChip(
+        label: Text('#$tag'),
+        selected: selected,
+        onSelected: (nextSelected) {
+          setModalState(() {
+            if (nextSelected) {
+              draftTags.add(tag);
+            } else {
+              draftTags.remove(tag);
+            }
+          });
+        },
+        backgroundColor: softTagBackground ?? chipBg,
+        selectedColor: colors?.background ?? defaultSelectedColor,
+        side: BorderSide(
+          color: selected
+              ? (colors?.border ?? defaultSelectedBorder)
+              : (colors?.border.withValues(alpha: isDark ? 0.55 : 0.45) ??
+                    border),
+        ),
+        labelStyle: TextStyle(
+          color: selected
+              ? (colors?.text ?? accent)
+              : (colors?.border ?? textMain),
+          fontWeight: FontWeight.w600,
+        ),
+        showCheckmark: false,
+      );
+    }
+
+    await showDialog<void>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (bottomSheetContext) {
+      barrierColor: Colors.black.withValues(alpha: isDark ? 0.56 : 0.4),
+      builder: (dialogContext) {
+        var tagsExpanded = false;
         return StatefulBuilder(
           builder: (context, setModalState) {
             final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-            return Padding(
-              padding: EdgeInsets.only(bottom: bottomInset),
-              child: SafeArea(
-                top: false,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: sheetBg,
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(24),
-                    ),
-                    border: Border(top: BorderSide(color: border)),
-                  ),
-                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Center(
-                        child: Container(
-                          width: 40,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: border,
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              context.t.strings.legacy.msg_filter,
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                                color: textMain,
-                              ),
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              setModalState(() {
-                                draftTags = <String>{};
-                                draftRange = null;
-                              });
-                            },
-                            child: Text(context.t.strings.legacy.msg_clear_2),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        context.t.strings.legacy.msg_select_tags,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: textMuted,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      if (availableTags.isEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: Text(
-                            context.t.strings.legacy.msg_no_tags_yet,
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: textMuted,
-                            ),
-                          ),
-                        )
-                      else
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
+            final screenSize = MediaQuery.sizeOf(context);
+            final dialogHeight = math.min(screenSize.height * 0.78, 720.0);
+
+            return Dialog(
+              backgroundColor: sheetBg,
+              surfaceTintColor: Colors.transparent,
+              insetPadding: const EdgeInsets.symmetric(
+                horizontal: 24,
+                vertical: 24,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+                side: BorderSide(color: border),
+              ),
+              child: AnimatedPadding(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOut,
+                padding: EdgeInsets.only(bottom: bottomInset),
+                child: SizedBox(
+                  width: math.min(screenSize.width - 48, 560),
+                  height: dialogHeight,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
                           children: [
-                            FilterChip(
-                              label: Text(context.t.strings.legacy.msg_all_2),
-                              selected: draftTags.isEmpty,
-                              onSelected: (_) {
-                                setModalState(() {
-                                  draftTags.clear();
-                                });
-                              },
-                              backgroundColor: chipBg,
-                              selectedColor: accent.withValues(
-                                alpha: isDark ? 0.24 : 0.15,
-                              ),
-                              side: BorderSide(
-                                color: draftTags.isEmpty
-                                    ? accent.withValues(
-                                        alpha: isDark ? 0.62 : 0.55,
-                                      )
-                                    : border,
-                              ),
-                              labelStyle: TextStyle(
-                                color: draftTags.isEmpty ? accent : textMain,
-                                fontWeight: FontWeight.w600,
-                              ),
-                              showCheckmark: false,
-                            ),
-                            for (final tag in availableTags)
-                              FilterChip(
-                                label: Text('#$tag'),
-                                selected: draftTags.contains(tag),
-                                onSelected: (selected) {
-                                  setModalState(() {
-                                    if (selected) {
-                                      draftTags.add(tag);
-                                    } else {
-                                      draftTags.remove(tag);
-                                    }
-                                  });
-                                },
-                                backgroundColor: chipBg,
-                                selectedColor: accent.withValues(
-                                  alpha: isDark ? 0.24 : 0.15,
-                                ),
-                                side: BorderSide(
-                                  color: draftTags.contains(tag)
-                                      ? accent.withValues(
-                                          alpha: isDark ? 0.62 : 0.55,
-                                        )
-                                      : border,
-                                ),
-                                labelStyle: TextStyle(
-                                  color: draftTags.contains(tag)
-                                      ? accent
-                                      : textMain,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                showCheckmark: false,
-                              ),
-                          ],
-                        ),
-                      const SizedBox(height: 18),
-                      Text(
-                        context.t.strings.legacy.msg_select_date_range,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: textMuted,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
-                        decoration: BoxDecoration(
-                          color: chipBg,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: border),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.date_range_outlined,
-                              size: 18,
-                              color: textMuted,
-                            ),
-                            const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                _formatRangeLabel(draftRange, context),
+                                context.t.strings.legacy.msg_filter,
                                 style: TextStyle(
-                                  color: draftRange == null
-                                      ? textMuted
-                                      : textMain,
-                                  fontWeight: FontWeight.w600,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: textMain,
                                 ),
                               ),
                             ),
                             TextButton(
-                              onPressed: () async {
-                                final picked = await _pickDateRange(draftRange);
-                                if (picked == null) return;
+                              onPressed: () {
                                 setModalState(() {
-                                  draftRange = _normalizeRange(picked);
+                                  draftTags = <String>{};
+                                  draftRange = null;
+                                  tagsExpanded = false;
                                 });
                               },
-                              child: Text(context.t.strings.legacy.msg_select),
+                              child: Text(context.t.strings.legacy.msg_clear_2),
                             ),
-                            if (draftRange != null)
-                              TextButton(
-                                onPressed: () {
-                                  setModalState(() {
-                                    draftRange = null;
-                                  });
-                                },
-                                child: Text(
-                                  context.t.strings.legacy.msg_clear_2,
-                                ),
-                              ),
                           ],
                         ),
-                      ),
-                      const SizedBox(height: 18),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: () =>
-                                  Navigator.of(bottomSheetContext).pop(),
-                              child: Text(
-                                context.t.strings.legacy.msg_cancel_2,
+                        const SizedBox(height: 16),
+                        Expanded(
+                          child: SingleChildScrollView(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        context
+                                            .t
+                                            .strings
+                                            .legacy
+                                            .msg_select_tags,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                          color: textMuted,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Align(
+                                  alignment: Alignment.centerRight,
+                                  child: TextButton.icon(
+                                    onPressed: () {
+                                      setModalState(() {
+                                        tagsExpanded = !tagsExpanded;
+                                      });
+                                    },
+                                    style: TextButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 4,
+                                      ),
+                                      minimumSize: const Size(0, 0),
+                                      tapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
+                                      visualDensity: VisualDensity.compact,
+                                    ),
+                                    icon: AnimatedRotation(
+                                      turns: tagsExpanded ? 0.5 : 0,
+                                      duration: const Duration(
+                                        milliseconds: 180,
+                                      ),
+                                      curve: Curves.easeOutCubic,
+                                      child: const Icon(
+                                        Icons.expand_more_rounded,
+                                        size: 18,
+                                      ),
+                                    ),
+                                    label: Text(
+                                      tagsExpanded
+                                          ? context
+                                                .t
+                                                .strings
+                                                .legacy
+                                                .msg_collapse
+                                          : context.t.strings.legacy.msg_expand,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                if (availableTags.isEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: 8),
+                                    child: Text(
+                                      context.t.strings.legacy.msg_no_tags_yet,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w500,
+                                        color: textMuted,
+                                      ),
+                                    ),
+                                  )
+                                else
+                                  Stack(
+                                    children: [
+                                      ClipRect(
+                                        child: AnimatedSize(
+                                          duration: const Duration(
+                                            milliseconds: 180,
+                                          ),
+                                          curve: Curves.easeOutCubic,
+                                          alignment: Alignment.topCenter,
+                                          clipBehavior: Clip.hardEdge,
+                                          child: SizedBox(
+                                            width: double.infinity,
+                                            height: tagsExpanded
+                                                ? null
+                                                : _collapsedFilterTagMaxHeight,
+                                            child: SingleChildScrollView(
+                                              physics:
+                                                  const NeverScrollableScrollPhysics(),
+                                              child: Align(
+                                                alignment: Alignment.topLeft,
+                                                child: Wrap(
+                                                  spacing: 8,
+                                                  runSpacing: 8,
+                                                  children: [
+                                                    FilterChip(
+                                                      label: Text(
+                                                        context
+                                                            .t
+                                                            .strings
+                                                            .legacy
+                                                            .msg_all_2,
+                                                      ),
+                                                      selected:
+                                                          draftTags.isEmpty,
+                                                      onSelected: (_) {
+                                                        setModalState(() {
+                                                          draftTags.clear();
+                                                        });
+                                                      },
+                                                      backgroundColor: chipBg,
+                                                      selectedColor: accent
+                                                          .withValues(
+                                                            alpha: isDark
+                                                                ? 0.24
+                                                                : 0.15,
+                                                          ),
+                                                      side: BorderSide(
+                                                        color: draftTags.isEmpty
+                                                            ? accent.withValues(
+                                                                alpha: isDark
+                                                                    ? 0.62
+                                                                    : 0.55,
+                                                              )
+                                                            : border,
+                                                      ),
+                                                      labelStyle: TextStyle(
+                                                        color: draftTags.isEmpty
+                                                            ? accent
+                                                            : textMain,
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                      ),
+                                                      showCheckmark: false,
+                                                    ),
+                                                    for (final tag
+                                                        in availableTags)
+                                                      buildTagFilterChip(
+                                                        tag,
+                                                        setModalState,
+                                                      ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      Positioned(
+                                        left: 0,
+                                        right: 0,
+                                        bottom: 0,
+                                        height: 28,
+                                        child: IgnorePointer(
+                                          child: AnimatedOpacity(
+                                            opacity: tagsExpanded ? 0 : 1,
+                                            duration: const Duration(
+                                              milliseconds: 160,
+                                            ),
+                                            curve: Curves.easeOut,
+                                            child: DecoratedBox(
+                                              decoration: BoxDecoration(
+                                                gradient: LinearGradient(
+                                                  begin: Alignment.topCenter,
+                                                  end: Alignment.bottomCenter,
+                                                  colors: [
+                                                    sheetBg.withAlpha(0),
+                                                    sheetBg,
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                const SizedBox(height: 18),
+                                Text(
+                                  context
+                                      .t
+                                      .strings
+                                      .legacy
+                                      .msg_select_date_range,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: textMuted,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.fromLTRB(
+                                    12,
+                                    10,
+                                    10,
+                                    10,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: chipBg,
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(color: border),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.date_range_outlined,
+                                        size: 18,
+                                        color: textMuted,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          _formatRangeLabel(
+                                            draftRange,
+                                            context,
+                                          ),
+                                          style: TextStyle(
+                                            color: draftRange == null
+                                                ? textMuted
+                                                : textMain,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                      TextButton(
+                                        onPressed: () async {
+                                          final picked = await _pickDateRange(
+                                            draftRange,
+                                          );
+                                          if (picked == null) return;
+                                          setModalState(() {
+                                            draftRange = _normalizeRange(
+                                              picked,
+                                            );
+                                          });
+                                        },
+                                        child: Text(
+                                          context.t.strings.legacy.msg_select,
+                                        ),
+                                      ),
+                                      if (draftRange != null)
+                                        TextButton(
+                                          onPressed: () {
+                                            setModalState(() {
+                                              draftRange = null;
+                                            });
+                                          },
+                                          child: Text(
+                                            context
+                                                .t
+                                                .strings
+                                                .legacy
+                                                .msg_clear_2,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: () =>
+                                    Navigator.of(dialogContext).pop(),
+                                child: Text(
+                                  context.t.strings.legacy.msg_cancel_2,
+                                ),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: FilledButton(
-                              onPressed: () {
-                                _applyFilters(
-                                  tags: draftTags,
-                                  dateRange: draftRange,
-                                );
-                                Navigator.of(bottomSheetContext).pop();
-                              },
-                              child: Text(context.t.strings.legacy.msg_apply),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: FilledButton(
+                                onPressed: () {
+                                  _applyFilters(
+                                    tags: draftTags,
+                                    dateRange: draftRange,
+                                  );
+                                  Navigator.of(dialogContext).pop();
+                                },
+                                child: Text(context.t.strings.legacy.msg_apply),
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -912,8 +1112,10 @@ class _DailyReviewScreenState extends ConsumerState<DailyReviewScreen> {
         !kIsWeb && defaultTargetPlatform == TargetPlatform.windows;
     final screenWidth = MediaQuery.sizeOf(context).width;
     final useDesktopSidePane = shouldUseDesktopSidePaneLayout(screenWidth);
-    final selectedTags = _selectedTags.toList(growable: false)
-      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    final tagStats =
+        ref.watch(tagStatsProvider).valueOrNull ?? const <TagStat>[];
+    final tagColors = ref.watch(tagColorLookupProvider);
+    final selectedTags = _sortTags(_selectedTags, tagStats, tagColors);
     final account = ref.watch(appSessionProvider).valueOrNull?.currentAccount;
     final baseUrl = account?.baseUrl;
     final sessionController = ref.read(appSessionProvider.notifier);
@@ -1007,6 +1209,10 @@ class _DailyReviewScreenState extends ConsumerState<DailyReviewScreen> {
               final displayIndex = total == 0
                   ? 0
                   : (_cursor + 1).clamp(1, total);
+              final canLoopCards = deck.length > 1;
+              final backgroundCardCount = deck.length <= 2
+                  ? 0
+                  : math.min(3, deck.length - 2);
 
               return Column(
                 children: [
@@ -1048,7 +1254,15 @@ class _DailyReviewScreenState extends ConsumerState<DailyReviewScreen> {
                         runSpacing: 8,
                         children: [
                           for (final tag in selectedTags)
-                            _ActiveFilterChip(label: '#$tag', isDark: isDark),
+                            _ActiveFilterChip(
+                              label: '#$tag',
+                              isDark: isDark,
+                              colors: tagColors.resolveChipColorsByPath(
+                                tag,
+                                surfaceColor: card,
+                                isDark: isDark,
+                              ),
+                            ),
                           if (_selectedDateRange != null)
                             _ActiveFilterChip(
                               label: _formatRangeLabel(
@@ -1079,11 +1293,14 @@ class _DailyReviewScreenState extends ConsumerState<DailyReviewScreen> {
                                 maxWidth: maxCardWidth,
                               ),
                               child: AppinioSwiper(
-                                controller: _swiperController,
+                                key: ValueKey(_deckVersion),
                                 cardCount: deck.length,
-                                backgroundCardCount: 3,
+                                backgroundCardCount: backgroundCardCount,
                                 backgroundCardScale: 0.92,
                                 backgroundCardOffset: const Offset(0, 24),
+                                initialIndex: 0,
+                                loop: canLoopCards,
+                                isDisabled: !canLoopCards,
                                 swipeOptions: const SwipeOptions.symmetric(
                                   horizontal: true,
                                 ),
@@ -1093,51 +1310,50 @@ class _DailyReviewScreenState extends ConsumerState<DailyReviewScreen> {
                                       if (!mounted) return;
                                       unawaited(_stopAudioPlayback());
                                       setState(() {
-                                        if (activity.direction ==
-                                            AxisDirection.right) {
-                                          _rotateRight();
-                                          _cursor =
-                                              (_cursor - 1 + deck.length) %
-                                              deck.length;
-                                        } else {
-                                          _rotateLeft();
-                                          _cursor = (_cursor + 1) % deck.length;
-                                        }
+                                        _cursor = deck.isEmpty
+                                            ? 0
+                                            : targetIndex % deck.length;
                                       });
-                                      _resetSwiperToFrontCardDeferred();
                                     },
                                 cardBuilder: (context, index) {
                                   final memo = deck[index];
                                   final isAudioActive =
                                       _playingMemoUid == memo.uid;
-                                  return _RandomWalkCard(
-                                    memo: memo,
-                                    card: card,
-                                    textMain: textMain,
-                                    textMuted: textMuted,
-                                    isDark: isDark,
-                                    baseUrl: baseUrl,
-                                    authHeader: authHeader,
-                                    rebaseAbsoluteFileUrlForV024:
-                                        rebaseAbsoluteFileUrlForV024,
-                                    attachAuthForSameOriginAbsolute:
-                                        attachAuthForSameOriginAbsolute,
-                                    audioPlaying:
-                                        isAudioActive && _audioPlayer.playing,
-                                    audioLoading:
-                                        isAudioActive && _audioLoading,
-                                    audioPositionListenable: isAudioActive
-                                        ? _audioPositionNotifier
-                                        : null,
-                                    audioDurationListenable: isAudioActive
-                                        ? _audioDurationNotifier
-                                        : null,
-                                    onAudioTap: () =>
-                                        unawaited(_toggleAudioPlayback(memo)),
-                                    onToggleTask: (request) => unawaited(
-                                      _toggleMemoCheckbox(
-                                        memo,
-                                        request.taskIndex,
+                                  return KeyedSubtree(
+                                    key: ValueKey(memo.uid),
+                                    child: RepaintBoundary(
+                                      child: _RandomWalkCard(
+                                        memo: memo,
+                                        card: card,
+                                        textMain: textMain,
+                                        textMuted: textMuted,
+                                        isDark: isDark,
+                                        baseUrl: baseUrl,
+                                        authHeader: authHeader,
+                                        rebaseAbsoluteFileUrlForV024:
+                                            rebaseAbsoluteFileUrlForV024,
+                                        attachAuthForSameOriginAbsolute:
+                                            attachAuthForSameOriginAbsolute,
+                                        audioPlaying:
+                                            isAudioActive &&
+                                            _audioPlayer.playing,
+                                        audioLoading:
+                                            isAudioActive && _audioLoading,
+                                        audioPositionListenable: isAudioActive
+                                            ? _audioPositionNotifier
+                                            : null,
+                                        audioDurationListenable: isAudioActive
+                                            ? _audioDurationNotifier
+                                            : null,
+                                        onAudioTap: () => unawaited(
+                                          _toggleAudioPlayback(memo),
+                                        ),
+                                        onToggleTask: (request) => unawaited(
+                                          _toggleMemoCheckbox(
+                                            memo,
+                                            request.taskIndex,
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   );
@@ -1181,27 +1397,37 @@ class _DailyReviewScreenState extends ConsumerState<DailyReviewScreen> {
 }
 
 class _ActiveFilterChip extends StatelessWidget {
-  const _ActiveFilterChip({required this.label, required this.isDark});
+  const _ActiveFilterChip({
+    required this.label,
+    required this.isDark,
+    this.colors,
+  });
 
   final String label;
   final bool isDark;
+  final TagChipColors? colors;
 
   @override
   Widget build(BuildContext context) {
     final accent = MemoFlowPalette.primary;
+    final bg =
+        colors?.background ?? accent.withValues(alpha: isDark ? 0.22 : 0.12);
+    final borderColor =
+        colors?.border ?? accent.withValues(alpha: isDark ? 0.6 : 0.5);
+    final textColor = colors?.text ?? accent;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: accent.withValues(alpha: isDark ? 0.22 : 0.12),
+        color: bg,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: accent.withValues(alpha: isDark ? 0.6 : 0.5)),
+        border: Border.all(color: borderColor),
       ),
       child: Text(
         label,
         style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w700,
-          color: accent,
+          color: textColor,
         ),
       ),
     );
