@@ -11,6 +11,7 @@ import '../../core/app_localization.dart';
 import '../../application/desktop/desktop_settings_window.dart';
 import '../../core/memoflow_palette.dart';
 import '../../core/url.dart';
+import '../../private_hooks/private_extension_bundle_provider.dart';
 import '../../state/system/local_library_provider.dart';
 import '../../state/settings/preferences_provider.dart';
 import '../../state/system/session_provider.dart';
@@ -106,9 +107,11 @@ class SettingsScreen extends ConsumerWidget
     final hapticsEnabled = ref.watch(
       appPreferencesProvider.select((p) => p.hapticsEnabled),
     );
-    final supporterCrownEnabled = ref.watch(
-      appPreferencesProvider.select((p) => p.supporterCrownEnabled),
-    );
+    final extensionEntries = [
+      ...ref
+          .watch(privateExtensionBundleProvider)
+          .settingsEntries(context, ref),
+    ]..sort((a, b) => a.order.compareTo(b.order));
 
     void haptic() {
       if (hapticsEnabled) {
@@ -188,7 +191,6 @@ class SettingsScreen extends ConsumerWidget
                   name: name,
                   subtitle: subtitle,
                   avatarUrl: avatarUrl,
-                  showCrown: supporterCrownEnabled,
                   onTap: () {
                     haptic();
                     Navigator.of(context).push(
@@ -313,7 +315,11 @@ class SettingsScreen extends ConsumerWidget
                     if (isWindowsDesktop)
                       _SettingRow(
                         icon: Icons.desktop_windows_outlined,
-                        label: context.t.strings.legacy.msg_windows_related_settings,
+                        label: context
+                            .t
+                            .strings
+                            .legacy
+                            .msg_windows_related_settings,
                         textMain: textMain,
                         textMuted: textMuted,
                         onTap: () {
@@ -450,6 +456,28 @@ class SettingsScreen extends ConsumerWidget
                     ),
                   ],
                 ),
+                if (extensionEntries.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  _CardGroup(
+                    card: card,
+                    divider: divider,
+                    children: [
+                      ...extensionEntries.map(
+                        (entry) => _SettingRow(
+                          icon: entry.icon,
+                          label: entry.titleBuilder(context),
+                          subtitle: entry.subtitleBuilder?.call(context),
+                          textMain: textMain,
+                          textMuted: textMuted,
+                          onTap: () {
+                            haptic();
+                            entry.onTap();
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 18),
                 Column(
                   children: [
@@ -527,11 +555,13 @@ class _SettingRow extends StatelessWidget {
     required this.label,
     required this.textMain,
     required this.textMuted,
+    this.subtitle,
     this.onTap,
   });
 
   final IconData icon;
   final String label;
+  final String? subtitle;
   final Color textMain;
   final Color textMuted;
   final VoidCallback? onTap;
@@ -549,12 +579,24 @@ class _SettingRow extends StatelessWidget {
               Icon(icon, size: 20, color: textMuted),
               const SizedBox(width: 12),
               Expanded(
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: textMain,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: textMain,
+                      ),
+                    ),
+                    if (subtitle != null && subtitle!.trim().isNotEmpty) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        subtitle!,
+                        style: TextStyle(fontSize: 12, color: textMuted),
+                      ),
+                    ],
+                  ],
                 ),
               ),
               Icon(Icons.chevron_right, size: 20, color: textMuted),
@@ -574,7 +616,6 @@ class _ProfileCard extends StatelessWidget {
     required this.name,
     required this.subtitle,
     required this.avatarUrl,
-    required this.showCrown,
     required this.onTap,
   });
 
@@ -584,7 +625,6 @@ class _ProfileCard extends StatelessWidget {
   final String name;
   final String subtitle;
   final String avatarUrl;
-  final bool showCrown;
   final VoidCallback onTap;
 
   @override
@@ -628,47 +668,6 @@ class _ProfileCard extends StatelessWidget {
           ),
         );
       }
-    }
-    if (showCrown) {
-      final badgeColor = isDark
-          ? const Color(0xFFF2C879)
-          : const Color(0xFFE1A670);
-      final badgeBg = isDark ? const Color(0xFF2C2520) : Colors.white;
-      avatarWidget = SizedBox(
-        width: 44,
-        height: 44,
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Positioned.fill(child: avatarWidget),
-            Positioned(
-              right: -4,
-              top: -4,
-              child: Container(
-                width: 18,
-                height: 18,
-                decoration: BoxDecoration(
-                  color: badgeBg,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: badgeColor.withValues(alpha: 0.8)),
-                  boxShadow: [
-                    BoxShadow(
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
-                      color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.2),
-                    ),
-                  ],
-                ),
-                child: Icon(
-                  Icons.workspace_premium_rounded,
-                  size: 12,
-                  color: badgeColor,
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
     }
     return Material(
       color: Colors.transparent,

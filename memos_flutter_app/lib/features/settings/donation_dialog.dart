@@ -4,7 +4,6 @@ import 'package:confetti/confetti.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -12,12 +11,11 @@ import 'package:permission_handler/permission_handler.dart';
 import '../../core/app_localization.dart';
 import '../../core/memoflow_palette.dart';
 import '../../core/top_toast.dart';
-import '../../state/settings/preferences_provider.dart';
 import '../../i18n/strings.g.dart';
 
 enum _DonationStep { request, success }
 
-class DonationDialog extends ConsumerStatefulWidget {
+class DonationDialog extends StatefulWidget {
   const DonationDialog({super.key});
 
   static Future<void> show(BuildContext context) {
@@ -46,10 +44,10 @@ class DonationDialog extends ConsumerStatefulWidget {
   }
 
   @override
-  ConsumerState<DonationDialog> createState() => _DonationDialogState();
+  State<DonationDialog> createState() => _DonationDialogState();
 }
 
-class _DonationDialogState extends ConsumerState<DonationDialog>
+class _DonationDialogState extends State<DonationDialog>
     with TickerProviderStateMixin {
   late final ConfettiController _confettiController;
   late final AnimationController _starsController;
@@ -80,7 +78,6 @@ class _DonationDialogState extends ConsumerState<DonationDialog>
   }
 
   void _goSuccess() {
-    ref.read(appPreferencesProvider.notifier).setSupporterCrownEnabled(true);
     setState(() => _step = _DonationStep.success);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _confettiController.play();
@@ -146,10 +143,7 @@ class _DonationDialogState extends ConsumerState<DonationDialog>
         return;
       }
       if (!mounted) return;
-      showTopToast(
-        context,
-        context.t.strings.legacy.msg_qr_saved_gallery,
-      );
+      showTopToast(context, context.t.strings.legacy.msg_qr_saved_gallery);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -295,7 +289,8 @@ class _DonationRequestCard extends StatelessWidget {
       fontWeight: FontWeight.w700,
       color: danger,
     );
-    final bodyPrefix = context.t.strings.legacy.msg_memoflow_side_project_i_build_my;
+    final bodyPrefix =
+        context.t.strings.legacy.msg_memoflow_side_project_i_build_my;
     final bodySuffix = context.t.strings.legacy.msg_sooner;
 
     return Container(
@@ -346,7 +341,11 @@ class _DonationRequestCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            context.t.strings.legacy.msg_after_confirming_support_unlock_limited_gold,
+            context
+                .t
+                .strings
+                .legacy
+                .msg_after_confirming_support_unlock_limited_gold,
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 11, height: 1.4, color: textMuted),
           ),

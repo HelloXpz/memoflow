@@ -32,12 +32,14 @@ import 'features/memos/memos_list_screen.dart';
 import 'features/share/share_handler.dart';
 import 'application/widgets/home_widget_service.dart';
 import 'i18n/strings.g.dart';
+import 'private_hooks/private_extension_bundle_provider.dart';
 import 'presentation/navigation/app_navigator.dart';
 import 'presentation/reminders/reminder_tap_handler.dart';
 import 'state/system/local_library_provider.dart';
 import 'state/memos/app_bootstrap_adapter_provider.dart';
 import 'state/memos/app_bootstrap_controller.dart';
 import 'state/system/session_provider.dart';
+
 class App extends ConsumerStatefulWidget {
   const App({super.key});
 
@@ -114,13 +116,10 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
     );
     _syncOrchestrator = AppSyncOrchestrator(
       ref: ref,
-      updateStatsWidgetIfNeeded:
-          ({required bool force}) =>
-              _statsWidgetUpdater.updateIfNeeded(ref, force: force),
-      showFeedbackToast: ({required bool succeeded}) =>
-          _syncFeedbackPresenter.showAutoSyncFeedbackToast(
-            succeeded: succeeded,
-          ),
+      updateStatsWidgetIfNeeded: ({required bool force}) =>
+          _statsWidgetUpdater.updateIfNeeded(ref, force: force),
+      showFeedbackToast: ({required bool succeeded}) => _syncFeedbackPresenter
+          .showAutoSyncFeedbackToast(succeeded: succeeded),
       showProgressToast: _syncFeedbackPresenter.showAutoSyncProgressToast,
     );
     _startupCoordinator = StartupCoordinator(
@@ -140,19 +139,15 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
       ref: ref,
       navigatorKey: _navigatorKey,
       ensureMethodHandlerBound: () => _desktopWindowManager.bindMethodHandler(),
-      onSubWindowVisibilityChanged: ({
-        required int windowId,
-        required bool visible,
-      }) {
-        _desktopWindowManager.setSubWindowVisibility(
-          windowId: windowId,
-          visible: visible,
-        );
-      },
-      onWindowIdChanged:
-          (windowId) => _desktopWindowManager.updateQuickInputWindowId(
-            windowId,
-          ),
+      onSubWindowVisibilityChanged:
+          ({required int windowId, required bool visible}) {
+            _desktopWindowManager.setSubWindowVisibility(
+              windowId: windowId,
+              visible: visible,
+            );
+          },
+      onWindowIdChanged: (windowId) =>
+          _desktopWindowManager.updateQuickInputWindowId(windowId),
       isMounted: () => mounted,
     );
     _desktopWindowManager = DesktopWindowManager(
@@ -160,9 +155,8 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
       ref: ref,
       navigatorKey: _navigatorKey,
       quickInputController: _desktopQuickInputController,
-      openQuickInput:
-          ({required bool autoFocus}) =>
-              _startupCoordinator.openQuickInput(autoFocus: autoFocus),
+      openQuickInput: ({required bool autoFocus}) =>
+          _startupCoordinator.openQuickInput(autoFocus: autoFocus),
       isMounted: () => mounted,
       onVisibilityChanged: () {
         if (!mounted) return;
@@ -201,6 +195,7 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       unawaited(_startupCoordinator.loadPendingLaunchSources());
+      unawaited(ref.read(privateExtensionBundleProvider).onAppReady(ref));
     });
     _bootstrapController.bind(
       ref: ref,
@@ -214,12 +209,9 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
       reminderTapHandler: ReminderTapHandlerImpl(_navigatorKey).handle,
       scheduleDesktopSubWindowPrewarm: _desktopWindowManager.schedulePrewarm,
     );
-    _prefsLoadedSub = _bootstrapAdapter.listenPreferencesLoaded(
-      ref,
-      (_, __) {
-        _startupCoordinator.onPrefsLoaded(source: 'prefs_loaded');
-      },
-    );
+    _prefsLoadedSub = _bootstrapAdapter.listenPreferencesLoaded(ref, (_, __) {
+      _startupCoordinator.onPrefsLoaded(source: 'prefs_loaded');
+    });
     _sessionSub = _bootstrapAdapter.listenSession(ref, (_, __) {
       _startupCoordinator.onSessionChanged(source: 'session');
     });

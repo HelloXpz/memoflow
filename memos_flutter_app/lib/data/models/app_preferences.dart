@@ -104,7 +104,6 @@ class AppPreferences {
     showDrawerResources: true,
     showDrawerArchive: true,
     aiSummaryAllowPrivateMemos: false,
-    supporterCrownEnabled: false,
     thirdPartyShareEnabled: true,
     windowsCloseToTray: true,
     desktopShortcutBindings: desktopShortcutDefaultBindings,
@@ -152,7 +151,6 @@ class AppPreferences {
     required this.showDrawerResources,
     required this.showDrawerArchive,
     required this.aiSummaryAllowPrivateMemos,
-    required this.supporterCrownEnabled,
     required this.thirdPartyShareEnabled,
     required this.windowsCloseToTray,
     required this.desktopShortcutBindings,
@@ -191,7 +189,6 @@ class AppPreferences {
   final bool showDrawerResources;
   final bool showDrawerArchive;
   final bool aiSummaryAllowPrivateMemos;
-  final bool supporterCrownEnabled;
   final bool thirdPartyShareEnabled;
   final bool windowsCloseToTray;
   final Map<DesktopShortcutAction, DesktopShortcutBinding>
@@ -251,7 +248,6 @@ class AppPreferences {
     'showDrawerResources': showDrawerResources,
     'showDrawerArchive': showDrawerArchive,
     'aiSummaryAllowPrivateMemos': aiSummaryAllowPrivateMemos,
-    'supporterCrownEnabled': supporterCrownEnabled,
     'thirdPartyShareEnabled': thirdPartyShareEnabled,
     'windowsCloseToTray': windowsCloseToTray,
     'desktopShortcutBindings': desktopShortcutBindingsToStorage(
@@ -572,10 +568,6 @@ class AppPreferences {
         'aiSummaryAllowPrivateMemos',
         AppPreferences.defaults.aiSummaryAllowPrivateMemos,
       ),
-      supporterCrownEnabled: parseBool(
-        'supporterCrownEnabled',
-        AppPreferences.defaults.supporterCrownEnabled,
-      ),
       thirdPartyShareEnabled: parseBool(
         'thirdPartyShareEnabled',
         AppPreferences.defaults.thirdPartyShareEnabled,
@@ -622,7 +614,6 @@ class AppPreferences {
     bool? showDrawerResources,
     bool? showDrawerArchive,
     bool? aiSummaryAllowPrivateMemos,
-    bool? supporterCrownEnabled,
     bool? thirdPartyShareEnabled,
     bool? windowsCloseToTray,
     Map<DesktopShortcutAction, DesktopShortcutBinding>? desktopShortcutBindings,
@@ -673,8 +664,6 @@ class AppPreferences {
       showDrawerArchive: showDrawerArchive ?? this.showDrawerArchive,
       aiSummaryAllowPrivateMemos:
           aiSummaryAllowPrivateMemos ?? this.aiSummaryAllowPrivateMemos,
-      supporterCrownEnabled:
-          supporterCrownEnabled ?? this.supporterCrownEnabled,
       thirdPartyShareEnabled:
           thirdPartyShareEnabled ?? this.thirdPartyShareEnabled,
       windowsCloseToTray: windowsCloseToTray ?? this.windowsCloseToTray,

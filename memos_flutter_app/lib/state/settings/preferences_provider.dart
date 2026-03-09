@@ -19,6 +19,7 @@ import '../system/session_provider.dart';
 import '../system/storage_error_provider.dart';
 
 export '../../data/models/app_preferences.dart';
+
 final appPreferencesRepositoryProvider = Provider<AppPreferencesRepository>((
   ref,
 ) {
@@ -86,10 +87,12 @@ class AppPreferencesController extends StateNotifier<AppPreferences> {
         return;
       }
       _ref.read(appPreferencesStorageErrorProvider.notifier).state = null;
-      final stored = result.data ?? AppPreferences.defaults.copyWith(
-        language: AppLanguage.system,
-        hasSelectedLanguage: false,
-      );
+      final stored =
+          result.data ??
+          AppPreferences.defaults.copyWith(
+            language: AppLanguage.system,
+            hasSelectedLanguage: false,
+          );
       state = stored;
       if (kDebugMode) {
         LogManager.instance.info(
@@ -113,12 +116,13 @@ class AppPreferencesController extends StateNotifier<AppPreferences> {
       if (!identical(state, stateBeforeLoad)) {
         return;
       }
-      _ref.read(appPreferencesStorageErrorProvider.notifier).state =
-          StorageLoadError(
-            source: 'preferences',
-            error: error,
-            stackTrace: stackTrace,
-          );
+      _ref
+          .read(appPreferencesStorageErrorProvider.notifier)
+          .state = StorageLoadError(
+        source: 'preferences',
+        error: error,
+        stackTrace: stackTrace,
+      );
       return;
     } finally {
       if (mounted) {
@@ -166,7 +170,9 @@ class AppPreferencesController extends StateNotifier<AppPreferences> {
     });
     if (triggerSync) {
       unawaited(
-        _ref.read(syncCoordinatorProvider.notifier).requestSync(
+        _ref
+            .read(syncCoordinatorProvider.notifier)
+            .requestSync(
               const SyncRequest(
                 kind: SyncRequestKind.webDavSync,
                 reason: SyncRequestReason.settings,
@@ -281,8 +287,6 @@ class AppPreferencesController extends StateNotifier<AppPreferences> {
       _setAndPersist(state.copyWith(showDrawerArchive: v));
   void setAiSummaryAllowPrivateMemos(bool v) =>
       _setAndPersist(state.copyWith(aiSummaryAllowPrivateMemos: v));
-  void setSupporterCrownEnabled(bool v) =>
-      _setAndPersist(state.copyWith(supporterCrownEnabled: v));
   void setThirdPartyShareEnabled(bool v) =>
       _setAndPersist(state.copyWith(thirdPartyShareEnabled: v));
   void setWindowsCloseToTray(bool v) =>
@@ -459,10 +463,10 @@ class AppPreferencesRepository {
 
     final deviceResult = await _readDeviceWithStatus();
     if (deviceResult.isError) {
-        return StorageReadResult.failure(
-          cause: deviceResult.error!,
-          stackTrace: deviceResult.stackTrace ?? StackTrace.current,
-        );
+      return StorageReadResult.failure(
+        cause: deviceResult.error!,
+        stackTrace: deviceResult.stackTrace ?? StackTrace.current,
+      );
     }
     final device = deviceResult.data ?? await _readFallback(_kDeviceKey);
     if (device != null) {
