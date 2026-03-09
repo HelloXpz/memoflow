@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 
 import '../../core/memoflow_palette.dart';
 import '../../core/top_toast.dart';
+import '../../core/version_probe_gate.dart';
 import '../../data/models/account.dart';
 import '../../state/memos/laboratory_providers.dart';
 import '../../state/system/session_provider.dart';
@@ -171,20 +172,22 @@ class _LaboratoryScreenState extends ConsumerState<LaboratoryScreen> {
       return;
     }
 
-    final probeReport = await _probeSingleVersion(
-      currentAccount: currentAccount,
-      version: parsed,
-    );
-    if (!mounted || probeReport == null) return;
-    if (!probeReport.passed) {
-      await _showProbeFailureReport(probeReport.diagnostics);
-      return;
+    if (isVersionProbeEnabled) {
+      final probeReport = await _probeSingleVersion(
+        currentAccount: currentAccount,
+        version: parsed,
+      );
+      if (!mounted || probeReport == null) return;
+      if (!probeReport.passed) {
+        await _showProbeFailureReport(probeReport.diagnostics);
+        return;
+      }
+      await _cleanupProbeArtifactsAfterSync(
+        account: currentAccount,
+        version: parsed,
+        cleanup: probeReport.cleanup,
+      );
     }
-    await _cleanupProbeArtifactsAfterSync(
-      account: currentAccount,
-      version: parsed,
-      cleanup: probeReport.cleanup,
-    );
 
     setState(() => _savingVersion = true);
     try {
@@ -209,6 +212,7 @@ class _LaboratoryScreenState extends ConsumerState<LaboratoryScreen> {
   }
 
   Future<void> _reprobeCurrentVersion(Account? currentAccount) async {
+    if (!isVersionProbeEnabled) return;
     if (currentAccount == null || _savingVersion || _probingVersion) return;
     final controller = ref.read(laboratoryControllerProvider);
     final effectiveVersion = controller.normalizeServerVersion(
@@ -318,6 +322,7 @@ class _LaboratoryScreenState extends ConsumerState<LaboratoryScreen> {
                         textMain: textMain,
                         textMuted: textMuted,
                         allowVersionControl: currentAccount != null,
+                        allowProbeControl: isVersionProbeEnabled,
                         onEditVersion: () =>
                             _selectServerVersion(currentAccount),
                         onReprobeVersion: () =>
@@ -412,6 +417,7 @@ class _CompatibilityCard extends StatelessWidget {
     required this.textMain,
     required this.textMuted,
     required this.allowVersionControl,
+    required this.allowProbeControl,
     required this.onEditVersion,
     required this.onReprobeVersion,
   });
@@ -425,6 +431,7 @@ class _CompatibilityCard extends StatelessWidget {
   final Color textMain;
   final Color textMuted;
   final bool allowVersionControl;
+  final bool allowProbeControl;
   final VoidCallback onEditVersion;
   final VoidCallback onReprobeVersion;
 
@@ -503,15 +510,16 @@ class _CompatibilityCard extends StatelessWidget {
                     label: Text(context.t.strings.common.manual),
                   ),
                 ),
-                Expanded(
-                  child: TextButton.icon(
-                    onPressed: allowVersionControl && !busy
-                        ? onReprobeVersion
-                        : null,
-                    icon: const Icon(Icons.science_outlined, size: 16),
-                    label: Text(context.t.strings.legacy.msg_retry),
+                if (allowProbeControl)
+                  Expanded(
+                    child: TextButton.icon(
+                      onPressed: allowVersionControl && !busy
+                          ? onReprobeVersion
+                          : null,
+                      icon: const Icon(Icons.science_outlined, size: 16),
+                      label: Text(context.t.strings.legacy.msg_retry),
+                    ),
                   ),
-                ),
               ],
             ),
           ],

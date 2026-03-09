@@ -7,6 +7,7 @@ import '../../core/app_localization.dart';
 import '../../core/memoflow_palette.dart';
 import '../../core/top_toast.dart';
 import '../../core/url.dart';
+import '../../core/version_probe_gate.dart';
 import '../../i18n/strings.g.dart';
 import '../../state/system/login_draft_provider.dart';
 import '../../state/system/home_loading_overlay_provider.dart';
@@ -206,6 +207,52 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       return _connectWithPassword(opId);
     }
     return _connectWithToken(opId);
+  }
+
+  Future<bool> _addAccountWithPatSafe({
+    required int opId,
+    required AppSessionController sessionController,
+    required Uri baseUrl,
+    required String token,
+    required String serverVersionOverride,
+  }) async {
+    try {
+      await sessionController.addAccountWithPat(
+        baseUrl: baseUrl,
+        personalAccessToken: token,
+        serverVersionOverride: serverVersionOverride,
+      );
+      return true;
+    } catch (error) {
+      if (!_isLoginOpActive(opId)) return false;
+      _showSnackIfActive(opId, _formatLoginError(error, token: token));
+      return false;
+    }
+  }
+
+  Future<bool> _addAccountWithPasswordSafe({
+    required int opId,
+    required AppSessionController sessionController,
+    required Uri baseUrl,
+    required String username,
+    required String password,
+    required String serverVersionOverride,
+  }) async {
+    try {
+      await sessionController.addAccountWithPassword(
+        baseUrl: baseUrl,
+        username: username,
+        password: password,
+        useLegacyApi: false,
+        serverVersionOverride: serverVersionOverride,
+      );
+      return true;
+    } catch (error) {
+      if (!_isLoginOpActive(opId)) return false;
+      _passwordController.clear();
+      _showSnackIfActive(opId, _formatPasswordLoginError(error));
+      return false;
+    }
   }
 
   String _resolveInitialServerVersion() {
@@ -468,6 +515,33 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       return;
     }
 
+    if (!isVersionProbeEnabled) {
+      final added = await _addAccountWithPatSafe(
+        opId: opId,
+        sessionController: sessionController,
+        baseUrl: baseUrl,
+        token: token,
+        serverVersionOverride: selectedVersion.versionString,
+      );
+      if (!added) return;
+      if (!_isLoginOpActive(opId)) return;
+
+      final sessionAsync = ref.read(appSessionProvider);
+      if (sessionAsync.hasError) {
+        _showSnackIfActive(
+          opId,
+          _formatLoginError(sessionAsync.error!, token: token),
+        );
+        return;
+      }
+
+      if (selectedVersion.isV025) {
+        _requestHomeLoadingOverlayForNextEntry();
+      }
+      _navigateAfterLogin();
+      return;
+    }
+
     final probeReport = await _probeSingleVersion(
       opId: opId,
       baseUrl: baseUrl,
@@ -483,11 +557,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       return;
     }
 
-    await sessionController.addAccountWithPat(
+    final added = await _addAccountWithPatSafe(
+      opId: opId,
+      sessionController: sessionController,
       baseUrl: baseUrl,
-      personalAccessToken: token,
+      token: token,
       serverVersionOverride: selectedVersion.versionString,
     );
+    if (!added) return;
     if (!_isLoginOpActive(opId)) return;
 
     final sessionAsync = ref.read(appSessionProvider);
@@ -548,19 +625,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       return;
     }
 
-    await sessionController.addAccountWithPassword(
+    final added = await _addAccountWithPasswordSafe(
+      opId: opId,
+      sessionController: sessionController,
       baseUrl: baseUrl,
       username: username,
       password: password,
-      useLegacyApi: false,
       serverVersionOverride: selectedVersion.versionString,
     );
+    if (!added) return;
     if (!_isLoginOpActive(opId)) return;
 
     final sessionAsync = ref.read(appSessionProvider);
     if (sessionAsync.hasError) {
       _passwordController.clear();
       _showSnackIfActive(opId, _formatPasswordLoginError(sessionAsync.error!));
+      return;
+    }
+
+    if (!isVersionProbeEnabled) {
+      if (selectedVersion.isV025) {
+        _requestHomeLoadingOverlayForNextEntry();
+      }
+      _navigateAfterLogin();
       return;
     }
 
@@ -1038,14 +1125,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               textMain: textMain,
                               textMuted: textMuted,
                             ),
-                            Text(
-                              context.t.strings.common.serverVersionProbeHint,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: textMuted,
-                                fontWeight: FontWeight.w500,
+                            if (isVersionProbeEnabled)
+                              Text(
+                                context.t.strings.common.serverVersionProbeHint,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: textMuted,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
-                            ),
                           ],
                         ),
                       ),

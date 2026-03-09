@@ -3,6 +3,19 @@ import 'package:flutter/material.dart';
 import '../../core/splash_tokens.g.dart';
 import '../../i18n/strings.g.dart';
 
+const int startupTypewriterMsPerChar = 160;
+const int startupPostTypewriterHoldMs = 500;
+
+int startupMinimumVisibleMsFor({
+  required BuildContext context,
+  required bool showSlogan,
+}) {
+  if (!showSlogan) return SplashTokens.startupVisibleMinMs;
+  final sloganLength = context.t.strings.legacy.msg_startup_slogan.runes.length;
+  return (sloganLength * startupTypewriterMsPerChar) +
+      startupPostTypewriterHoldMs;
+}
+
 class StartupScreen extends StatefulWidget {
   const StartupScreen({super.key, required this.showSlogan});
 
@@ -17,7 +30,7 @@ class _StartupScreenState extends State<StartupScreen>
   static const Color backgroundColor = SplashTokens.backgroundColor;
   static const Color primaryColor = SplashTokens.brandColor;
   static const String _logoAsset = SplashTokens.logoAsset;
-  static const int _typewriterMsPerChar = 160;
+  static const int _typewriterMsPerChar = startupTypewriterMsPerChar;
 
   AnimationController? _typewriterController;
   int? _lastSloganLength;

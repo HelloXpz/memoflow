@@ -7655,7 +7655,7 @@ class _MemoCardState extends State<_MemoCard> {
     required bool collapseReferences,
     required AppLanguage language,
   }) {
-    final trimmed = content.trim();
+    final trimmed = stripTaskListToggleHint(content).trim();
     if (!collapseReferences) return trimmed;
 
     final lines = trimmed.split('\n');

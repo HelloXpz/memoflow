@@ -56,3 +56,5 @@ update_config/
 .stfolder/
 _tmp/
 memos_flutter_app/dist/
+memos_flutter_app/tool/
+memos_flutter_app/tool/build_apk.ps1

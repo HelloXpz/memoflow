@@ -4,6 +4,7 @@ param(
   [string]$OutDir,
   [string]$AppName = "MemoFlow",
   [switch]$SplitPerAbi,
+  [switch]$UniversalOnly,
   [switch]$Clean,
   [switch]$NoPubGet
 )
@@ -47,6 +48,91 @@ function Get-SafeFileName([string]$Name) {
   return $safe
 }
 
+function Get-ReleaseApkFiles([string]$ProjectRootPath) {
+  $apkFiles = @()
+  $preferredRoots = @(
+    (Join-Path $ProjectRootPath "build\app\outputs\flutter-apk")
+    (Join-Path $ProjectRootPath "build\app\outputs\apk\release")
+  ) | Where-Object { Test-Path $_ }
+
+  foreach ($root in $preferredRoots) {
+    $apkFiles += Get-ChildItem -Path $root -Filter "*release*.apk" -File
+  }
+
+  if (-not $apkFiles) {
+    $fallbackRoot = Join-Path $ProjectRootPath "build\app\outputs"
+    if (Test-Path $fallbackRoot) {
+      $apkFiles = Get-ChildItem -Path $fallbackRoot -Recurse -Filter "*release*.apk" -File
+    }
+  }
+
+  if (-not $apkFiles) {
+    throw "No release APKs found under $ProjectRootPath\build\app\outputs"
+  }
+
+  $uniqueApkFiles = [ordered]@{}
+  foreach ($apkFile in $apkFiles) {
+    $apkKey = $apkFile.Name.ToLowerInvariant()
+    if (-not $uniqueApkFiles.Contains($apkKey)) {
+      $uniqueApkFiles[$apkKey] = $apkFile
+    }
+  }
+
+  return @($uniqueApkFiles.Values)
+}
+
+function Invoke-FlutterApkBuild([switch]$SplitBuild) {
+  $buildArgs = @("build", "apk", "--release", "--no-tree-shake-icons")
+  if ($SplitBuild) {
+    $buildArgs += "--split-per-abi"
+  }
+
+  Write-Host "Running: flutter $($buildArgs -join ' ')"
+  & flutter @buildArgs
+  if ($LASTEXITCODE -ne 0) {
+    throw "Flutter APK build failed."
+  }
+}
+
+function Copy-UniversalApk([string]$ProjectRootPath, [string]$DestinationDir, [string]$SafeAppName, [string]$Version) {
+  $apkFiles = Get-ReleaseApkFiles -ProjectRootPath $ProjectRootPath
+  $primary = $apkFiles | Where-Object { $_.Name -eq "app-release.apk" } | Select-Object -First 1
+  if (-not $primary) {
+    $primary = $apkFiles | Select-Object -First 1
+  }
+
+  $destName = "${SafeAppName}_v${Version}-release.apk"
+  $destPath = Join-Path $DestinationDir $destName
+  Copy-Item $primary.FullName $destPath -Force
+  return $destPath
+}
+
+function Copy-SplitApks([string]$ProjectRootPath, [string]$DestinationDir, [string]$SafeAppName, [string]$Version) {
+  $apkFiles = Get-ReleaseApkFiles -ProjectRootPath $ProjectRootPath
+  $splitCandidates = $apkFiles | Where-Object {
+    $_.Name -match '^app-(.+)-release\.apk$' -and $_.Name -ne "app-release.apk"
+  }
+
+  if (-not $splitCandidates) {
+    throw "No split APKs found under $ProjectRootPath\build\app\outputs"
+  }
+
+  $copied = New-Object 'System.Collections.Generic.List[string]'
+  foreach ($apk in $splitCandidates) {
+    $fileName = $apk.Name
+    $suffix = [System.IO.Path]::GetFileNameWithoutExtension($fileName)
+    if ($fileName -match '^app-(.+)-release\.apk$') {
+      $suffix = $Matches[1]
+    }
+    $destName = "${SafeAppName}_v${Version}-${suffix}.apk"
+    $destPath = Join-Path $DestinationDir $destName
+    Copy-Item $apk.FullName $destPath -Force
+    $null = $copied.Add($destPath)
+  }
+
+  return @($copied)
+}
+
 $projectRootResolved = Resolve-ExistingPath $ProjectRoot
 $pubspecPath = Join-Path $projectRootResolved "pubspec.yaml"
 if (-not (Test-Path $pubspecPath)) {
@@ -71,6 +157,7 @@ if ([string]::IsNullOrWhiteSpace($safeAppName)) {
   throw "AppName resolves to an empty safe file name."
 }
 $version = Get-PubspecVersion $pubspecPath
+$buildAllApks = -not $UniversalOnly
 
 Push-Location $projectRootResolved
 try {
@@ -90,80 +177,27 @@ try {
     }
   }
 
-  $buildArgs = @("build", "apk", "--release", "--no-tree-shake-icons")
-  if ($SplitPerAbi) {
-    $buildArgs += "--split-per-abi"
+  if ($buildAllApks) {
+    $copied = New-Object 'System.Collections.Generic.List[string]'
+
+    Invoke-FlutterApkBuild
+    $null = $copied.Add((Copy-UniversalApk -ProjectRootPath $projectRootResolved -DestinationDir $OutDir -SafeAppName $safeAppName -Version $version))
+
+    Invoke-FlutterApkBuild -SplitBuild
+    foreach ($apkPath in (Copy-SplitApks -ProjectRootPath $projectRootResolved -DestinationDir $OutDir -SafeAppName $safeAppName -Version $version)) {
+      $null = $copied.Add($apkPath)
+    }
+
+    Write-Host "APKs copied to:"
+    $copied | ForEach-Object { Write-Host " - $_" }
+    return
   }
 
-  Write-Host "Running: flutter $($buildArgs -join ' ')"
-  & flutter @buildArgs
-  if ($LASTEXITCODE -ne 0) {
-    throw "Flutter APK build failed."
-  }
+  Invoke-FlutterApkBuild
 } finally {
   Pop-Location
 }
 
-$apkFiles = @()
-$preferredRoots = @(
-  (Join-Path $projectRootResolved "build\app\outputs\flutter-apk")
-  (Join-Path $projectRootResolved "build\app\outputs\apk\release")
-) | Where-Object { Test-Path $_ }
-
-foreach ($root in $preferredRoots) {
-  $apkFiles += Get-ChildItem -Path $root -Filter "*release*.apk" -File
-}
-
-if (-not $apkFiles) {
-  $fallbackRoot = Join-Path $projectRootResolved "build\app\outputs"
-  if (Test-Path $fallbackRoot) {
-    $apkFiles = Get-ChildItem -Path $fallbackRoot -Recurse -Filter "*release*.apk" -File
-  }
-}
-
-if (-not $apkFiles) {
-  throw "No release APKs found under $projectRootResolved\build\app\outputs"
-}
-
-$apkFiles = $apkFiles | Sort-Object -Property FullName -Unique
-
-if ($SplitPerAbi) {
-  $splitCandidates = $apkFiles | Where-Object {
-    $_.Name -match '^app-.+-release\.apk$' -and $_.Name -ne "app-release.apk"
-  }
-  if ($splitCandidates) {
-    $apkFiles = $splitCandidates
-  }
-
-  $copied = @()
-  foreach ($apk in $apkFiles) {
-    $fileName = $apk.Name
-    $suffix = [System.IO.Path]::GetFileNameWithoutExtension($fileName)
-    if ($fileName -match '^app-(.+)-release\.apk$') {
-      $suffix = $Matches[1]
-    }
-    $destName = "${safeAppName}_v${version}-${suffix}.apk"
-    $destPath = Join-Path $OutDir $destName
-    Copy-Item $apk.FullName $destPath -Force
-    $copied += $destPath
-  }
-
-  if (-not $copied) {
-    throw "No APKs were copied."
-  }
-
-  Write-Host "APKs copied to:"
-  $copied | ForEach-Object { Write-Host " - $_" }
-  return
-}
-
-$primary = $apkFiles | Where-Object { $_.Name -eq "app-release.apk" } | Select-Object -First 1
-if (-not $primary) {
-  $primary = $apkFiles | Select-Object -First 1
-}
-
-$destName = "${safeAppName}_v${version}-release.apk"
-$destPath = Join-Path $OutDir $destName
-Copy-Item $primary.FullName $destPath -Force
+$destPath = Copy-UniversalApk -ProjectRootPath $projectRootResolved -DestinationDir $OutDir -SafeAppName $safeAppName -Version $version
 
 Write-Host "APK copied to: $destPath"

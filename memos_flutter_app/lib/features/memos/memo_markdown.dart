@@ -312,7 +312,8 @@ class MemoMarkdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final rawTrimmed = data.trim();
+    final filteredData = stripTaskListToggleHint(data);
+    final rawTrimmed = filteredData.trim();
     if (rawTrimmed.isEmpty) return const SizedBox.shrink();
     // IMPORTANT:
     // Keep full HTML documents on the dedicated code-block path below.
@@ -399,7 +400,7 @@ class MemoMarkdown extends StatelessWidget {
       return SelectionArea(child: content);
     }
 
-    final normalized = _normalizeTagSpacing(data);
+    final normalized = _normalizeTagSpacing(filteredData);
     var sanitized = _sanitizeMarkdown(normalized);
     if (!renderImages) {
       sanitized = stripMarkdownImages(sanitized);
@@ -1659,6 +1660,24 @@ double _resolveImageMaxHeight(BuildContext context) {
   final suggested = (screenHeight * 0.45).clamp(300.0, 400.0);
   final maxAllowed = screenHeight * 0.5;
   return suggested > maxAllowed ? maxAllowed : suggested;
+}
+
+final RegExp _taskListToggleHintPattern = RegExp(
+  r'^(\s*)任务列表\s*[（(]\s*可点击切换\s*[）)]\s*$',
+);
+
+String stripTaskListToggleHint(String content) {
+  if (content.isEmpty) return content;
+
+  final lines = content.split('\n');
+  final filtered = lines.map((line) {
+    final match = _taskListToggleHintPattern.firstMatch(line);
+    if (match == null) return line;
+    final leadingWhitespace = match.group(1) ?? '';
+    return '${leadingWhitespace}任务列表';
+  }).toList(growable: false);
+
+  return filtered.join('\n');
 }
 
 class TaskStats {

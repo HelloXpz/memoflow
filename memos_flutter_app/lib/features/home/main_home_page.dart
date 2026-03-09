@@ -9,7 +9,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/app_localization.dart';
 import '../../core/splash_tokens.g.dart';
 import '../../core/startup_timing.dart';
-import '../../data/models/app_preferences.dart';
 import '../startup/startup_screen.dart';
 import '../startup/storage_error_screen.dart';
 import '../startup/storage_error_banner.dart';
@@ -49,11 +48,11 @@ class _MainHomePageState extends ConsumerState<MainHomePage> {
   int? _startupMinRemainingMs;
   int? _startupElapsedAtFirstFrameMs;
   String? _lastDestination;
-  String? _lockedDestination;
   Widget? _lockedContent;
 
-  static const Duration _startupFadeDuration =
-      Duration(milliseconds: SplashTokens.startupFadeDurationMs);
+  static const Duration _startupFadeDuration = Duration(
+    milliseconds: SplashTokens.startupFadeDurationMs,
+  );
 
   @override
   void initState() {
@@ -61,8 +60,6 @@ class _MainHomePageState extends ConsumerState<MainHomePage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _firstFrameRendered = true;
-      final elapsedMs = StartupTiming.elapsedMs;
-      _startStartupMinTimer(elapsedMs: elapsedMs);
       StartupTiming.markStep('main_home_first_frame_ready');
       setState(() {});
     });
@@ -103,13 +100,15 @@ class _MainHomePageState extends ConsumerState<MainHomePage> {
     );
   }
 
-  void _startStartupMinTimer({required int elapsedMs}) {
+  void _startStartupMinTimer({
+    required int elapsedMs,
+    required int minVisibleMs,
+  }) {
     if (_startupMinTimerStarted) return;
     _startupMinTimerStarted = true;
     _startupMinElapsed = false;
     _startupMinTimer?.cancel();
     _startupElapsedAtFirstFrameMs = elapsedMs;
-    final minVisibleMs = SplashTokens.startupVisibleMinMs;
     _startupMinTargetTotalMs = minVisibleMs;
     _startupMinRemainingMs = minVisibleMs;
     if (minVisibleMs <= 0) {
@@ -137,9 +136,7 @@ class _MainHomePageState extends ConsumerState<MainHomePage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       StartupTiming.markEvent(
         'home_first_frame',
-        extra: <String, Object?>{
-          'destination': _lastDestination ?? 'unknown',
-        },
+        extra: <String, Object?>{'destination': _lastDestination ?? 'unknown'},
         once: false,
       );
     });
@@ -185,9 +182,7 @@ class _MainHomePageState extends ConsumerState<MainHomePage> {
       }
       final locale = ui.PlatformDispatcher.instance.locale;
       final showStartupSlogan = locale.languageCode != 'en';
-      return finalize(
-        StartupScreen(showSlogan: showStartupSlogan),
-      );
+      return finalize(StartupScreen(showSlogan: showStartupSlogan));
     }
 
     final adapter = ref.read(appBootstrapAdapterProvider);
@@ -199,6 +194,15 @@ class _MainHomePageState extends ConsumerState<MainHomePage> {
     final storageError = ref.watch(storageLoadErrorProvider);
     final hasStorageError = storageError != null;
     final showStartupSlogan = !prefersEnglishFor(prefs.language);
+    if (!_startupMinTimerStarted) {
+      _startStartupMinTimer(
+        elapsedMs: StartupTiming.elapsedMs,
+        minVisibleMs: startupMinimumVisibleMsFor(
+          context: context,
+          showSlogan: showStartupSlogan,
+        ),
+      );
+    }
     final waitingForReady =
         !prefsLoaded || (sessionAsync.isLoading && session == null);
 
@@ -211,10 +215,7 @@ class _MainHomePageState extends ConsumerState<MainHomePage> {
       final state = sessionAsync.hasError
           ? 'error'
           : (sessionAsync.hasValue ? 'data' : 'unknown');
-      StartupTiming.markSessionReady(
-        state: state,
-        hasSession: session != null,
-      );
+      StartupTiming.markSessionReady(state: state, hasSession: session != null);
     }
 
     Widget content;
@@ -279,7 +280,8 @@ class _MainHomePageState extends ConsumerState<MainHomePage> {
                 !hasWorkspace &&
                 (prefs.onboardingMode == null ||
                     prefs.onboardingMode == AppOnboardingMode.local);
-            final needsLogin = !hasWorkspace &&
+            final needsLogin =
+                !hasWorkspace &&
                 prefs.onboardingMode == AppOnboardingMode.server;
             _logRouteDecision(
               prefsLoaded: true,
@@ -315,7 +317,8 @@ class _MainHomePageState extends ConsumerState<MainHomePage> {
                 !hasWorkspace &&
                 (prefs.onboardingMode == null ||
                     prefs.onboardingMode == AppOnboardingMode.local);
-            final needsLogin = !hasWorkspace &&
+            final needsLogin =
+                !hasWorkspace &&
                 prefs.onboardingMode == AppOnboardingMode.server;
             _logRouteDecision(
               prefsLoaded: true,
@@ -352,7 +355,6 @@ class _MainHomePageState extends ConsumerState<MainHomePage> {
     if (!hasStorageError &&
         _lastDestination != null &&
         _lastDestination != 'splash') {
-      _lockedDestination = _lastDestination;
       _lockedContent = content;
     }
 

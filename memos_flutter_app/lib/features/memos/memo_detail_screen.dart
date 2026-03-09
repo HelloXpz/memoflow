@@ -2195,7 +2195,7 @@ class _CollapsibleTextState extends State<_CollapsibleText> {
 
   @override
   Widget build(BuildContext context) {
-    final text = widget.text.trim();
+    final text = stripTaskListToggleHint(widget.text).trim();
     if (text.isEmpty) return const SizedBox.shrink();
 
     final shouldCollapse = widget.collapseEnabled && _isLong(text);
