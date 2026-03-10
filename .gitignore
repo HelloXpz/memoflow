@@ -64,3 +64,4 @@ _tmp/
 memos_flutter_app/dist/
 memos_flutter_app/tool/
 memos_flutter_app/tool/build_apk.ps1
+tree.txt
