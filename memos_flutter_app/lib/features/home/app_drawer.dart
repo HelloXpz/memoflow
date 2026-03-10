@@ -15,9 +15,9 @@ import '../../state/system/notifications_provider.dart';
 import '../../state/settings/preferences_provider.dart';
 import '../../state/system/session_provider.dart';
 import '../../state/memos/stats_providers.dart';
+import '../../state/tags/tag_color_lookup.dart';
 import '../settings/memoflow_bridge_screen.dart';
 import '../tags/tag_edit_sheet.dart';
-import '../tags/tag_tree.dart';
 import '../../i18n/strings.g.dart';
 
 enum AppDrawerDestination {
@@ -35,6 +35,13 @@ enum AppDrawerDestination {
   about,
 }
 
+enum _DrawerTagFilter {
+  all,
+  frequent,
+  recent,
+  pinned,
+}
+
 final _pendingOutboxCountProvider = StreamProvider<int>((ref) async* {
   final db = ref.watch(databaseProvider);
 
@@ -48,7 +55,7 @@ final _pendingOutboxCountProvider = StreamProvider<int>((ref) async* {
   }
 });
 
-class AppDrawer extends ConsumerWidget {
+class AppDrawer extends ConsumerStatefulWidget {
   const AppDrawer({
     super.key,
     required this.selected,
@@ -67,7 +74,83 @@ class AppDrawer extends ConsumerWidget {
   final String? selectedTagPath;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AppDrawer> createState() => _AppDrawerState();
+}
+
+class _AppDrawerState extends ConsumerState<AppDrawer> {
+  _DrawerTagFilter _tagFilter = _DrawerTagFilter.all;
+
+  List<TagStat> _applyTagFilter(List<TagStat> tags) {
+    final items = List<TagStat>.of(tags, growable: false);
+    switch (_tagFilter) {
+      case _DrawerTagFilter.all:
+        return items;
+      case _DrawerTagFilter.frequent:
+        final sorted = items.toList(growable: false);
+        sorted.sort((a, b) {
+          final byCount = b.count.compareTo(a.count);
+          if (byCount != 0) return byCount;
+          if (a.pinned != b.pinned) return a.pinned ? -1 : 1;
+          final byRecent =
+              (b.lastUsedTimeSec ?? 0).compareTo(a.lastUsedTimeSec ?? 0);
+          if (byRecent != 0) return byRecent;
+          return a.tag.compareTo(b.tag);
+        });
+        return sorted;
+      case _DrawerTagFilter.recent:
+        final sorted = items.toList(growable: false);
+        sorted.sort((a, b) {
+          final byRecent =
+              (b.lastUsedTimeSec ?? 0).compareTo(a.lastUsedTimeSec ?? 0);
+          if (byRecent != 0) return byRecent;
+          final byCount = b.count.compareTo(a.count);
+          if (byCount != 0) return byCount;
+          if (a.pinned != b.pinned) return a.pinned ? -1 : 1;
+          return a.tag.compareTo(b.tag);
+        });
+        return sorted;
+      case _DrawerTagFilter.pinned:
+        return items.where((tag) => tag.pinned).toList(growable: false);
+    }
+  }
+
+  String _tagFilterLabel(BuildContext context, _DrawerTagFilter filter) {
+    final languageCode = Localizations.localeOf(context).languageCode;
+    return switch (filter) {
+      _DrawerTagFilter.all => context.t.strings.legacy.msg_all_tags,
+      _DrawerTagFilter.frequent => switch (languageCode) {
+        'de' => 'Häufig',
+        'ja' => 'よく使う',
+        'zh' => '常用',
+        _ => 'Frequent',
+      },
+      _DrawerTagFilter.recent => switch (languageCode) {
+        'de' => 'Zuletzt',
+        'ja' => '最近',
+        'zh' => '最近',
+        _ => 'Recent',
+      },
+      _DrawerTagFilter.pinned => context.t.strings.legacy.msg_pinned,
+    };
+  }
+
+  IconData _tagFilterIcon(_DrawerTagFilter filter) {
+    return switch (filter) {
+      _DrawerTagFilter.all => Icons.tune,
+      _DrawerTagFilter.frequent => Icons.local_fire_department_outlined,
+      _DrawerTagFilter.recent => Icons.schedule_outlined,
+      _DrawerTagFilter.pinned => Icons.push_pin_outlined,
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final selected = widget.selected;
+    final onSelect = widget.onSelect;
+    final onSelectTag = widget.onSelectTag;
+    final onOpenNotifications = widget.onOpenNotifications;
+    final embedded = widget.embedded;
+    final selectedTagPath = widget.selectedTagPath;
     final width = math.min(MediaQuery.sizeOf(context).width * 0.85, 320.0);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -83,6 +166,7 @@ class AppDrawer extends ConsumerWidget {
 
     final statsAsync = ref.watch(localStatsProvider);
     final tagsAsync = ref.watch(tagStatsProvider);
+    final tagColors = ref.watch(tagColorLookupProvider);
     final drawerPrefs = ref.watch(
       appPreferencesProvider.select(
         (prefs) => (
@@ -105,6 +189,10 @@ class AppDrawer extends ConsumerWidget {
     final hover = isDark
         ? Colors.white.withValues(alpha: 0.05)
         : Colors.black.withValues(alpha: 0.04);
+    final resolvedTags = tagsAsync.valueOrNull ?? const <TagStat>[];
+    final filteredTags = _applyTagFilter(resolvedTags);
+    final tagPreviewCount = filteredTags.length;
+    final tagSectionTitle = _tagFilterLabel(context, _tagFilter);
     final showScanAction =
         kIsWeb || defaultTargetPlatform != TargetPlatform.windows;
     final versionDate = DateFormat('yyyy.MM.dd').format(DateTime.now());
@@ -390,26 +478,90 @@ class AppDrawer extends ConsumerWidget {
                 Row(
                   children: [
                     Expanded(
-                      child: Text(
-                        context.t.strings.legacy.msg_all_tags,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 2,
-                          color: textMuted,
-                        ),
+                      child: Row(
+                        children: [
+                          Text(
+                            tagSectionTitle,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: textMuted,
+                            ),
+                          ),
+                          if (tagPreviewCount > 0) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? Colors.white.withValues(alpha: 0.06)
+                                    : Colors.black.withValues(alpha: 0.05),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: Text(
+                                '$tagPreviewCount',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: textMuted,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
-                    IconButton(
+                    PopupMenuButton<_DrawerTagFilter>(
                       tooltip: context.t.strings.legacy.msg_filter,
-                      onPressed: () => onSelect(AppDrawerDestination.tags),
-                      icon: Icon(Icons.tune, color: textMuted, size: 20),
+                      initialValue: _tagFilter,
+                      onSelected: (value) {
+                        if (value == _tagFilter) return;
+                        setState(() => _tagFilter = value);
+                      },
+                      itemBuilder: (context) => [
+                        CheckedPopupMenuItem<_DrawerTagFilter>(
+                          value: _DrawerTagFilter.all,
+                          checked: _tagFilter == _DrawerTagFilter.all,
+                          child: Text(
+                            _tagFilterLabel(context, _DrawerTagFilter.all),
+                          ),
+                        ),
+                        CheckedPopupMenuItem<_DrawerTagFilter>(
+                          value: _DrawerTagFilter.frequent,
+                          checked: _tagFilter == _DrawerTagFilter.frequent,
+                          child: Text(
+                            _tagFilterLabel(
+                              context,
+                              _DrawerTagFilter.frequent,
+                            ),
+                          ),
+                        ),
+                        CheckedPopupMenuItem<_DrawerTagFilter>(
+                          value: _DrawerTagFilter.recent,
+                          checked: _tagFilter == _DrawerTagFilter.recent,
+                          child: Text(
+                            _tagFilterLabel(context, _DrawerTagFilter.recent),
+                          ),
+                        ),
+                        CheckedPopupMenuItem<_DrawerTagFilter>(
+                          value: _DrawerTagFilter.pinned,
+                          checked: _tagFilter == _DrawerTagFilter.pinned,
+                          child: Text(
+                            _tagFilterLabel(context, _DrawerTagFilter.pinned),
+                          ),
+                        ),
+                      ],
+                      icon: Icon(_tagFilterIcon(_tagFilter), color: textMuted, size: 20),
                     ),
                   ],
                 ),
                 tagsAsync.when(
                   data: (tags) {
-                    if (tags.isEmpty) {
+                    final visibleTags = _applyTagFilter(tags);
+                    if (visibleTags.isEmpty) {
                       return Padding(
                         padding: const EdgeInsets.only(top: 4),
                         child: Text(
@@ -418,40 +570,66 @@ class AppDrawer extends ConsumerWidget {
                         ),
                       );
                     }
-                    final preview = tags.take(4).toList(growable: false);
-                    final nodes = buildTagTree(preview);
-                    return TagTreeList(
-                      nodes: nodes,
-                      onSelect: (tag) {
-                        final cb = onSelectTag;
-                        if (cb != null) {
-                          cb(tag);
-                        } else {
-                          onSelect(AppDrawerDestination.tags);
-                        }
-                      },
-                      onEdit: (node) {
-                        final tagId = node.tagId;
-                        if (tagId == null) return;
-                        TagEditSheet.showEditorDialog(
-                          context,
-                          tag: TagStat(
-                            tag: node.path,
-                            path: node.path,
-                            count: node.count,
-                            tagId: tagId,
-                            parentId: node.parentId,
-                            pinned: node.pinned,
-                            colorHex: node.colorHex,
-                          ),
+                    const previewLimit = 6;
+                    final preview = visibleTags.take(previewLimit).toList(
+                      growable: false,
+                    );
+                    final remainingCount = visibleTags.length - preview.length;
+                    return LayoutBuilder(
+                      builder: (context, constraints) {
+                        final chipMaxWidth = math.max(
+                          120.0,
+                          constraints.maxWidth * 0.56,
+                        );
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 6),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 10,
+                              children: [
+                                for (final tag in preview)
+                                  _DrawerTagChip(
+                                    tag: tag,
+                                    tagColors: tagColors,
+                                    isDark: isDark,
+                                    textMain: textMain,
+                                    textMuted: textMuted,
+                                    hover: hover,
+                                    selected: selectedTagPath == tag.path,
+                                    maxWidth: chipMaxWidth,
+                                    onTap: () {
+                                      final cb = onSelectTag;
+                                      if (cb != null) {
+                                        cb(tag.path);
+                                      } else {
+                                        onSelect(AppDrawerDestination.tags);
+                                      }
+                                    },
+                                    onLongPress: tag.tagId == null
+                                        ? null
+                                        : () {
+                                            TagEditSheet.showEditorDialog(
+                                              context,
+                                              tag: tag,
+                                            );
+                                          },
+                                  ),
+                                if (remainingCount > 0)
+                                  _DrawerMoreTagsChip(
+                                    remainingCount: remainingCount,
+                                    isDark: isDark,
+                                    textMain: textMain,
+                                    hover: hover,
+                                    onTap: () =>
+                                        onSelect(AppDrawerDestination.tags),
+                                  ),
+                              ],
+                            ),
+                          ],
                         );
                       },
-                      textMain: textMain,
-                      textMuted: textMuted,
-                      showCount: false,
-                      initiallyExpanded: true,
-                      compact: true,
-                      selectedPath: selectedTagPath,
                     );
                   },
                   loading: () => Padding(
@@ -690,6 +868,173 @@ class _BottomNavRow extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DrawerTagChip extends StatelessWidget {
+  const _DrawerTagChip({
+    required this.tag,
+    required this.tagColors,
+    required this.isDark,
+    required this.textMain,
+    required this.textMuted,
+    required this.hover,
+    required this.selected,
+    required this.maxWidth,
+    required this.onTap,
+    this.onLongPress,
+  });
+
+  final TagStat tag;
+  final TagColorLookup tagColors;
+  final bool isDark;
+  final Color textMain;
+  final Color textMuted;
+  final Color hover;
+  final bool selected;
+  final double maxWidth;
+  final VoidCallback onTap;
+  final VoidCallback? onLongPress;
+
+  @override
+  Widget build(BuildContext context) {
+    final resolvedColors = tagColors.resolveChipColorsByPath(
+      tag.path,
+      surfaceColor: Theme.of(context).colorScheme.surface,
+      isDark: isDark,
+    );
+    final fallbackBackground = isDark
+        ? Colors.white.withValues(alpha: 0.05)
+        : Colors.black.withValues(alpha: 0.045);
+    final fallbackBorder = isDark
+        ? Colors.white.withValues(alpha: 0.08)
+        : Colors.black.withValues(alpha: 0.08);
+    final background = resolvedColors?.background ?? fallbackBackground;
+    final labelColor = resolvedColors?.text ?? textMain;
+    final borderColor = selected
+        ? MemoFlowPalette.primary.withValues(alpha: isDark ? 0.95 : 0.7)
+        : (resolvedColors?.border ?? fallbackBorder);
+    final dotColor =
+        tagColors.resolveColorByPath(tag.path) ?? MemoFlowPalette.primary;
+
+    return Tooltip(
+      message: tag.path,
+      waitDuration: const Duration(milliseconds: 350),
+      child: Material(
+        color: background,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          onLongPress: onLongPress,
+          hoverColor: hover,
+          child: Container(
+            constraints: BoxConstraints(maxWidth: maxWidth),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: borderColor),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 7,
+                  height: 7,
+                  decoration: BoxDecoration(
+                    color: dotColor,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    tag.path,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: labelColor,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '${tag.count}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: (resolvedColors?.text ?? textMuted).withValues(
+                      alpha: selected ? 0.96 : 0.8,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DrawerMoreTagsChip extends StatelessWidget {
+  const _DrawerMoreTagsChip({
+    required this.remainingCount,
+    required this.isDark,
+    required this.textMain,
+    required this.hover,
+    required this.onTap,
+  });
+
+  final int remainingCount;
+  final bool isDark;
+  final Color textMain;
+  final Color hover;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final languageCode = Localizations.localeOf(context).languageCode;
+    final viewMoreLabel = switch (languageCode) {
+      'de' => 'Mehr anzeigen',
+      'ja' => 'もっと見る',
+      'zh' => '查看更多',
+      _ => 'View more',
+    };
+
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        hoverColor: hover,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.03)
+                : Colors.black.withValues(alpha: 0.02),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : Colors.black.withValues(alpha: 0.08),
+            ),
+          ),
+          child: Text(
+            '+$remainingCount $viewMoreLabel',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: textMain.withValues(alpha: 0.82),
             ),
           ),
         ),
