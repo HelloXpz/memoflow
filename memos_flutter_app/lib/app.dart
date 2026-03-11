@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'application/app/app_sync_orchestrator.dart';
 import 'application/desktop/desktop_quick_input_controller.dart';
+import 'application/desktop/desktop_window_resize_frame.dart';
 import 'application/desktop/desktop_window_manager.dart';
 import 'application/desktop/desktop_exit_coordinator.dart';
 import 'application/desktop/single_instance_coordinator.dart';
@@ -336,36 +337,48 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
           final appContent = MediaQuery(
             data: media.copyWith(textScaler: TextScaler.linear(scale)),
             child: AppLockGate(
-              child: child ?? const SizedBox.shrink(),
               navigatorKey: _navigatorKey,
+              child: child ?? const SizedBox.shrink(),
             ),
           );
-          if (!blurDesktopMainWindow) return appContent;
+          final windowContent = !blurDesktopMainWindow
+              ? appContent
+              : (() {
+                  final isDark =
+                      Theme.of(context).brightness == Brightness.dark;
+                  final overlayColor = Colors.black.withValues(
+                    alpha: isDark ? 0.26 : 0.12,
+                  );
 
-          final isDark = Theme.of(context).brightness == Brightness.dark;
-          final overlayColor = Colors.black.withValues(
-            alpha: isDark ? 0.26 : 0.12,
-          );
+                  return Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      appContent,
+                      ClipRect(
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                          child: ColoredBox(color: overlayColor),
+                        ),
+                      ),
+                      Listener(
+                        behavior: HitTestBehavior.opaque,
+                        onPointerDown: (_) {
+                          unawaited(
+                            _desktopWindowManager.focusVisibleSubWindow(),
+                          );
+                        },
+                        child: ClipRect(
+                          child: ColoredBox(color: Colors.transparent),
+                        ),
+                      ),
+                    ],
+                  );
+                })();
 
-          return Stack(
-            fit: StackFit.expand,
-            children: [
-              appContent,
-              ClipRect(
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                  child: ColoredBox(color: overlayColor),
-                ),
-              ),
-              Listener(
-                behavior: HitTestBehavior.opaque,
-                onPointerDown: (_) {
-                  unawaited(_desktopWindowManager.focusVisibleSubWindow());
-                },
-                child: ClipRect(child: ColoredBox(color: Colors.transparent)),
-              ),
-            ],
-          );
+          if (!kIsWeb && defaultTargetPlatform == TargetPlatform.windows) {
+            return DesktopWindowResizeFrame(child: windowContent);
+          }
+          return windowContent;
         },
         home: MainHomePage(key: _mainHomePageKey),
       ),
