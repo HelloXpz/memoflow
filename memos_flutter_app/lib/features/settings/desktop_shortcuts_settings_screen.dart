@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -34,6 +33,10 @@ String _desktopShortcutActionLabel(
       return context.t.strings.legacy.msg_show_hide_memoflow;
     case DesktopShortcutAction.shortcutOverview:
       return context.t.strings.legacy.msg_shortcuts_overview;
+    case DesktopShortcutAction.previousPage:
+      return context.t.strings.legacy.msg_previous_page;
+    case DesktopShortcutAction.nextPage:
+      return context.t.strings.legacy.msg_next_page;
     case DesktopShortcutAction.publishMemo:
       return context.t.strings.legacy.msg_publish_memo;
     case DesktopShortcutAction.bold:
@@ -78,7 +81,10 @@ class DesktopShortcutsSettingsScreen extends ConsumerWidget {
       if (entry.value == captured) {
         showTopToast(
           context,
-          context.t.strings.legacy.msg_shortcut_binding_in_use(binding: desktopShortcutBindingLabel(captured), action: _desktopShortcutActionLabel(context, entry.key)),
+          context.t.strings.legacy.msg_shortcut_binding_in_use(
+            binding: desktopShortcutBindingLabel(captured),
+            action: _desktopShortcutActionLabel(context, entry.key),
+          ),
         );
         return;
       }
@@ -128,7 +134,6 @@ class DesktopShortcutsSettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDesktop = isDesktopShortcutEnabled();
-    final isWindows = defaultTargetPlatform == TargetPlatform.windows;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bg = isDark
         ? MemoFlowPalette.backgroundDark
@@ -163,7 +168,10 @@ class DesktopShortcutsSettingsScreen extends ConsumerWidget {
                     ref
                         .read(appPreferencesProvider.notifier)
                         .resetDesktopShortcutBindings();
-                    showTopToast(context, context.t.strings.legacy.msg_default_shortcuts_restored);
+                    showTopToast(
+                      context,
+                      context.t.strings.legacy.msg_default_shortcuts_restored,
+                    );
                   }
                 : null,
             child: Text(context.t.strings.legacy.msg_restore_defaults),
@@ -181,7 +189,11 @@ class DesktopShortcutsSettingsScreen extends ConsumerWidget {
                 Padding(
                   padding: const EdgeInsets.all(16),
                   child: Text(
-                    context.t.strings.legacy.msg_shortcuts_supported_windows_macos,
+                    context
+                        .t
+                        .strings
+                        .legacy
+                        .msg_shortcuts_supported_windows_macos,
                     style: TextStyle(color: textMuted, height: 1.35),
                   ),
                 ),
@@ -202,7 +214,7 @@ class DesktopShortcutsSettingsScreen extends ConsumerWidget {
             _buildSection(
               context: context,
               ref: ref,
-              actions: desktopShortcutGlobalActions,
+              actions: desktopShortcutGlobalActionsForPlatform(),
               card: card,
               divider: divider,
               textMain: textMain,
@@ -230,16 +242,6 @@ class DesktopShortcutsSettingsScreen extends ConsumerWidget {
               textMuted: textMuted,
             ),
             const SizedBox(height: 10),
-            if (isWindows) ...[
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 2),
-                child: Text(
-                  context.t.strings.legacy.msg_windows_paging_note,
-                  style: TextStyle(fontSize: 12, color: textMuted),
-                ),
-              ),
-              const SizedBox(height: 6),
-            ],
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 2),
               child: Text(
@@ -289,13 +291,27 @@ class _ShortcutCaptureDialogState extends State<_ShortcutCaptureDialog> {
     final captured = desktopShortcutBindingFromKeyEvent(
       event,
       pressedKeys: HardwareKeyboard.instance.logicalKeysPressed,
-      requireModifier: true,
+      requireModifier: false,
     );
     if (captured == null) {
       if (event is KeyDownEvent &&
           !isDesktopShortcutModifierKey(event.logicalKey)) {
-        setState(() => _error = context.t.strings.legacy.msg_shortcut_requires_modifier);
+        setState(
+          () =>
+              _error = context.t.strings.legacy.msg_shortcut_requires_modifier,
+        );
       }
+      return;
+    }
+    final modifierPressed = captured.primary || captured.shift || captured.alt;
+    if (!modifierPressed &&
+        !desktopShortcutActionAllowsPlainBinding(
+          widget.action,
+          captured.logicalKey,
+        )) {
+      setState(
+        () => _error = context.t.strings.legacy.msg_shortcut_requires_modifier,
+      );
       return;
     }
     Navigator.of(context).pop(captured);
@@ -337,7 +353,9 @@ class _ShortcutCaptureDialogState extends State<_ShortcutCaptureDialog> {
               ),
               const SizedBox(height: 8),
               Text(
-                context.t.strings.legacy.msg_current_shortcut(binding: desktopShortcutBindingLabel(widget.current)),
+                context.t.strings.legacy.msg_current_shortcut(
+                  binding: desktopShortcutBindingLabel(widget.current),
+                ),
                 style: TextStyle(color: textMuted),
               ),
               const SizedBox(height: 10),

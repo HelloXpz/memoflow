@@ -1,10 +1,12 @@
+import 'dart:math' as math;
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_editor_plus/image_editor_plus.dart';
@@ -90,14 +92,26 @@ class AttachmentGalleryScreen extends StatefulWidget {
 }
 
 class _AttachmentGalleryScreenState extends State<AttachmentGalleryScreen> {
+  static const double _minScale = 1;
+  static const double _maxScale = 4;
+  static const Duration _pageAnimationDuration = Duration(milliseconds: 180);
+
   late final PageController _controller;
+  late final FocusNode _focusNode;
   late final List<AttachmentGalleryItem> _items;
   int _index = 0;
   bool _busy = false;
 
+  bool get _isDesktopGallery =>
+      Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+
+  bool get _hasPreviousPage => _index > 0;
+  bool get _hasNextPage => _index < _items.length - 1;
+
   @override
   void initState() {
     super.initState();
+    _focusNode = FocusNode(debugLabel: 'attachment_gallery');
     _items =
         widget.items ??
         widget.images.map(AttachmentGalleryItem.image).toList(growable: false);
@@ -106,12 +120,60 @@ class _AttachmentGalleryScreenState extends State<AttachmentGalleryScreen> {
         : widget.initialIndex.clamp(0, _items.length - 1);
     _index = safeIndex;
     _controller = PageController(initialPage: safeIndex);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _focusNode.requestFocus();
+    });
   }
 
   @override
   void dispose() {
+    _focusNode.dispose();
     _controller.dispose();
     super.dispose();
+  }
+
+  void _goToPage(int targetIndex) {
+    if (_items.isEmpty) return;
+    final nextIndex = targetIndex.clamp(0, _items.length - 1);
+    if (nextIndex == _index) return;
+    _focusNode.requestFocus();
+    _controller.animateToPage(
+      nextIndex,
+      duration: _pageAnimationDuration,
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  void _showPreviousPage() => _goToPage(_index - 1);
+
+  void _showNextPage() => _goToPage(_index + 1);
+
+  void _closeGallery() {
+    final navigator = Navigator.of(context);
+    if (!navigator.canPop()) return;
+    navigator.maybePop();
+  }
+
+  KeyEventResult _handleGalleryKeyEvent(KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+
+    final key = event.logicalKey;
+    if (key == LogicalKeyboardKey.escape) {
+      _closeGallery();
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.arrowLeft ||
+        key == LogicalKeyboardKey.arrowUp) {
+      _showPreviousPage();
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.arrowRight ||
+        key == LogicalKeyboardKey.arrowDown) {
+      _showNextPage();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
   }
 
   AttachmentImageSource? get _currentImage {
@@ -502,7 +564,8 @@ class _AttachmentGalleryScreenState extends State<AttachmentGalleryScreen> {
                 'sourceId': source.id,
                 'mimeType': source.mimeType,
                 'hasAuthHeader':
-                    source.headers?['Authorization']?.trim().isNotEmpty ?? false,
+                    source.headers?['Authorization']?.trim().isNotEmpty ??
+                    false,
               },
             );
             return const Icon(Icons.broken_image, color: Colors.white);
@@ -535,7 +598,7 @@ class _AttachmentGalleryScreenState extends State<AttachmentGalleryScreen> {
   }
 
   Widget _buildVideoPage(MemoVideoEntry entry) {
-    return GestureDetector(
+    final content = GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () => _openVideo(entry),
       child: Center(
@@ -571,6 +634,30 @@ class _AttachmentGalleryScreenState extends State<AttachmentGalleryScreen> {
         ),
       ),
     );
+
+    return _wrapGalleryPage(content);
+  }
+
+  Widget _buildImagePage(AttachmentImageSource source) {
+    return _wrapGalleryPage(
+      _AttachmentGalleryZoomableImage(
+        minScale: _minScale,
+        maxScale: _maxScale,
+        enableWheelZoom: _isDesktopGallery,
+        child: Center(child: _buildImage(source)),
+      ),
+    );
+  }
+
+  Widget _wrapGalleryPage(Widget child) {
+    if (!_isDesktopGallery) return child;
+    return _AttachmentGalleryDesktopFrame(
+      canGoPrevious: _hasPreviousPage,
+      canGoNext: _hasNextPage,
+      onPrevious: _showPreviousPage,
+      onNext: _showNextPage,
+      child: child,
+    );
   }
 
   Widget _actionButton({required Widget child, required VoidCallback onTap}) {
@@ -590,81 +677,361 @@ class _AttachmentGalleryScreenState extends State<AttachmentGalleryScreen> {
     final current = _items.isEmpty ? null : _items[_index];
     final canEdit = widget.onReplace != null && (current?.isImage ?? false);
     final canDownload = widget.enableDownload && (current?.isImage ?? false);
-    if (_items.isEmpty) {
-      return Scaffold(
-        backgroundColor: Colors.black,
-        appBar: AppBar(
-          backgroundColor: Colors.black,
-          foregroundColor: Colors.white,
-          elevation: 0,
-        ),
-        body: Center(
-          child: Text(
-            context.t.strings.legacy.msg_no_image_available,
-            style: const TextStyle(color: Colors.white70),
-          ),
-        ),
-      );
-    }
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: Text(
-          '${_index + 1}/${_items.length}',
-          style: const TextStyle(color: Colors.white),
-        ),
-      ),
-      body: Stack(
-        children: [
-          PageView.builder(
-            controller: _controller,
-            itemCount: _items.length,
-            onPageChanged: (value) => setState(() => _index = value),
-            itemBuilder: (context, index) {
-              final item = _items[index];
-              if (item.isVideo) {
-                return _buildVideoPage(item.video!);
-              }
-              final source = item.image!;
-              return InteractiveViewer(
-                minScale: 1,
-                maxScale: 4,
-                child: Center(child: _buildImage(source)),
-              );
-            },
-          ),
-          Positioned(
-            right: 16,
-            bottom: MediaQuery.paddingOf(context).bottom + 16,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
+    final scaffold = _items.isEmpty
+        ? Scaffold(
+            backgroundColor: Colors.black,
+            appBar: AppBar(
+              backgroundColor: Colors.black,
+              foregroundColor: Colors.white,
+              elevation: 0,
+            ),
+            body: Center(
+              child: Text(
+                context.t.strings.legacy.msg_no_image_available,
+                style: const TextStyle(color: Colors.white70),
+              ),
+            ),
+          )
+        : Scaffold(
+            backgroundColor: Colors.black,
+            appBar: AppBar(
+              backgroundColor: Colors.black,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              title: Text(
+                '${_index + 1}/${_items.length}',
+                style: const TextStyle(color: Colors.white),
+              ),
+            ),
+            body: Stack(
               children: [
-                if (canEdit)
-                  _actionButton(
-                    onTap: _editCurrent,
-                    child: const Icon(
-                      Icons.edit_rounded,
-                      color: Colors.white,
-                      size: 22,
-                    ),
+                PageView.builder(
+                  controller: _controller,
+                  physics: _isDesktopGallery
+                      ? const NeverScrollableScrollPhysics()
+                      : null,
+                  itemCount: _items.length,
+                  onPageChanged: (value) => setState(() => _index = value),
+                  itemBuilder: (context, index) {
+                    final item = _items[index];
+                    if (item.isVideo) {
+                      return _buildVideoPage(item.video!);
+                    }
+                    return _buildImagePage(item.image!);
+                  },
+                ),
+                Positioned(
+                  right: 16,
+                  bottom: MediaQuery.paddingOf(context).bottom + 16,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (canEdit)
+                        _actionButton(
+                          onTap: _editCurrent,
+                          child: const Icon(
+                            Icons.edit_rounded,
+                            color: Colors.white,
+                            size: 22,
+                          ),
+                        ),
+                      if (canEdit && canDownload) const SizedBox(width: 12),
+                      if (canDownload)
+                        _actionButton(
+                          onTap: _downloadCurrent,
+                          child: const Icon(
+                            Icons.download_rounded,
+                            color: Colors.white,
+                            size: 22,
+                          ),
+                        ),
+                    ],
                   ),
-                if (canEdit && canDownload) const SizedBox(width: 12),
-                if (canDownload)
-                  _actionButton(
-                    onTap: _downloadCurrent,
-                    child: const Icon(
-                      Icons.download_rounded,
-                      color: Colors.white,
-                      size: 22,
-                    ),
-                  ),
+                ),
               ],
             ),
+          );
+
+    return Focus(
+      focusNode: _focusNode,
+      autofocus: true,
+      onKeyEvent: (_, event) => _handleGalleryKeyEvent(event),
+      child: scaffold,
+    );
+  }
+}
+
+class _AttachmentGalleryZoomableImage extends StatefulWidget {
+  const _AttachmentGalleryZoomableImage({
+    required this.child,
+    required this.minScale,
+    required this.maxScale,
+    required this.enableWheelZoom,
+  });
+
+  final Widget child;
+  final double minScale;
+  final double maxScale;
+  final bool enableWheelZoom;
+
+  @override
+  State<_AttachmentGalleryZoomableImage> createState() =>
+      _AttachmentGalleryZoomableImageState();
+}
+
+class _AttachmentGalleryZoomableImageState
+    extends State<_AttachmentGalleryZoomableImage> {
+  late final TransformationController _transformationController;
+
+  @override
+  void initState() {
+    super.initState();
+    _transformationController = TransformationController();
+  }
+
+  @override
+  void dispose() {
+    _transformationController.dispose();
+    super.dispose();
+  }
+
+  void _handlePointerSignal(PointerSignalEvent event) {
+    if (!widget.enableWheelZoom || event is! PointerScrollEvent) return;
+
+    final currentScale = _transformationController.value.getMaxScaleOnAxis();
+    final scaleDelta = math.exp(-event.scrollDelta.dy / 240);
+    final nextScale = (currentScale * scaleDelta).clamp(
+      widget.minScale,
+      widget.maxScale,
+    );
+    if ((nextScale - currentScale).abs() < 0.001) return;
+
+    final scenePoint = _transformationController.toScene(event.localPosition);
+    _transformationController.value =
+        Matrix4.translationValues(
+            event.localPosition.dx,
+            event.localPosition.dy,
+            0,
+          )
+          ..multiply(Matrix4.diagonal3Values(nextScale, nextScale, 1))
+          ..multiply(
+            Matrix4.translationValues(-scenePoint.dx, -scenePoint.dy, 0),
+          );
+  }
+
+  void _resetTransform() {
+    _transformationController.value = Matrix4.identity();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final viewer = InteractiveViewer(
+      transformationController: _transformationController,
+      minScale: widget.minScale,
+      maxScale: widget.maxScale,
+      trackpadScrollCausesScale: widget.enableWheelZoom,
+      child: widget.child,
+    );
+
+    final resettableViewer = GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onDoubleTap: _resetTransform,
+      child: viewer,
+    );
+
+    if (!widget.enableWheelZoom) return resettableViewer;
+    return Listener(
+      onPointerSignal: _handlePointerSignal,
+      child: resettableViewer,
+    );
+  }
+}
+
+class _AttachmentGalleryDesktopFrame extends StatelessWidget {
+  const _AttachmentGalleryDesktopFrame({
+    required this.child,
+    required this.canGoPrevious,
+    required this.canGoNext,
+    required this.onPrevious,
+    required this.onNext,
+  });
+
+  final Widget child;
+  final bool canGoPrevious;
+  final bool canGoNext;
+  final VoidCallback onPrevious;
+  final VoidCallback onNext;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        child,
+        Positioned.fill(
+          child: SafeArea(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final edgeWidth = math.max(
+                  96.0,
+                  math.min(180.0, constraints.maxWidth * 0.24),
+                );
+                return Row(
+                  children: [
+                    SizedBox(
+                      width: edgeWidth,
+                      child: _AttachmentGalleryDesktopHotspot(
+                        alignment: Alignment.centerLeft,
+                        icon: Icons.chevron_left_rounded,
+                        enabled: canGoPrevious,
+                        onTap: onPrevious,
+                      ),
+                    ),
+                    const Spacer(),
+                    SizedBox(
+                      width: edgeWidth,
+                      child: _AttachmentGalleryDesktopHotspot(
+                        alignment: Alignment.centerRight,
+                        icon: Icons.chevron_right_rounded,
+                        enabled: canGoNext,
+                        onTap: onNext,
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
           ),
-        ],
+        ),
+      ],
+    );
+  }
+}
+
+class _AttachmentGalleryDesktopHotspot extends StatefulWidget {
+  const _AttachmentGalleryDesktopHotspot({
+    required this.alignment,
+    required this.icon,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  final Alignment alignment;
+  final IconData icon;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  State<_AttachmentGalleryDesktopHotspot> createState() =>
+      _AttachmentGalleryDesktopHotspotState();
+}
+
+class _AttachmentGalleryDesktopHotspotState
+    extends State<_AttachmentGalleryDesktopHotspot> {
+  bool _hovered = false;
+
+  void _setHovered(bool value) {
+    if (!mounted || _hovered == value) return;
+    setState(() => _hovered = value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final leadingEdge = widget.alignment == Alignment.centerLeft;
+    final buttonOpacity = widget.enabled ? (_hovered ? 1.0 : 0.34) : 0.0;
+    final edgeOpacity = widget.enabled ? (_hovered ? 0.22 : 0.0) : 0.0;
+    final slideOffset = _hovered
+        ? Offset.zero
+        : Offset(leadingEdge ? -0.08 : 0.08, 0);
+
+    return MouseRegion(
+      cursor: widget.enabled ? SystemMouseCursors.click : MouseCursor.defer,
+      onEnter: (_) {
+        if (widget.enabled) _setHovered(true);
+      },
+      onExit: (_) => _setHovered(false),
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: widget.enabled ? widget.onTap : null,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            IgnorePointer(
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOut,
+                opacity: edgeOpacity,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: leadingEdge
+                          ? Alignment.centerLeft
+                          : Alignment.centerRight,
+                      end: leadingEdge
+                          ? Alignment.centerRight
+                          : Alignment.centerLeft,
+                      colors: [
+                        Colors.black.withValues(alpha: 0.58),
+                        Colors.black.withValues(alpha: 0.0),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Align(
+              alignment: widget.alignment,
+              child: AnimatedSlide(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOutCubic,
+                offset: slideOffset,
+                child: AnimatedScale(
+                  duration: const Duration(milliseconds: 180),
+                  curve: Curves.easeOutCubic,
+                  scale: _hovered ? 1.0 : 0.94,
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 180),
+                    curve: Curves.easeOut,
+                    opacity: buttonOpacity,
+                    child: IgnorePointer(
+                      child: Container(
+                        width: 52,
+                        height: 52,
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(
+                            alpha: _hovered ? 0.52 : 0.34,
+                          ),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.white.withValues(
+                              alpha: _hovered ? 0.24 : 0.1,
+                            ),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(
+                                alpha: _hovered ? 0.22 : 0.08,
+                              ),
+                              blurRadius: _hovered ? 18 : 10,
+                              spreadRadius: 0,
+                            ),
+                          ],
+                        ),
+                        child: Icon(
+                          widget.icon,
+                          color: Colors.white.withValues(
+                            alpha: _hovered ? 1.0 : 0.86,
+                          ),
+                          size: 34,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

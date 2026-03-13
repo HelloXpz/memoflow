@@ -1054,21 +1054,14 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
   }
 
   bool _handlePageNavigationShortcut({
-    required LogicalKeyboardKey key,
-    required bool primaryPressed,
-    required bool shiftPressed,
-    required bool altPressed,
+    required bool down,
+    required String source,
   }) {
-    if (primaryPressed || shiftPressed || altPressed) return false;
     if (_searchFocusNode.hasFocus) return false;
-    if (key == LogicalKeyboardKey.pageUp) {
-      _scrollByPage(down: false);
-      return true;
-    }
-    if (key != LogicalKeyboardKey.pageDown) return false;
-    _scrollByPage(down: true);
+    _scrollByPage(down: down);
+    if (!down) return true;
     if (!_scrollController.hasClients) {
-      _loadMoreFromActionWithSource('page_down_no_clients');
+      _loadMoreFromActionWithSource('${source}_no_clients');
       return true;
     }
     final metrics = _scrollController.position;
@@ -1077,7 +1070,7 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
         metrics.pixels >=
             (metrics.maxScrollExtent - metrics.viewportDimension * 0.35);
     if (nearBottom) {
-      _loadMoreFromActionWithSource('page_down_near_bottom');
+      _loadMoreFromActionWithSource('${source}_near_bottom');
     }
     return true;
   }
@@ -1636,9 +1629,6 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
       );
     }
 
-    final primaryPressed = isPrimaryShortcutModifierPressed(pressed);
-    final shiftPressed = isShiftModifierPressed(pressed);
-    final altPressed = isAltModifierPressed(pressed);
     final key = event.logicalKey;
     final inlineEditorActive = _inlineComposeFocusNode.hasFocus;
     final traceThisKey = _shouldTraceDesktopShortcut(event, pressed);
@@ -1706,9 +1696,9 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
 
     if (inlineEditorActive) {
       if (matches(DesktopShortcutAction.publishMemo) ||
-          (!primaryPressed &&
-              shiftPressed &&
-              !altPressed &&
+          (!isPrimaryShortcutModifierPressed(pressed) &&
+              isShiftModifierPressed(pressed) &&
+              !isAltModifierPressed(pressed) &&
               key == LogicalKeyboardKey.enter)) {
         _logDesktopShortcutEvent(
           stage: 'matched',
@@ -1794,12 +1784,31 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
       }
     }
     if (!inlineEditorActive &&
+        matches(DesktopShortcutAction.previousPage) &&
         _handlePageNavigationShortcut(
-          key: key,
-          primaryPressed: primaryPressed,
-          shiftPressed: shiftPressed,
-          altPressed: altPressed,
+          down: false,
+          source: 'shortcut_previous_page',
         )) {
+      _logDesktopShortcutEvent(
+        stage: 'matched',
+        event: event,
+        pressedKeys: pressed,
+        action: DesktopShortcutAction.previousPage,
+      );
+      return true;
+    }
+    if (!inlineEditorActive &&
+        matches(DesktopShortcutAction.nextPage) &&
+        _handlePageNavigationShortcut(
+          down: true,
+          source: 'shortcut_next_page',
+        )) {
+      _logDesktopShortcutEvent(
+        stage: 'matched',
+        event: event,
+        pressedKeys: pressed,
+        action: DesktopShortcutAction.nextPage,
+      );
       return true;
     }
 
@@ -3098,9 +3107,7 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
     showTopToast(
       context,
       context.t.strings.legacy.msg_location_updated(
-        next_displayText_fractionDigits_6: next.displayText(
-          fractionDigits: 6,
-        ),
+        next_displayText_fractionDigits_6: next.displayText(fractionDigits: 6),
       ),
       duration: const Duration(seconds: 2),
     );

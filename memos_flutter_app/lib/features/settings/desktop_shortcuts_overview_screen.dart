@@ -1,10 +1,8 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/desktop/shortcuts.dart';
 import '../../core/memoflow_palette.dart';
 import '../../i18n/strings.g.dart';
-
 
 String _desktopShortcutActionLabel(
   BuildContext context,
@@ -31,6 +29,10 @@ String _desktopShortcutActionLabel(
       return context.t.strings.legacy.msg_show_hide_memoflow;
     case DesktopShortcutAction.shortcutOverview:
       return context.t.strings.legacy.msg_shortcuts_overview;
+    case DesktopShortcutAction.previousPage:
+      return context.t.strings.legacy.msg_previous_page;
+    case DesktopShortcutAction.nextPage:
+      return context.t.strings.legacy.msg_next_page;
     case DesktopShortcutAction.publishMemo:
       return context.t.strings.legacy.msg_publish_memo;
     case DesktopShortcutAction.bold:
@@ -58,7 +60,6 @@ class DesktopShortcutsOverviewScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final resolved = normalizeDesktopShortcutBindings(bindings);
-    final isWindows = defaultTargetPlatform == TargetPlatform.windows;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bg = isDark
         ? MemoFlowPalette.backgroundDark
@@ -101,17 +102,13 @@ class DesktopShortcutsOverviewScreen extends StatelessWidget {
     ];
 
     final globalItems = <({String action, String key})>[
-      for (final action in desktopShortcutGlobalActions)
+      for (final action in desktopShortcutGlobalActionsForPlatform())
         (
           action: _desktopShortcutActionLabel(context, action),
           key: action == DesktopShortcutAction.shortcutOverview
               ? '${desktopShortcutBindingLabel(resolved[action]!)} / F1'
               : desktopShortcutBindingLabel(resolved[action]!),
         ),
-      if (isWindows) ...[
-        (action: context.t.strings.legacy.msg_previous_page, key: 'PageUp'),
-        (action: context.t.strings.legacy.msg_next_page, key: 'PageDown'),
-      ],
     ];
 
     return Scaffold(
@@ -138,11 +135,17 @@ class DesktopShortcutsOverviewScreen extends StatelessWidget {
               ),
             ),
           ),
-          _SectionTitle(title: context.t.strings.legacy.msg_editor, textMuted: textMuted),
+          _SectionTitle(
+            title: context.t.strings.legacy.msg_editor,
+            textMuted: textMuted,
+          ),
           const SizedBox(height: 8),
           _OverviewGroup(card: card, children: buildRows(editorItems)),
           const SizedBox(height: 12),
-          _SectionTitle(title: context.t.strings.legacy.msg_global, textMuted: textMuted),
+          _SectionTitle(
+            title: context.t.strings.legacy.msg_global,
+            textMuted: textMuted,
+          ),
           const SizedBox(height: 8),
           _OverviewGroup(card: card, children: buildRows(globalItems)),
         ],

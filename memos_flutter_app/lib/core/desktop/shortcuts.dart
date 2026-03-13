@@ -48,6 +48,8 @@ enum DesktopShortcutAction {
   enableAppLock,
   toggleFlomo,
   shortcutOverview,
+  previousPage,
+  nextPage,
   publishMemo,
   bold,
   underline,
@@ -71,6 +73,25 @@ const List<DesktopShortcutAction> desktopShortcutGlobalActions =
       DesktopShortcutAction.toggleFlomo,
       DesktopShortcutAction.shortcutOverview,
     ];
+
+const List<DesktopShortcutAction> desktopShortcutWindowsGlobalActions =
+    <DesktopShortcutAction>[
+      DesktopShortcutAction.previousPage,
+      DesktopShortcutAction.nextPage,
+    ];
+
+List<DesktopShortcutAction> desktopShortcutGlobalActionsForPlatform([
+  TargetPlatform? platform,
+]) {
+  final value = platform ?? defaultTargetPlatform;
+  if (value != TargetPlatform.windows) {
+    return desktopShortcutGlobalActions;
+  }
+  return <DesktopShortcutAction>[
+    ...desktopShortcutGlobalActions,
+    ...desktopShortcutWindowsGlobalActions,
+  ];
+}
 
 const List<DesktopShortcutAction> desktopShortcutEditorActions =
     <DesktopShortcutAction>[
@@ -106,6 +127,10 @@ String desktopShortcutActionLabel(DesktopShortcutAction action) {
       return 'Show / hide MemoFlow';
     case DesktopShortcutAction.shortcutOverview:
       return 'Shortcuts overview';
+    case DesktopShortcutAction.previousPage:
+      return 'Previous page';
+    case DesktopShortcutAction.nextPage:
+      return 'Next page';
     case DesktopShortcutAction.publishMemo:
       return 'Publish memo';
     case DesktopShortcutAction.bold:
@@ -259,6 +284,18 @@ desktopShortcutDefaultBindings =
           shift: true,
           alt: false,
         ),
+        DesktopShortcutAction.previousPage: DesktopShortcutBinding(
+          keyId: LogicalKeyboardKey.pageUp.keyId,
+          primary: false,
+          shift: false,
+          alt: false,
+        ),
+        DesktopShortcutAction.nextPage: DesktopShortcutBinding(
+          keyId: LogicalKeyboardKey.pageDown.keyId,
+          primary: false,
+          shift: false,
+          alt: false,
+        ),
         DesktopShortcutAction.publishMemo: DesktopShortcutBinding(
           keyId: LogicalKeyboardKey.enter.keyId,
           primary: true,
@@ -407,6 +444,20 @@ DesktopShortcutBinding? desktopShortcutBindingFromKeyEvent(
   );
 }
 
+bool desktopShortcutActionAllowsPlainBinding(
+  DesktopShortcutAction action,
+  LogicalKeyboardKey key,
+) {
+  switch (action) {
+    case DesktopShortcutAction.previousPage:
+    case DesktopShortcutAction.nextPage:
+      return key == LogicalKeyboardKey.pageUp ||
+          key == LogicalKeyboardKey.pageDown;
+    default:
+      return false;
+  }
+}
+
 String desktopShortcutBindingLabel(DesktopShortcutBinding binding) {
   final segments = <String>[];
   if (binding.primary) {
@@ -424,6 +475,8 @@ String desktopShortcutBindingLabel(DesktopShortcutBinding binding) {
 
 String _desktopShortcutKeyLabel(LogicalKeyboardKey key) {
   if (key == LogicalKeyboardKey.enter) return 'Enter';
+  if (key == LogicalKeyboardKey.pageUp) return 'PageUp';
+  if (key == LogicalKeyboardKey.pageDown) return 'PageDown';
   if (key == LogicalKeyboardKey.slash) return '/';
   if (key == LogicalKeyboardKey.backslash) return r'\';
   if (key == LogicalKeyboardKey.comma) return ',';
