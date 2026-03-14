@@ -21,6 +21,8 @@ const String desktopSettingsReopenOnboardingMethod =
 const String desktopMainReloadWorkspaceMethod = 'desktop.main.reloadWorkspace';
 const String desktopMainReloadAiSettingsMethod =
     'desktop.main.reloadAiSettings';
+const String desktopMainReloadPreferencesMethod =
+    'desktop.main.reloadPreferences';
 const String desktopMainGetWorkspaceSnapshotMethod =
     'desktop.main.getWorkspaceSnapshot';
 const String desktopHomeShowLoadingOverlayMethod =

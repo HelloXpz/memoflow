@@ -1,319 +1,285 @@
 import 'package:flutter/material.dart';
-
+import '../../data/models/memo_toolbar_preferences.dart';
 import '../../i18n/strings.g.dart';
+import 'memo_toolbar_custom_icon_catalog.dart';
 
-enum MemoComposePrimaryAction { tag, template, attachment, todo, link }
-
-const kMemoComposePrimaryActions = <MemoComposePrimaryAction>[
-  MemoComposePrimaryAction.tag,
-  MemoComposePrimaryAction.template,
-  MemoComposePrimaryAction.attachment,
-  MemoComposePrimaryAction.todo,
-  MemoComposePrimaryAction.link,
-];
-
-extension MemoComposePrimaryActionX on MemoComposePrimaryAction {
-  IconData get icon {
-    return switch (this) {
-      MemoComposePrimaryAction.tag => Icons.tag,
-      MemoComposePrimaryAction.template => Icons.description_outlined,
-      MemoComposePrimaryAction.attachment => Icons.attach_file,
-      MemoComposePrimaryAction.todo => Icons.playlist_add_check,
-      MemoComposePrimaryAction.link => Icons.alternate_email_rounded,
-    };
-  }
-
-  String get tooltip {
-    return switch (this) {
-      MemoComposePrimaryAction.tag => t.strings.legacy.msg_tag,
-      MemoComposePrimaryAction.template => t.strings.legacy.msg_template,
-      MemoComposePrimaryAction.attachment => t.strings.legacy.msg_attachment,
-      MemoComposePrimaryAction.todo => t.strings.legacy.msg_todo,
-      MemoComposePrimaryAction.link => t.strings.legacy.msg_link,
-    };
-  }
-}
+export '../../data/models/memo_toolbar_preferences.dart';
 
 enum MemoComposeTodoShortcutAction { checkbox, codeBlock }
 
-class MemoComposePrimaryToolbar extends StatelessWidget {
-  const MemoComposePrimaryToolbar({
-    super.key,
-    required this.isDark,
-    required this.busy,
-    required this.moreOpen,
-    required this.visibilityMessage,
-    required this.visibilityIcon,
-    required this.visibilityColor,
-    required this.tagButtonKey,
-    required this.todoButtonKey,
-    required this.templateButtonKey,
-    required this.visibilityButtonKey,
-    required this.onTagPressed,
-    required this.onTemplatePressed,
-    required this.onAttachmentPressed,
-    required this.onTodoPressed,
-    required this.onLinkPressed,
-    required this.onToggleMorePressed,
-    required this.onVisibilityPressed,
+class MemoComposeToolbarActionSpec {
+  const MemoComposeToolbarActionSpec({
+    required this.id,
+    this.buttonKey,
+    this.icon,
+    this.label,
+    this.onPressed,
+    this.enabled = true,
+    this.supported = true,
   });
 
-  final bool isDark;
-  final bool busy;
-  final bool moreOpen;
-  final String visibilityMessage;
-  final IconData visibilityIcon;
-  final Color visibilityColor;
-  final Key tagButtonKey;
-  final Key templateButtonKey;
-  final Key todoButtonKey;
-  final Key visibilityButtonKey;
-  final VoidCallback? onTagPressed;
-  final VoidCallback? onTemplatePressed;
-  final VoidCallback? onAttachmentPressed;
-  final VoidCallback? onTodoPressed;
-  final VoidCallback? onLinkPressed;
-  final VoidCallback? onToggleMorePressed;
-  final VoidCallback? onVisibilityPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    final toolbarIconColor = isDark
-        ? Colors.grey.shade400
-        : Colors.grey.shade600;
-    final dividerColor = isDark
-        ? Colors.white.withValues(alpha: 0.1)
-        : Colors.black.withValues(alpha: 0.08);
-    final moreBg = isDark
-        ? Colors.white.withValues(alpha: 0.08)
-        : Colors.black.withValues(alpha: 0.06);
-    final moreBorder = isDark
-        ? Colors.white.withValues(alpha: 0.12)
-        : Colors.black.withValues(alpha: 0.08);
-
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      physics: const BouncingScrollPhysics(),
-      child: Row(
-        children: [
-          IconButton(
-            key: tagButtonKey,
-            tooltip: MemoComposePrimaryAction.tag.tooltip,
-            onPressed: busy ? null : onTagPressed,
-            icon: Icon(
-              MemoComposePrimaryAction.tag.icon,
-              color: toolbarIconColor,
-            ),
-          ),
-          IconButton(
-            key: templateButtonKey,
-            tooltip: MemoComposePrimaryAction.template.tooltip,
-            onPressed: busy ? null : onTemplatePressed,
-            icon: Icon(
-              MemoComposePrimaryAction.template.icon,
-              color: toolbarIconColor,
-            ),
-          ),
-          IconButton(
-            tooltip: MemoComposePrimaryAction.attachment.tooltip,
-            onPressed: busy ? null : onAttachmentPressed,
-            icon: Icon(
-              MemoComposePrimaryAction.attachment.icon,
-              color: toolbarIconColor,
-            ),
-          ),
-          IconButton(
-            key: todoButtonKey,
-            tooltip: MemoComposePrimaryAction.todo.tooltip,
-            onPressed: busy ? null : onTodoPressed,
-            icon: Icon(
-              MemoComposePrimaryAction.todo.icon,
-              color: toolbarIconColor,
-            ),
-          ),
-          IconButton(
-            tooltip: MemoComposePrimaryAction.link.tooltip,
-            onPressed: busy ? null : onLinkPressed,
-            icon: Icon(
-              MemoComposePrimaryAction.link.icon,
-              color: toolbarIconColor,
-            ),
-          ),
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 160),
-            decoration: BoxDecoration(
-              color: moreOpen ? moreBg : Colors.transparent,
-              borderRadius: BorderRadius.circular(10),
-              border: moreOpen ? Border.all(color: moreBorder, width: 1) : null,
-            ),
-            child: IconButton(
-              tooltip: t.strings.legacy.msg_more,
-              onPressed: busy ? null : onToggleMorePressed,
-              icon: Icon(Icons.more_horiz, color: toolbarIconColor),
-            ),
-          ),
-          Container(width: 1, height: 20, color: dividerColor),
-          const SizedBox(width: 10),
-          Tooltip(
-            message: visibilityMessage,
-            child: InkResponse(
-              key: visibilityButtonKey,
-              onTap: busy ? null : onVisibilityPressed,
-              radius: 18,
-              child: Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: visibilityColor.withValues(alpha: 0.85),
-                    width: 1.6,
-                  ),
-                ),
-                child: Icon(visibilityIcon, size: 14, color: visibilityColor),
-              ),
-            ),
-          ),
-        ],
-      ),
+  factory MemoComposeToolbarActionSpec.builtin({
+    required MemoToolbarActionId id,
+    Key? buttonKey,
+    IconData? icon,
+    String? label,
+    VoidCallback? onPressed,
+    bool enabled = true,
+    bool supported = true,
+  }) {
+    return MemoComposeToolbarActionSpec(
+      id: id.itemId,
+      buttonKey: buttonKey,
+      icon: icon,
+      label: label,
+      onPressed: onPressed,
+      enabled: enabled,
+      supported: supported,
     );
+  }
+
+  factory MemoComposeToolbarActionSpec.custom({
+    required MemoToolbarCustomButton button,
+    Key? buttonKey,
+    IconData? icon,
+    String? label,
+    VoidCallback? onPressed,
+    bool enabled = true,
+    bool supported = true,
+  }) {
+    return MemoComposeToolbarActionSpec(
+      id: button.itemId,
+      buttonKey: buttonKey,
+      icon: icon ?? resolveMemoToolbarCustomIcon(button.iconKey),
+      label: label ?? button.label,
+      onPressed: onPressed,
+      enabled: enabled,
+      supported: supported,
+    );
+  }
+
+  final MemoToolbarItemId id;
+  final Key? buttonKey;
+  final IconData? icon;
+  final String? label;
+  final VoidCallback? onPressed;
+  final bool enabled;
+  final bool supported;
+}
+
+extension MemoToolbarActionPresentationX on MemoToolbarActionId {
+  IconData get icon {
+    return switch (this) {
+      MemoToolbarActionId.bold => Icons.format_bold,
+      MemoToolbarActionId.list => Icons.format_list_bulleted,
+      MemoToolbarActionId.underline => Icons.format_underlined,
+      MemoToolbarActionId.undo => Icons.undo,
+      MemoToolbarActionId.redo => Icons.redo,
+      MemoToolbarActionId.tag => Icons.tag,
+      MemoToolbarActionId.template => Icons.description_outlined,
+      MemoToolbarActionId.attachment => Icons.attach_file,
+      MemoToolbarActionId.gallery => Icons.photo_library_outlined,
+      MemoToolbarActionId.todo => Icons.playlist_add_check,
+      MemoToolbarActionId.link => Icons.alternate_email_rounded,
+      MemoToolbarActionId.camera => Icons.photo_camera_outlined,
+      MemoToolbarActionId.location => Icons.place_outlined,
+    };
+  }
+
+  String label(BuildContext context) {
+    final legacy = context.t.strings.legacy;
+    final toolbar = context.t.strings.settings.preferences.editorToolbar;
+    return switch (this) {
+      MemoToolbarActionId.bold => legacy.msg_bold,
+      MemoToolbarActionId.list => toolbar.actions.bulletedList,
+      MemoToolbarActionId.underline => legacy.msg_underline,
+      MemoToolbarActionId.undo => legacy.msg_undo,
+      MemoToolbarActionId.redo => legacy.msg_redo,
+      MemoToolbarActionId.tag => legacy.msg_tag,
+      MemoToolbarActionId.template => legacy.msg_template,
+      MemoToolbarActionId.attachment => legacy.msg_attachment,
+      MemoToolbarActionId.gallery => toolbar.actions.gallery,
+      MemoToolbarActionId.todo => legacy.msg_todo,
+      MemoToolbarActionId.link => legacy.msg_link,
+      MemoToolbarActionId.camera => legacy.msg_capture_photo,
+      MemoToolbarActionId.location => legacy.msg_location_2,
+    };
   }
 }
 
-class MemoComposeMoreToolbar extends StatelessWidget {
-  const MemoComposeMoreToolbar({
+extension MemoToolbarItemPresentationX on MemoToolbarItemId {
+  IconData resolveIcon(MemoToolbarPreferences preferences) {
+    final builtinAction = this.builtinAction;
+    if (builtinAction != null) return builtinAction.icon;
+    final customButton = preferences.customButtonForItem(this);
+    if (customButton != null) {
+      return resolveMemoToolbarCustomIcon(customButton.iconKey);
+    }
+    return Icons.extension_rounded;
+  }
+
+  String resolveLabel(
+    BuildContext context,
+    MemoToolbarPreferences preferences,
+  ) {
+    final builtinAction = this.builtinAction;
+    if (builtinAction != null) return builtinAction.label(context);
+    return preferences.customButtonForItem(this)?.label ?? storageValue;
+  }
+}
+
+class MemoComposeToolbar extends StatelessWidget {
+  const MemoComposeToolbar({
     super.key,
     required this.isDark,
-    required this.busy,
-    this.onBoldPressed,
-    this.onListPressed,
-    this.onUnderlinePressed,
-    this.onCameraPressed,
-    this.onLocationPressed,
-    this.onUndoPressed,
-    this.onRedoPressed,
-    this.undoEnabled = false,
-    this.redoEnabled = false,
-    this.locationBusy = false,
+    required this.preferences,
+    required this.actions,
+    required this.visibilityMessage,
+    required this.visibilityIcon,
+    required this.visibilityColor,
+    required this.visibilityButtonKey,
+    required this.onVisibilityPressed,
   });
 
+  static const topRowKey = ValueKey<String>('memo-compose-toolbar-top-row');
+  static const bottomRowKey = ValueKey<String>(
+    'memo-compose-toolbar-bottom-row',
+  );
+
   final bool isDark;
-  final bool busy;
-  final VoidCallback? onBoldPressed;
-  final VoidCallback? onListPressed;
-  final VoidCallback? onUnderlinePressed;
-  final VoidCallback? onCameraPressed;
-  final VoidCallback? onLocationPressed;
-  final VoidCallback? onUndoPressed;
-  final VoidCallback? onRedoPressed;
-  final bool undoEnabled;
-  final bool redoEnabled;
-  final bool locationBusy;
+  final MemoToolbarPreferences preferences;
+  final List<MemoComposeToolbarActionSpec> actions;
+  final String visibilityMessage;
+  final IconData visibilityIcon;
+  final Color visibilityColor;
+  final Key visibilityButtonKey;
+  final VoidCallback? onVisibilityPressed;
 
   @override
   Widget build(BuildContext context) {
     final iconColor = isDark ? Colors.white70 : Colors.black54;
     final disabledColor = iconColor.withValues(alpha: 0.45);
-    const gap = 6.0;
-    const horizontalPadding = 10.0;
-    const verticalPadding = 6.0;
-    const iconButtonSize = 32.0;
-    final canEdit = !busy;
+    final dividerColor = isDark
+        ? Colors.white.withValues(alpha: 0.1)
+        : Colors.black.withValues(alpha: 0.08);
+    final visibilityBackgroundColor = visibilityColor.withValues(
+      alpha: isDark ? 0.16 : 0.1,
+    );
 
-    Widget actionButton({
-      required IconData icon,
-      required VoidCallback? onPressed,
-      bool enabled = true,
-    }) {
+    final actionMap = <MemoToolbarItemId, MemoComposeToolbarActionSpec>{
+      for (final action in actions) action.id: action,
+    };
+    final supportedItems = actions
+        .where((action) => action.supported)
+        .map((action) => action.id)
+        .toSet();
+
+    final topActions = preferences
+        .visibleItemIdsForRow(
+          MemoToolbarRow.top,
+          supportedItems: supportedItems,
+        )
+        .map((id) => actionMap[id])
+        .whereType<MemoComposeToolbarActionSpec>()
+        .toList(growable: false);
+    final bottomActions = preferences
+        .visibleItemIdsForRow(
+          MemoToolbarRow.bottom,
+          supportedItems: supportedItems,
+        )
+        .map((id) => actionMap[id])
+        .whereType<MemoComposeToolbarActionSpec>()
+        .toList(growable: false);
+
+    Widget buildActionButton(MemoComposeToolbarActionSpec action) {
+      final tooltip =
+          action.label ?? action.id.resolveLabel(context, preferences);
+      final actionIcon = action.icon ?? action.id.resolveIcon(preferences);
       return IconButton(
-        icon: Icon(icon, size: 20, color: enabled ? iconColor : disabledColor),
-        onPressed: enabled ? onPressed : null,
+        key: action.buttonKey,
+        tooltip: tooltip,
+        onPressed: action.enabled ? action.onPressed : null,
         padding: EdgeInsets.zero,
-        constraints: const BoxConstraints.tightFor(
-          width: iconButtonSize,
-          height: iconButtonSize,
-        ),
+        constraints: const BoxConstraints.tightFor(width: 32, height: 32),
         splashRadius: 18,
+        icon: Icon(
+          actionIcon,
+          size: 20,
+          color: action.enabled ? iconColor : disabledColor,
+        ),
       );
     }
 
-    final actions = <Widget>[];
-
-    void addAction({
-      required IconData icon,
-      required VoidCallback? onPressed,
-      bool enabled = true,
-    }) {
-      if (onPressed == null) return;
-      if (actions.isNotEmpty) {
-        actions.add(const SizedBox(width: gap));
-      }
-      actions.add(
-        actionButton(icon: icon, onPressed: onPressed, enabled: enabled),
-      );
-    }
-
-    addAction(
-      icon: Icons.format_bold,
-      onPressed: onBoldPressed,
-      enabled: canEdit,
-    );
-    addAction(
-      icon: Icons.format_list_bulleted,
-      onPressed: onListPressed,
-      enabled: canEdit,
-    );
-    addAction(
-      icon: Icons.format_underlined,
-      onPressed: onUnderlinePressed,
-      enabled: canEdit,
-    );
-    addAction(
-      icon: Icons.photo_camera_outlined,
-      onPressed: onCameraPressed,
-      enabled: canEdit,
-    );
-    addAction(
-      icon: locationBusy ? Icons.my_location : Icons.place_outlined,
-      onPressed: onLocationPressed,
-      enabled: canEdit && !locationBusy,
-    );
-    addAction(
-      icon: Icons.undo,
-      onPressed: onUndoPressed,
-      enabled: canEdit && undoEnabled,
-    );
-    addAction(
-      icon: Icons.redo,
-      onPressed: onRedoPressed,
-      enabled: canEdit && redoEnabled,
-    );
-
-    if (actions.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: horizontalPadding,
-        vertical: verticalPadding,
-      ),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF2B2B2B) : Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.45 : 0.15),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
+    Widget buildRow(List<MemoComposeToolbarActionSpec> rowActions, Key key) {
+      return Row(
+        key: key,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (var i = 0; i < rowActions.length; i++) ...[
+            buildActionButton(rowActions[i]),
+            if (i != rowActions.length - 1) const SizedBox(width: 6),
+          ],
         ],
-      ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        child: Row(mainAxisSize: MainAxisSize.min, children: actions),
-      ),
+      );
+    }
+
+    final hasToolbarActions = topActions.isNotEmpty || bottomActions.isNotEmpty;
+
+    return Row(
+      children: [
+        Expanded(
+          child: hasToolbarActions
+              ? SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 2,
+                      vertical: 2,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (topActions.isNotEmpty)
+                          buildRow(topActions, MemoComposeToolbar.topRowKey),
+                        if (topActions.isNotEmpty && bottomActions.isNotEmpty)
+                          const SizedBox(height: 6),
+                        if (bottomActions.isNotEmpty)
+                          buildRow(
+                            bottomActions,
+                            MemoComposeToolbar.bottomRowKey,
+                          ),
+                      ],
+                    ),
+                  ),
+                )
+              : const SizedBox.shrink(),
+        ),
+        const SizedBox(width: 12),
+        Container(width: 1, height: 30, color: dividerColor),
+        const SizedBox(width: 12),
+        Tooltip(
+          message: visibilityMessage,
+          child: InkResponse(
+            key: visibilityButtonKey,
+            onTap: onVisibilityPressed,
+            radius: 18,
+            child: Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                color: visibilityBackgroundColor,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: visibilityColor.withValues(alpha: isDark ? 0.28 : 0.2),
+                ),
+              ),
+              child: Icon(visibilityIcon, size: 15, color: visibilityColor),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

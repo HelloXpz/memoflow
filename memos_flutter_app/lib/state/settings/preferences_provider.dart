@@ -14,6 +14,7 @@ import '../../core/desktop/shortcuts.dart';
 import '../../core/hash.dart';
 import '../../core/theme_colors.dart';
 import '../../data/models/app_preferences.dart';
+import '../../data/models/memo_toolbar_preferences.dart';
 import '../../data/logs/log_manager.dart';
 import '../system/session_provider.dart';
 import '../system/storage_error_provider.dart';
@@ -285,6 +286,11 @@ class AppPreferencesController extends StateNotifier<AppPreferences> {
       _setAndPersist(state.copyWith(showDrawerResources: v));
   void setShowDrawerArchive(bool v) =>
       _setAndPersist(state.copyWith(showDrawerArchive: v));
+  void setMemoToolbarPreferences(MemoToolbarPreferences v) =>
+      _setAndPersist(state.copyWith(memoToolbarPreferences: v));
+  void resetMemoToolbarPreferences() => _setAndPersist(
+    state.copyWith(memoToolbarPreferences: MemoToolbarPreferences.defaults),
+  );
   void setAiSummaryAllowPrivateMemos(bool v) =>
       _setAndPersist(state.copyWith(aiSummaryAllowPrivateMemos: v));
   void setThirdPartyShareEnabled(bool v) =>

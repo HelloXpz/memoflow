@@ -100,7 +100,6 @@ class _DesktopQuickInputWindowScreenState
   final _templateRenderer = MemoTemplateRenderer();
 
   bool _submitting = false;
-  bool _moreToolbarOpen = false;
   bool _alwaysOnTop = false;
   bool _alwaysOnTopSupported = false;
   bool _pinning = false;
@@ -208,6 +207,10 @@ class _DesktopQuickInputWindowScreenState
         return true;
       }
     }
+    if (call.method == desktopMainReloadPreferencesMethod) {
+      await ref.read(appPreferencesProvider.notifier).reloadFromStorage();
+      return true;
+    }
     return null;
   }
 
@@ -259,7 +262,6 @@ class _DesktopQuickInputWindowScreenState
     _linkedMemos.clear();
     _location = null;
     _visibility = 'PRIVATE';
-    _moreToolbarOpen = false;
     _submitting = false;
     _locating = false;
   }
@@ -427,14 +429,111 @@ class _DesktopQuickInputWindowScreenState
     );
   }
 
-  void _toggleMoreToolbar() {
-    if (_submitting) return;
-    setState(() => _moreToolbarOpen = !_moreToolbarOpen);
-  }
+  Widget _buildComposeToolbar({
+    required BuildContext context,
+    required bool isDark,
+    required MemoToolbarPreferences preferences,
+    required List<MemoTemplate> availableTemplates,
+    required String visibilityLabel,
+    required IconData visibilityIcon,
+    required Color visibilityColor,
+  }) {
+    final actions = <MemoComposeToolbarActionSpec>[
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.bold,
+        enabled: !_submitting,
+        onPressed: _toggleBold,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.list,
+        enabled: !_submitting,
+        onPressed: () => _insertText('- '),
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.underline,
+        enabled: !_submitting,
+        onPressed: _toggleHighlight,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.undo,
+        supported: false,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.redo,
+        supported: false,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.tag,
+        buttonKey: _tagMenuKey,
+        enabled: !_submitting,
+        onPressed: () {
+          _insertText('#');
+          unawaited(_openTagMenuFromKey(_tagMenuKey));
+        },
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.template,
+        buttonKey: _templateMenuKey,
+        enabled: !_submitting,
+        onPressed: () => unawaited(
+          _openTemplateMenuFromKey(_templateMenuKey, availableTemplates),
+        ),
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.attachment,
+        enabled: !_submitting,
+        onPressed: () => unawaited(_pickAttachments()),
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.gallery,
+        enabled: !_submitting,
+        onPressed: () => unawaited(_showGalleryMobileOnlyMessage()),
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.todo,
+        buttonKey: _todoMenuKey,
+        enabled: !_submitting,
+        onPressed: () => unawaited(_openTodoShortcutMenuFromKey(_todoMenuKey)),
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.link,
+        enabled: !_submitting,
+        onPressed: () => unawaited(_pickLinkMemo()),
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.camera,
+        enabled: !_submitting,
+        onPressed: () => unawaited(_capturePhoto()),
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.location,
+        icon: _locating ? Icons.my_location : null,
+        enabled: !_submitting && !_locating,
+        onPressed: () => unawaited(_requestLocation()),
+      ),
+      ...preferences.customButtons.map(
+        (button) => MemoComposeToolbarActionSpec.custom(
+          button: button,
+          enabled: !_submitting,
+          onPressed: () => _insertText(button.insertContent),
+        ),
+      ),
+    ];
 
-  void _closeMoreToolbar() {
-    if (!_moreToolbarOpen) return;
-    setState(() => _moreToolbarOpen = false);
+    return MemoComposeToolbar(
+      isDark: isDark,
+      preferences: preferences,
+      actions: actions,
+      visibilityMessage: context.t.strings.legacy.msg_visibility_value(
+        value: visibilityLabel,
+      ),
+      visibilityIcon: visibilityIcon,
+      visibilityColor: visibilityColor,
+      visibilityButtonKey: _visibilityMenuKey,
+      onVisibilityPressed: _submitting
+          ? null
+          : () => unawaited(_openVisibilityMenuFromKey(_visibilityMenuKey)),
+    );
   }
 
   Future<List<String>> _loadTagCandidates() async {
@@ -832,6 +931,10 @@ class _DesktopQuickInputWindowScreenState
     };
   }
 
+  Future<void> _showGalleryMobileOnlyMessage() async {
+    _showSnack(context.t.strings.legacy.msg_gallery_mobile_only);
+  }
+
   Future<void> _pickAttachments() async {
     if (_submitting) return;
     try {
@@ -1198,9 +1301,7 @@ class _DesktopQuickInputWindowScreenState
     setState(() => _location = next);
     _showSnack(
       context.t.strings.legacy.msg_location_updated(
-        next_displayText_fractionDigits_6: next.displayText(
-          fractionDigits: 6,
-        ),
+        next_displayText_fractionDigits_6: next.displayText(fractionDigits: 6),
       ),
     );
   }
@@ -1318,6 +1419,9 @@ class _DesktopQuickInputWindowScreenState
 
     final (visibilityLabel, visibilityIcon, visibilityColor) =
         _visibilityStyle();
+    final toolbarPreferences = ref.watch(
+      appPreferencesProvider.select((p) => p.memoToolbarPreferences),
+    );
     final templateSettings = ref.watch(memoTemplateSettingsProvider);
     final availableTemplates = templateSettings.enabled
         ? templateSettings.templates
@@ -1477,85 +1581,19 @@ class _DesktopQuickInputWindowScreenState
                     ),
                   ),
                 ),
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 180),
-                  child: _moreToolbarOpen
-                      ? Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: MemoComposeMoreToolbar(
-                              isDark: isDark,
-                              busy: _submitting,
-                              locationBusy: _locating,
-                              onBoldPressed: _toggleBold,
-                              onListPressed: () => _insertText('- '),
-                              onUnderlinePressed: _toggleHighlight,
-                              onCameraPressed: () {
-                                _closeMoreToolbar();
-                                unawaited(_capturePhoto());
-                              },
-                              onLocationPressed: () {
-                                _closeMoreToolbar();
-                                unawaited(_requestLocation());
-                              },
-                            ),
-                          ),
-                        )
-                      : const SizedBox.shrink(),
-                ),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+                  padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
                   child: Row(
                     children: [
                       Expanded(
-                        child: MemoComposePrimaryToolbar(
+                        child: _buildComposeToolbar(
+                          context: context,
                           isDark: isDark,
-                          busy: _submitting,
-                          moreOpen: _moreToolbarOpen,
-                          visibilityMessage: context.t.strings.legacy
-                              .msg_visibility_value(value: visibilityLabel),
+                          preferences: toolbarPreferences,
+                          availableTemplates: availableTemplates,
+                          visibilityLabel: visibilityLabel,
                           visibilityIcon: visibilityIcon,
                           visibilityColor: visibilityColor,
-                          tagButtonKey: _tagMenuKey,
-                          templateButtonKey: _templateMenuKey,
-                          todoButtonKey: _todoMenuKey,
-                          visibilityButtonKey: _visibilityMenuKey,
-                          onTagPressed: () {
-                            _closeMoreToolbar();
-                            _insertText('#');
-                            unawaited(_openTagMenuFromKey(_tagMenuKey));
-                          },
-                          onTemplatePressed: () {
-                            _closeMoreToolbar();
-                            unawaited(
-                              _openTemplateMenuFromKey(
-                                _templateMenuKey,
-                                availableTemplates,
-                              ),
-                            );
-                          },
-                          onAttachmentPressed: () {
-                            _closeMoreToolbar();
-                            unawaited(_pickAttachments());
-                          },
-                          onTodoPressed: () {
-                            _closeMoreToolbar();
-                            unawaited(
-                              _openTodoShortcutMenuFromKey(_todoMenuKey),
-                            );
-                          },
-                          onLinkPressed: () {
-                            _closeMoreToolbar();
-                            unawaited(_pickLinkMemo());
-                          },
-                          onToggleMorePressed: _toggleMoreToolbar,
-                          onVisibilityPressed: () {
-                            _closeMoreToolbar();
-                            unawaited(
-                              _openVisibilityMenuFromKey(_visibilityMenuKey),
-                            );
-                          },
                         ),
                       ),
                       const SizedBox(width: 8),

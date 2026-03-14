@@ -12,6 +12,8 @@ import '../../i18n/strings.g.dart';
 import '../../state/settings/preferences_provider.dart';
 import '../../state/system/session_provider.dart';
 import '../../state/system/system_fonts_provider.dart';
+import 'memo_toolbar_settings_screen.dart';
+
 class PreferencesSettingsScreen extends ConsumerWidget {
   const PreferencesSettingsScreen({super.key, this.showBackButton = true});
 
@@ -377,6 +379,31 @@ class PreferencesSettingsScreen extends ConsumerWidget {
                         .read(appPreferencesProvider.notifier)
                         .setQuickInputAutoFocus(v),
                   ),
+                  _SelectRow(
+                    rowKey: const ValueKey('preferences-editor-toolbar-entry'),
+                    label: context
+                        .t
+                        .strings
+                        .settings
+                        .preferences
+                        .editorToolbar
+                        .title,
+                    value: context
+                        .t
+                        .strings
+                        .settings
+                        .preferences
+                        .editorToolbar
+                        .dragToSort,
+                    icon: Icons.chevron_right,
+                    textMain: textMain,
+                    textMuted: textMuted,
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const MemoToolbarSettingsScreen(),
+                      ),
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 12),
@@ -495,6 +522,7 @@ class _Group extends StatelessWidget {
 
 class _SelectRow extends StatelessWidget {
   const _SelectRow({
+    this.rowKey,
     required this.label,
     required this.value,
     required this.icon,
@@ -503,6 +531,7 @@ class _SelectRow extends StatelessWidget {
     required this.onTap,
   });
 
+  final Key? rowKey;
   final String label;
   final String value;
   final IconData icon;
@@ -515,6 +544,7 @@ class _SelectRow extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
+        key: rowKey,
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),

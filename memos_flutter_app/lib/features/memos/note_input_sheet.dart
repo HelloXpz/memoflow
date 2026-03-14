@@ -34,6 +34,7 @@ import '../../state/settings/user_settings_provider.dart';
 import '../../state/memos/note_input_providers.dart';
 import 'attachment_gallery_screen.dart';
 import 'compose_toolbar_shared.dart';
+import 'gallery_attachment_picker.dart';
 import 'memo_video_grid.dart';
 import 'tag_autocomplete.dart';
 import 'link_memo_sheet.dart';
@@ -115,7 +116,6 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
   static const _maxHistory = 100;
   String _visibility = 'PRIVATE';
   bool _visibilityTouched = false;
-  bool _isMoreToolbarOpen = false;
   MemoLocation? _location;
   final _locating = false;
   int _tagAutocompleteIndex = 0;
@@ -813,16 +813,6 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
     );
   }
 
-  void _toggleMoreToolbar() {
-    if (_busy) return;
-    setState(() => _isMoreToolbarOpen = !_isMoreToolbarOpen);
-  }
-
-  void _closeMoreToolbar() {
-    if (!_isMoreToolbarOpen) return;
-    setState(() => _isMoreToolbarOpen = false);
-  }
-
   Future<void> _openWindowsCameraSettings() async {
     if (!Platform.isWindows) return;
     try {
@@ -870,49 +860,115 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
     showTopToast(
       context,
       context.t.strings.legacy.msg_location_updated(
-        next_displayText_fractionDigits_6: next.displayText(
-          fractionDigits: 6,
-        ),
+        next_displayText_fractionDigits_6: next.displayText(fractionDigits: 6),
       ),
       duration: const Duration(seconds: 2),
     );
   }
 
-  Widget _buildMoreToolbar({required bool isDark}) {
-    return MemoComposeMoreToolbar(
+  Widget _buildComposeToolbar({
+    required BuildContext context,
+    required bool isDark,
+    required MemoToolbarPreferences preferences,
+    required List<MemoTemplate> availableTemplates,
+    required String visibilityLabel,
+    required IconData visibilityIcon,
+    required Color visibilityColor,
+  }) {
+    final actions = <MemoComposeToolbarActionSpec>[
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.bold,
+        enabled: !_busy,
+        onPressed: _toggleBold,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.list,
+        enabled: !_busy,
+        onPressed: () => _insertText('- '),
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.underline,
+        enabled: !_busy,
+        onPressed: _toggleUnderline,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.undo,
+        enabled: !_busy && _undoStack.isNotEmpty,
+        onPressed: _undo,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.redo,
+        enabled: !_busy && _redoStack.isNotEmpty,
+        onPressed: _redo,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.tag,
+        buttonKey: _tagMenuKey,
+        enabled: !_busy,
+        onPressed: _startTagAutocomplete,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.template,
+        buttonKey: _templateMenuKey,
+        enabled: !_busy,
+        onPressed: () => unawaited(
+          _openTemplateMenuFromKey(_templateMenuKey, availableTemplates),
+        ),
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.attachment,
+        enabled: !_busy,
+        onPressed: () => unawaited(_pickAttachments()),
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.gallery,
+        enabled: !_busy,
+        onPressed: () => unawaited(_handleGalleryToolbarPressed()),
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.todo,
+        buttonKey: _todoMenuKey,
+        enabled: !_busy,
+        onPressed: () => unawaited(_openTodoShortcutMenuFromKey(_todoMenuKey)),
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.link,
+        enabled: !_busy,
+        onPressed: () => unawaited(_openLinkMemoSheet()),
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.camera,
+        enabled: !_busy,
+        onPressed: () => unawaited(_capturePhoto()),
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.location,
+        icon: _locating ? Icons.my_location : null,
+        enabled: !_busy && !_locating,
+        onPressed: () => unawaited(_requestLocation()),
+      ),
+      ...preferences.customButtons.map(
+        (button) => MemoComposeToolbarActionSpec.custom(
+          button: button,
+          enabled: !_busy,
+          onPressed: () => _insertText(button.insertContent),
+        ),
+      ),
+    ];
+
+    return MemoComposeToolbar(
       isDark: isDark,
-      busy: _busy,
-      onBoldPressed: () {
-        _closeMoreToolbar();
-        _toggleBold();
-      },
-      onListPressed: () {
-        _closeMoreToolbar();
-        _insertText('- ');
-      },
-      onUnderlinePressed: () {
-        _closeMoreToolbar();
-        _toggleUnderline();
-      },
-      onCameraPressed: () {
-        _closeMoreToolbar();
-        unawaited(_capturePhoto());
-      },
-      onLocationPressed: () {
-        _closeMoreToolbar();
-        unawaited(_requestLocation());
-      },
-      onUndoPressed: () {
-        _closeMoreToolbar();
-        _undo();
-      },
-      onRedoPressed: () {
-        _closeMoreToolbar();
-        _redo();
-      },
-      undoEnabled: _undoStack.isNotEmpty,
-      redoEnabled: _redoStack.isNotEmpty,
-      locationBusy: _locating,
+      preferences: preferences,
+      actions: actions,
+      visibilityMessage: context.t.strings.legacy.msg_visibility_2(
+        visibilityLabel: visibilityLabel,
+      ),
+      visibilityIcon: visibilityIcon,
+      visibilityColor: visibilityColor,
+      visibilityButtonKey: _visibilityMenuKey,
+      onVisibilityPressed: _busy
+          ? null
+          : () => unawaited(_openVisibilityMenuFromKey(_visibilityMenuKey)),
     );
   }
 
@@ -961,6 +1017,69 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
       'log' => 'text/plain',
       _ => 'application/octet-stream',
     };
+  }
+
+  Future<void> _handleGalleryToolbarPressed() async {
+    if (!isMemoGalleryToolbarSupportedPlatform) {
+      showTopToast(context, context.t.strings.legacy.msg_gallery_mobile_only);
+      return;
+    }
+    await _pickGalleryAttachments();
+  }
+
+  Future<void> _pickGalleryAttachments() async {
+    if (_busy) return;
+    try {
+      final result = await pickGalleryAttachments(context);
+      if (!mounted || result == null) return;
+      if (result.attachments.isEmpty) {
+        final msg = result.skippedCount > 0
+            ? context.t.strings.legacy.msg_files_unavailable_from_picker
+            : context.t.strings.legacy.msg_no_files_selected;
+        showTopToast(context, msg);
+        return;
+      }
+
+      setState(() {
+        _pendingAttachments.addAll(
+          result.attachments
+              .map(
+                (attachment) => _PendingAttachment(
+                  uid: generateUid(),
+                  filePath: attachment.filePath,
+                  filename: attachment.filename,
+                  mimeType: attachment.mimeType,
+                  size: attachment.size,
+                ),
+              )
+              .toList(growable: false),
+        );
+      });
+      final skipped = [
+        if (result.skippedCount > 0)
+          context.t.strings.legacy.msg_unavailable_file_count(
+            count: result.skippedCount,
+          ),
+      ];
+      final summary = skipped.isEmpty
+          ? context.t.strings.legacy.msg_added_files(
+              count: result.attachments.length,
+            )
+          : context.t.strings.legacy.msg_added_files_with_skipped(
+              count: result.attachments.length,
+              details: skipped.join(', '),
+            );
+      showTopToast(context, summary);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            context.t.strings.legacy.msg_file_selection_failed(error: e),
+          ),
+        ),
+      );
+    }
   }
 
   Future<void> _pickAttachments() async {
@@ -1641,6 +1760,9 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
       color: textColor,
     );
     final templateSettings = ref.watch(memoTemplateSettingsProvider);
+    final toolbarPreferences = ref.watch(
+      appPreferencesProvider.select((p) => p.memoToolbarPreferences),
+    );
     final availableTemplates = templateSettings.enabled
         ? templateSettings.templates
         : const <MemoTemplate>[];
@@ -1877,92 +1999,19 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
                                 ),
                               ),
                             ),
-                          AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 180),
-                            switchInCurve: Curves.easeOutCubic,
-                            switchOutCurve: Curves.easeInCubic,
-                            transitionBuilder: (child, animation) {
-                              return SizeTransition(
-                                sizeFactor: animation,
-                                axisAlignment: -1,
-                                child: FadeTransition(
-                                  opacity: animation,
-                                  child: child,
-                                ),
-                              );
-                            },
-                            child: _isMoreToolbarOpen
-                                ? Padding(
-                                    padding: const EdgeInsets.fromLTRB(
-                                      20,
-                                      4,
-                                      20,
-                                      6,
-                                    ),
-                                    child: Align(
-                                      alignment: Alignment.centerLeft,
-                                      child: _buildMoreToolbar(isDark: isDark),
-                                    ),
-                                  )
-                                : const SizedBox.shrink(),
-                          ),
                           Padding(
-                            padding: const EdgeInsets.fromLTRB(20, 4, 20, 18),
+                            padding: const EdgeInsets.fromLTRB(20, 10, 20, 18),
                             child: Row(
                               children: [
                                 Expanded(
-                                  child: MemoComposePrimaryToolbar(
+                                  child: _buildComposeToolbar(
+                                    context: context,
                                     isDark: isDark,
-                                    busy: _busy,
-                                    moreOpen: _isMoreToolbarOpen,
-                                    visibilityMessage: context.t.strings.legacy
-                                        .msg_visibility_2(
-                                          visibilityLabel: visibilityLabel,
-                                        ),
+                                    preferences: toolbarPreferences,
+                                    availableTemplates: availableTemplates,
+                                    visibilityLabel: visibilityLabel,
                                     visibilityIcon: visibilityIcon,
                                     visibilityColor: visibilityColor,
-                                    tagButtonKey: _tagMenuKey,
-                                    templateButtonKey: _templateMenuKey,
-                                    todoButtonKey: _todoMenuKey,
-                                    visibilityButtonKey: _visibilityMenuKey,
-                                    onTagPressed: () {
-                                      _closeMoreToolbar();
-                                      _startTagAutocomplete();
-                                    },
-                                    onTemplatePressed: () {
-                                      _closeMoreToolbar();
-                                      unawaited(
-                                        _openTemplateMenuFromKey(
-                                          _templateMenuKey,
-                                          availableTemplates,
-                                        ),
-                                      );
-                                    },
-                                    onAttachmentPressed: () {
-                                      _closeMoreToolbar();
-                                      unawaited(_pickAttachments());
-                                    },
-                                    onTodoPressed: () {
-                                      _closeMoreToolbar();
-                                      unawaited(
-                                        _openTodoShortcutMenuFromKey(
-                                          _todoMenuKey,
-                                        ),
-                                      );
-                                    },
-                                    onLinkPressed: () {
-                                      _closeMoreToolbar();
-                                      unawaited(_openLinkMemoSheet());
-                                    },
-                                    onToggleMorePressed: _toggleMoreToolbar,
-                                    onVisibilityPressed: () {
-                                      _closeMoreToolbar();
-                                      unawaited(
-                                        _openVisibilityMenuFromKey(
-                                          _visibilityMenuKey,
-                                        ),
-                                      );
-                                    },
                                   ),
                                 ),
                                 const SizedBox(width: 8),

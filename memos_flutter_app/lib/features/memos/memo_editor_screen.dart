@@ -30,12 +30,15 @@ import '../../data/repositories/scene_micro_guide_repository.dart';
 import '../../state/settings/location_settings_provider.dart';
 import '../../state/memos/memo_editor_draft_provider.dart';
 import '../../state/settings/memo_template_settings_provider.dart';
+import '../../state/settings/preferences_provider.dart';
 import '../../state/memos/memo_editor_providers.dart';
 import '../../state/memos/memos_providers.dart';
 import '../../state/system/session_provider.dart';
 import '../../state/system/scene_micro_guide_provider.dart';
 import '../../state/tags/tag_color_lookup.dart';
 import 'attachment_gallery_screen.dart';
+import 'compose_toolbar_shared.dart';
+import 'gallery_attachment_picker.dart';
 import 'link_memo_sheet.dart';
 import 'memo_video_grid.dart';
 import 'tag_autocomplete.dart';
@@ -107,7 +110,6 @@ class _MemoEditorScreenState extends ConsumerState<MemoEditorScreen> {
   TextEditingValue _lastValue = const TextEditingValue();
   Timer? _draftTimer;
   var _isApplyingHistory = false;
-  bool _isMoreToolbarOpen = false;
   bool _relationsLoaded = false;
   bool _relationsLoading = false;
   bool _relationsDirty = false;
@@ -1018,16 +1020,6 @@ class _MemoEditorScreenState extends ConsumerState<MemoEditorScreen> {
     }
   }
 
-  void _toggleMoreToolbar() {
-    if (_saving) return;
-    setState(() => _isMoreToolbarOpen = !_isMoreToolbarOpen);
-  }
-
-  void _closeMoreToolbar() {
-    if (!_isMoreToolbarOpen) return;
-    setState(() => _isMoreToolbarOpen = false);
-  }
-
   Future<void> _openWindowsCameraSettings() async {
     if (!Platform.isWindows) return;
     try {
@@ -1091,103 +1083,107 @@ class _MemoEditorScreenState extends ConsumerState<MemoEditorScreen> {
     return true;
   }
 
-  Widget _buildMoreToolbar(BuildContext context, bool isDark) {
-    final iconColor = isDark ? Colors.white70 : Colors.black54;
-    final disabledColor = iconColor.withValues(alpha: 0.45);
-    const gap = 6.0;
-    const horizontalPadding = 10.0;
-    const verticalPadding = 6.0;
-    const iconButtonSize = 32.0;
-    final canEdit = !_saving;
-
-    Widget actionButton({
-      required IconData icon,
-      required VoidCallback onPressed,
-      bool enabled = true,
-    }) {
-      return IconButton(
-        icon: Icon(icon, size: 20, color: enabled ? iconColor : disabledColor),
-        onPressed: enabled
-            ? () {
-                _closeMoreToolbar();
-                onPressed();
-              }
-            : null,
-        padding: EdgeInsets.zero,
-        constraints: const BoxConstraints.tightFor(
-          width: iconButtonSize,
-          height: iconButtonSize,
-        ),
-        splashRadius: 18,
-      );
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: horizontalPadding,
-        vertical: verticalPadding,
+  Widget _buildComposeToolbar({
+    required BuildContext context,
+    required bool isDark,
+    required MemoToolbarPreferences preferences,
+    required List<MemoTemplate> availableTemplates,
+    required String visibilityLabel,
+    required IconData visibilityIcon,
+    required Color visibilityColor,
+  }) {
+    final actions = <MemoComposeToolbarActionSpec>[
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.bold,
+        enabled: !_saving,
+        onPressed: _toggleBold,
       ),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF2B2B2B) : Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.45 : 0.15),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.list,
+        enabled: !_saving,
+        onPressed: () => _insertText('- '),
       ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            actionButton(
-              icon: Icons.format_bold,
-              enabled: canEdit,
-              onPressed: _toggleBold,
-            ),
-            const SizedBox(width: gap),
-            actionButton(
-              icon: Icons.format_list_bulleted,
-              enabled: canEdit,
-              onPressed: () => _insertText('- '),
-            ),
-            const SizedBox(width: gap),
-            actionButton(
-              icon: Icons.format_underlined,
-              enabled: canEdit,
-              onPressed: _toggleUnderline,
-            ),
-            const SizedBox(width: gap),
-            actionButton(
-              icon: Icons.photo_camera_outlined,
-              enabled: canEdit,
-              onPressed: _capturePhoto,
-            ),
-            const SizedBox(width: gap),
-            actionButton(
-              icon: _locating ? Icons.my_location : Icons.place_outlined,
-              enabled: canEdit && !_locating,
-              onPressed: _requestLocation,
-            ),
-            const SizedBox(width: gap),
-            actionButton(
-              icon: Icons.undo,
-              enabled: canEdit && _undoStack.isNotEmpty,
-              onPressed: _undo,
-            ),
-            const SizedBox(width: gap),
-            actionButton(
-              icon: Icons.redo,
-              enabled: canEdit && _redoStack.isNotEmpty,
-              onPressed: _redo,
-            ),
-          ],
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.underline,
+        enabled: !_saving,
+        onPressed: _toggleUnderline,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.undo,
+        enabled: !_saving && _undoStack.isNotEmpty,
+        onPressed: _undo,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.redo,
+        enabled: !_saving && _redoStack.isNotEmpty,
+        onPressed: _redo,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.tag,
+        buttonKey: _tagMenuKey,
+        enabled: !_saving,
+        onPressed: _startTagAutocomplete,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.template,
+        buttonKey: _templateMenuKey,
+        enabled: !_saving,
+        onPressed: () => unawaited(
+          _openTemplateMenuFromKey(_templateMenuKey, availableTemplates),
         ),
       ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.attachment,
+        enabled: !_saving,
+        onPressed: () => unawaited(_pickAttachments()),
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.gallery,
+        enabled: !_saving,
+        onPressed: () => unawaited(_handleGalleryToolbarPressed()),
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.todo,
+        buttonKey: _todoMenuKey,
+        enabled: !_saving,
+        onPressed: () => unawaited(_openTodoShortcutMenuFromKey(_todoMenuKey)),
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.link,
+        enabled: !_saving,
+        onPressed: () => unawaited(_openLinkMemoSheet()),
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.camera,
+        enabled: !_saving,
+        onPressed: () => unawaited(_capturePhoto()),
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.location,
+        icon: _locating ? Icons.my_location : null,
+        enabled: !_saving && !_locating,
+        onPressed: () => unawaited(_requestLocation()),
+      ),
+      ...preferences.customButtons.map(
+        (button) => MemoComposeToolbarActionSpec.custom(
+          button: button,
+          enabled: !_saving,
+          onPressed: () => _insertText(button.insertContent),
+        ),
+      ),
+    ];
+
+    return MemoComposeToolbar(
+      isDark: isDark,
+      preferences: preferences,
+      actions: actions,
+      visibilityMessage: context.t.strings.legacy.msg_visibility_2(
+        visibilityLabel: visibilityLabel,
+      ),
+      visibilityIcon: visibilityIcon,
+      visibilityColor: visibilityColor,
+      visibilityButtonKey: _visibilityMenuKey,
+      onVisibilityPressed: _saving ? null : _openVisibilityMenuFromKey,
     );
   }
 
@@ -1253,6 +1249,70 @@ class _MemoEditorScreenState extends ConsumerState<MemoEditorScreen> {
       'log' => 'text/plain',
       _ => 'application/octet-stream',
     };
+  }
+
+  Future<void> _handleGalleryToolbarPressed() async {
+    if (!isMemoGalleryToolbarSupportedPlatform) {
+      showTopToast(context, context.t.strings.legacy.msg_gallery_mobile_only);
+      return;
+    }
+    await _pickGalleryAttachments();
+  }
+
+  Future<void> _pickGalleryAttachments() async {
+    if (_saving) return;
+    try {
+      final result = await pickGalleryAttachments(context);
+      if (!mounted || result == null) return;
+      if (result.attachments.isEmpty) {
+        final msg = result.skippedCount > 0
+            ? context.t.strings.legacy.msg_files_unavailable_from_picker
+            : context.t.strings.legacy.msg_no_files_selected;
+        showTopToast(context, msg);
+        return;
+      }
+
+      setState(() {
+        _pendingAttachments.addAll(
+          result.attachments
+              .map(
+                (attachment) => _PendingAttachment(
+                  uid: generateUid(),
+                  filePath: attachment.filePath,
+                  filename: attachment.filename,
+                  mimeType: attachment.mimeType,
+                  size: attachment.size,
+                ),
+              )
+              .toList(growable: false),
+        );
+      });
+      final skipped = [
+        if (result.skippedCount > 0)
+          context.t.strings.legacy.msg_unavailable_file_count(
+            count: result.skippedCount,
+          ),
+      ];
+      final summary = skipped.isEmpty
+          ? context.t.strings.legacy.msg_added_files(
+              count: result.attachments.length,
+            )
+          : context.t.strings.legacy.msg_added_files_with_skipped(
+              count: result.attachments.length,
+              details: skipped.join(', '),
+            );
+      showTopToast(context, summary);
+      _scheduleDraftSave();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            context.t.strings.legacy.msg_file_selection_failed(error: e),
+          ),
+        ),
+      );
+    }
   }
 
   Future<void> _pickAttachments() async {
@@ -2158,9 +2218,6 @@ class _MemoEditorScreenState extends ConsumerState<MemoEditorScreen> {
         ? MemoFlowPalette.textDark
         : MemoFlowPalette.textLight;
     final hintColor = isDark ? const Color(0xFF666666) : Colors.grey.shade500;
-    final dividerColor = isDark
-        ? Colors.white.withValues(alpha: 0.1)
-        : Colors.black.withValues(alpha: 0.08);
     final chipBg = isDark
         ? Colors.white.withValues(alpha: 0.06)
         : MemoFlowPalette.audioSurfaceLight;
@@ -2170,14 +2227,11 @@ class _MemoEditorScreenState extends ConsumerState<MemoEditorScreen> {
     final chipDelete = isDark
         ? Colors.white.withValues(alpha: 0.6)
         : Colors.grey.shade500;
-    final moreBg = isDark
-        ? Colors.white.withValues(alpha: 0.08)
-        : Colors.black.withValues(alpha: 0.06);
-    final moreBorder = isDark
-        ? Colors.white.withValues(alpha: 0.12)
-        : Colors.black.withValues(alpha: 0.08);
     final (visibilityLabel, visibilityIcon, visibilityColor) =
         _resolveVisibilityStyle(context, _visibility);
+    final toolbarPreferences = ref.watch(
+      appPreferencesProvider.select((p) => p.memoToolbarPreferences),
+    );
     final account = ref.watch(appSessionProvider).valueOrNull?.currentAccount;
     final baseUrl = account?.baseUrl;
     final sessionController = ref.read(appSessionProvider.notifier);
@@ -2433,206 +2487,19 @@ class _MemoEditorScreenState extends ConsumerState<MemoEditorScreen> {
                             ),
                           ),
                         ),
-                      AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 180),
-                        switchInCurve: Curves.easeOutCubic,
-                        switchOutCurve: Curves.easeInCubic,
-                        transitionBuilder: (child, animation) {
-                          return SizeTransition(
-                            sizeFactor: animation,
-                            axisAlignment: -1,
-                            child: FadeTransition(
-                              opacity: animation,
-                              child: child,
-                            ),
-                          );
-                        },
-                        child: _isMoreToolbarOpen
-                            ? Padding(
-                                padding: const EdgeInsets.fromLTRB(
-                                  16,
-                                  4,
-                                  16,
-                                  6,
-                                ),
-                                child: Align(
-                                  alignment: Alignment.centerLeft,
-                                  child: _buildMoreToolbar(context, isDark),
-                                ),
-                              )
-                            : const SizedBox.shrink(),
-                      ),
                       Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                        padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
                         child: Row(
                           children: [
                             Expanded(
-                              child: SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                physics: const BouncingScrollPhysics(),
-                                child: Row(
-                                  children: [
-                                    IconButton(
-                                      key: _tagMenuKey,
-                                      tooltip: context.t.strings.legacy.msg_tag,
-                                      onPressed: _saving
-                                          ? null
-                                          : () async {
-                                              _closeMoreToolbar();
-                                              _startTagAutocomplete();
-                                            },
-                                      icon: Icon(
-                                        Icons.tag,
-                                        color: isDark
-                                            ? Colors.grey.shade400
-                                            : Colors.grey.shade600,
-                                      ),
-                                    ),
-                                    IconButton(
-                                      key: _templateMenuKey,
-                                      tooltip:
-                                          context.t.strings.legacy.msg_template,
-                                      onPressed: _saving
-                                          ? null
-                                          : () async {
-                                              _closeMoreToolbar();
-                                              await _openTemplateMenuFromKey(
-                                                _templateMenuKey,
-                                                availableTemplates,
-                                              );
-                                            },
-                                      icon: Icon(
-                                        Icons.description_outlined,
-                                        color: isDark
-                                            ? Colors.grey.shade400
-                                            : Colors.grey.shade600,
-                                      ),
-                                    ),
-                                    IconButton(
-                                      tooltip: context
-                                          .t
-                                          .strings
-                                          .legacy
-                                          .msg_attachment,
-                                      onPressed: _saving
-                                          ? null
-                                          : () async {
-                                              _closeMoreToolbar();
-                                              await _pickAttachments();
-                                            },
-                                      icon: Icon(
-                                        Icons.attach_file,
-                                        color: isDark
-                                            ? Colors.grey.shade400
-                                            : Colors.grey.shade600,
-                                      ),
-                                    ),
-                                    IconButton(
-                                      key: _todoMenuKey,
-                                      tooltip:
-                                          context.t.strings.legacy.msg_todo,
-                                      onPressed: _saving
-                                          ? null
-                                          : () async {
-                                              _closeMoreToolbar();
-                                              await _openTodoShortcutMenuFromKey(
-                                                _todoMenuKey,
-                                              );
-                                            },
-                                      icon: Icon(
-                                        Icons.playlist_add_check,
-                                        color: isDark
-                                            ? Colors.grey.shade400
-                                            : Colors.grey.shade600,
-                                      ),
-                                    ),
-                                    IconButton(
-                                      tooltip:
-                                          context.t.strings.legacy.msg_link,
-                                      onPressed: _saving
-                                          ? null
-                                          : () async {
-                                              _closeMoreToolbar();
-                                              await _openLinkMemoSheet();
-                                            },
-                                      icon: Icon(
-                                        Icons.alternate_email_rounded,
-                                        color: isDark
-                                            ? Colors.grey.shade400
-                                            : Colors.grey.shade600,
-                                      ),
-                                    ),
-                                    Container(
-                                      width: 1,
-                                      height: 20,
-                                      color: dividerColor,
-                                    ),
-                                    AnimatedContainer(
-                                      duration: const Duration(
-                                        milliseconds: 160,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: _isMoreToolbarOpen
-                                            ? moreBg
-                                            : Colors.transparent,
-                                        borderRadius: BorderRadius.circular(10),
-                                        border: _isMoreToolbarOpen
-                                            ? Border.all(
-                                                color: moreBorder,
-                                                width: 1,
-                                              )
-                                            : null,
-                                      ),
-                                      child: IconButton(
-                                        tooltip:
-                                            context.t.strings.legacy.msg_more,
-                                        onPressed: _saving
-                                            ? null
-                                            : _toggleMoreToolbar,
-                                        icon: Icon(
-                                          Icons.more_horiz,
-                                          color: isDark
-                                              ? Colors.grey.shade400
-                                              : Colors.grey.shade600,
-                                        ),
-                                      ),
-                                    ),
-                                    Tooltip(
-                                      message: context.t.strings.legacy
-                                          .msg_visibility_2(
-                                            visibilityLabel: visibilityLabel,
-                                          ),
-                                      child: InkResponse(
-                                        key: _visibilityMenuKey,
-                                        onTap: _saving
-                                            ? null
-                                            : () {
-                                                _closeMoreToolbar();
-                                                _openVisibilityMenuFromKey();
-                                              },
-                                        radius: 18,
-                                        child: Container(
-                                          width: 28,
-                                          height: 28,
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            border: Border.all(
-                                              color: visibilityColor.withValues(
-                                                alpha: 0.85,
-                                              ),
-                                              width: 1.6,
-                                            ),
-                                          ),
-                                          child: Icon(
-                                            visibilityIcon,
-                                            size: 14,
-                                            color: visibilityColor,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                              child: _buildComposeToolbar(
+                                context: context,
+                                isDark: isDark,
+                                preferences: toolbarPreferences,
+                                availableTemplates: availableTemplates,
+                                visibilityLabel: visibilityLabel,
+                                visibilityIcon: visibilityIcon,
+                                visibilityColor: visibilityColor,
                               ),
                             ),
                             const SizedBox(width: 8),

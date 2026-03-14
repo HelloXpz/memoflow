@@ -95,6 +95,7 @@ import 'memo_media_grid.dart';
 import 'memo_markdown.dart';
 import 'memo_location_line.dart';
 import 'compose_toolbar_shared.dart';
+import 'gallery_attachment_picker.dart';
 import 'link_memo_sheet.dart';
 import 'recycle_bin_screen.dart';
 import 'memo_video_grid.dart';
@@ -428,7 +429,6 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
   final _inlineTemplateRenderer = MemoTemplateRenderer();
   MemoLocation? _inlineLocation;
   bool _inlineLocating = false;
-  bool _inlineMoreToolbarOpen = false;
   int _inlineTagAutocompleteIndex = 0;
   String? _inlineTagAutocompleteToken;
   final List<TextEditingValue> _inlineUndoStack = <TextEditingValue>[];
@@ -3294,51 +3294,115 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
     }
   }
 
-  void _toggleInlineMoreToolbar() {
-    if (_inlineComposeBusy) return;
-    setState(() => _inlineMoreToolbarOpen = !_inlineMoreToolbarOpen);
-  }
+  Widget _buildInlineComposeToolbar({
+    required BuildContext context,
+    required bool isDark,
+    required MemoToolbarPreferences preferences,
+    required List<MemoTemplate> availableTemplates,
+    required String visibilityLabel,
+    required IconData visibilityIcon,
+    required Color visibilityColor,
+  }) {
+    final actions = <MemoComposeToolbarActionSpec>[
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.bold,
+        enabled: !_inlineComposeBusy,
+        onPressed: _toggleInlineBold,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.list,
+        enabled: !_inlineComposeBusy,
+        onPressed: () => _insertInlineComposeText('- '),
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.underline,
+        enabled: !_inlineComposeBusy,
+        onPressed: _toggleInlineUnderline,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.undo,
+        enabled: !_inlineComposeBusy && _inlineUndoStack.isNotEmpty,
+        onPressed: _undoInlineCompose,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.redo,
+        enabled: !_inlineComposeBusy && _inlineRedoStack.isNotEmpty,
+        onPressed: _redoInlineCompose,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.tag,
+        buttonKey: _inlineTagMenuKey,
+        enabled: !_inlineComposeBusy,
+        onPressed: _startInlineTagAutocomplete,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.template,
+        buttonKey: _inlineTemplateMenuKey,
+        enabled: !_inlineComposeBusy,
+        onPressed: () => unawaited(
+          _openInlineTemplateMenuFromKey(
+            _inlineTemplateMenuKey,
+            availableTemplates,
+          ),
+        ),
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.attachment,
+        enabled: !_inlineComposeBusy,
+        onPressed: () => unawaited(_pickInlineAttachments()),
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.gallery,
+        enabled: !_inlineComposeBusy,
+        onPressed: () => unawaited(_handleInlineGalleryToolbarPressed()),
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.todo,
+        buttonKey: _inlineTodoMenuKey,
+        enabled: !_inlineComposeBusy,
+        onPressed: () =>
+            unawaited(_openInlineTodoShortcutMenuFromKey(_inlineTodoMenuKey)),
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.link,
+        enabled: !_inlineComposeBusy,
+        onPressed: () => unawaited(_openInlineLinkMemoSheet()),
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.camera,
+        enabled: !_inlineComposeBusy,
+        onPressed: () => unawaited(_captureInlinePhoto()),
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.location,
+        icon: _inlineLocating ? Icons.my_location : null,
+        enabled: !_inlineComposeBusy && !_inlineLocating,
+        onPressed: () => unawaited(_requestInlineLocation()),
+      ),
+      ...preferences.customButtons.map(
+        (button) => MemoComposeToolbarActionSpec.custom(
+          button: button,
+          enabled: !_inlineComposeBusy,
+          onPressed: () => _insertInlineComposeText(button.insertContent),
+        ),
+      ),
+    ];
 
-  void _closeInlineMoreToolbar() {
-    if (!_inlineMoreToolbarOpen) return;
-    setState(() => _inlineMoreToolbarOpen = false);
-  }
-
-  Widget _buildInlineMoreToolbar({required bool isDark}) {
-    return MemoComposeMoreToolbar(
+    return MemoComposeToolbar(
       isDark: isDark,
-      busy: _inlineComposeBusy,
-      onBoldPressed: () {
-        _closeInlineMoreToolbar();
-        _toggleInlineBold();
-      },
-      onListPressed: () {
-        _closeInlineMoreToolbar();
-        _insertInlineComposeText('- ');
-      },
-      onUnderlinePressed: () {
-        _closeInlineMoreToolbar();
-        _toggleInlineUnderline();
-      },
-      onCameraPressed: () {
-        _closeInlineMoreToolbar();
-        unawaited(_captureInlinePhoto());
-      },
-      onLocationPressed: () {
-        _closeInlineMoreToolbar();
-        unawaited(_requestInlineLocation());
-      },
-      onUndoPressed: () {
-        _closeInlineMoreToolbar();
-        _undoInlineCompose();
-      },
-      onRedoPressed: () {
-        _closeInlineMoreToolbar();
-        _redoInlineCompose();
-      },
-      undoEnabled: _inlineUndoStack.isNotEmpty,
-      redoEnabled: _inlineRedoStack.isNotEmpty,
-      locationBusy: _inlineLocating,
+      preferences: preferences,
+      actions: actions,
+      visibilityMessage: context.t.strings.legacy.msg_visibility_2(
+        visibilityLabel: visibilityLabel,
+      ),
+      visibilityIcon: visibilityIcon,
+      visibilityColor: visibilityColor,
+      visibilityButtonKey: _inlineVisibilityMenuKey,
+      onVisibilityPressed: _inlineComposeBusy
+          ? null
+          : () => unawaited(
+              _openInlineVisibilityMenuFromKey(_inlineVisibilityMenuKey),
+            ),
     );
   }
 
@@ -3617,6 +3681,69 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
 
   bool _isInlineVideoMimeType(String mimeType) {
     return mimeType.trim().toLowerCase().startsWith('video/');
+  }
+
+  Future<void> _handleInlineGalleryToolbarPressed() async {
+    if (!isMemoGalleryToolbarSupportedPlatform) {
+      showTopToast(context, context.t.strings.legacy.msg_gallery_mobile_only);
+      return;
+    }
+    await _pickGalleryAttachments();
+  }
+
+  Future<void> _pickGalleryAttachments() async {
+    if (_inlineComposeBusy) return;
+    try {
+      final result = await pickGalleryAttachments(context);
+      if (!mounted || result == null) return;
+      if (result.attachments.isEmpty) {
+        final msg = result.skippedCount > 0
+            ? context.t.strings.legacy.msg_files_unavailable_from_picker
+            : context.t.strings.legacy.msg_no_files_selected;
+        showTopToast(context, msg);
+        return;
+      }
+
+      setState(() {
+        _inlinePendingAttachments.addAll(
+          result.attachments
+              .map(
+                (attachment) => _InlinePendingAttachment(
+                  uid: generateUid(),
+                  filePath: attachment.filePath,
+                  filename: attachment.filename,
+                  mimeType: attachment.mimeType,
+                  size: attachment.size,
+                ),
+              )
+              .toList(growable: false),
+        );
+      });
+      final skipped = [
+        if (result.skippedCount > 0)
+          context.t.strings.legacy.msg_unavailable_file_count(
+            count: result.skippedCount,
+          ),
+      ];
+      final summary = skipped.isEmpty
+          ? context.t.strings.legacy.msg_added_files(
+              count: result.attachments.length,
+            )
+          : context.t.strings.legacy.msg_added_files_with_skipped(
+              count: result.attachments.length,
+              details: skipped.join(', '),
+            );
+      showTopToast(context, summary);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            context.t.strings.legacy.msg_file_selection_failed(error: error),
+          ),
+        ),
+      );
+    }
   }
 
   Future<void> _pickInlineAttachments() async {
@@ -4117,7 +4244,6 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
           _inlineLinkedMemos.clear();
           _inlineLocation = null;
           _inlineLocating = false;
-          _inlineMoreToolbarOpen = false;
           _inlineUndoStack.clear();
           _inlineRedoStack.clear();
           _inlineLastValue = _inlineComposeController.value;
@@ -4167,6 +4293,9 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
         ? MemoFlowPalette.textDark
         : MemoFlowPalette.textLight;
     final tagColorLookup = ref.watch(tagColorLookupProvider);
+    final toolbarPreferences = ref.watch(
+      appPreferencesProvider.select((p) => p.memoToolbarPreferences),
+    );
     final inlineComposeMinLines = Platform.isWindows ? 3 : 1;
     final inlineComposeMaxLines = Platform.isWindows ? 8 : 5;
     final (visibilityLabel, visibilityIcon, visibilityColor) =
@@ -4340,80 +4469,18 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
               );
             },
           ),
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 180),
-            switchInCurve: Curves.easeOutCubic,
-            switchOutCurve: Curves.easeInCubic,
-            transitionBuilder: (child, animation) {
-              return SizeTransition(
-                sizeFactor: animation,
-                axisAlignment: -1,
-                child: FadeTransition(opacity: animation, child: child),
-              );
-            },
-            child: _inlineMoreToolbarOpen
-                ? Padding(
-                    padding: const EdgeInsets.only(top: 6, bottom: 2),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: _buildInlineMoreToolbar(isDark: isDark),
-                    ),
-                  )
-                : const SizedBox.shrink(),
-          ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           Row(
             children: [
               Expanded(
-                child: MemoComposePrimaryToolbar(
+                child: _buildInlineComposeToolbar(
+                  context: context,
                   isDark: isDark,
-                  busy: _inlineComposeBusy,
-                  moreOpen: _inlineMoreToolbarOpen,
-                  visibilityMessage: context.t.strings.legacy.msg_visibility_2(
-                    visibilityLabel: visibilityLabel,
-                  ),
+                  preferences: toolbarPreferences,
+                  availableTemplates: availableTemplates,
+                  visibilityLabel: visibilityLabel,
                   visibilityIcon: visibilityIcon,
                   visibilityColor: visibilityColor,
-                  tagButtonKey: _inlineTagMenuKey,
-                  templateButtonKey: _inlineTemplateMenuKey,
-                  todoButtonKey: _inlineTodoMenuKey,
-                  visibilityButtonKey: _inlineVisibilityMenuKey,
-                  onTagPressed: () {
-                    _closeInlineMoreToolbar();
-                    _startInlineTagAutocomplete();
-                  },
-                  onTemplatePressed: () {
-                    _closeInlineMoreToolbar();
-                    unawaited(
-                      _openInlineTemplateMenuFromKey(
-                        _inlineTemplateMenuKey,
-                        availableTemplates,
-                      ),
-                    );
-                  },
-                  onAttachmentPressed: () {
-                    _closeInlineMoreToolbar();
-                    unawaited(_pickInlineAttachments());
-                  },
-                  onTodoPressed: () {
-                    _closeInlineMoreToolbar();
-                    unawaited(
-                      _openInlineTodoShortcutMenuFromKey(_inlineTodoMenuKey),
-                    );
-                  },
-                  onLinkPressed: () {
-                    _closeInlineMoreToolbar();
-                    unawaited(_openInlineLinkMemoSheet());
-                  },
-                  onToggleMorePressed: _toggleInlineMoreToolbar,
-                  onVisibilityPressed: () {
-                    _closeInlineMoreToolbar();
-                    unawaited(
-                      _openInlineVisibilityMenuFromKey(
-                        _inlineVisibilityMenuKey,
-                      ),
-                    );
-                  },
                 ),
               ),
               const SizedBox(width: 8),

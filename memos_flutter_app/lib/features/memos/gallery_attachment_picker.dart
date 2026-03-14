@@ -1,0 +1,125 @@
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:wechat_assets_picker/wechat_assets_picker.dart';
+
+@immutable
+class PickedLocalAttachment {
+  const PickedLocalAttachment({
+    required this.filePath,
+    required this.filename,
+    required this.mimeType,
+    required this.size,
+  });
+
+  final String filePath;
+  final String filename;
+  final String mimeType;
+  final int size;
+}
+
+@immutable
+class GalleryAttachmentPickResult {
+  const GalleryAttachmentPickResult({
+    required this.attachments,
+    required this.skippedCount,
+  });
+
+  final List<PickedLocalAttachment> attachments;
+  final int skippedCount;
+}
+
+bool get isMemoGalleryToolbarSupportedPlatform {
+  if (kIsWeb) return false;
+  return Platform.isAndroid || Platform.isIOS;
+}
+
+String guessLocalAttachmentMimeType(String filename) {
+  final lower = filename.toLowerCase();
+  final dot = lower.lastIndexOf('.');
+  final ext = dot == -1 ? '' : lower.substring(dot + 1);
+  return switch (ext) {
+    'png' => 'image/png',
+    'jpg' || 'jpeg' => 'image/jpeg',
+    'gif' => 'image/gif',
+    'webp' => 'image/webp',
+    'bmp' => 'image/bmp',
+    'heic' => 'image/heic',
+    'heif' => 'image/heif',
+    'mp3' => 'audio/mpeg',
+    'm4a' => 'audio/mp4',
+    'aac' => 'audio/aac',
+    'wav' => 'audio/wav',
+    'flac' => 'audio/flac',
+    'ogg' => 'audio/ogg',
+    'opus' => 'audio/opus',
+    'mp4' => 'video/mp4',
+    'mov' => 'video/quicktime',
+    'mkv' => 'video/x-matroska',
+    'webm' => 'video/webm',
+    'avi' => 'video/x-msvideo',
+    'pdf' => 'application/pdf',
+    'zip' => 'application/zip',
+    'rar' => 'application/vnd.rar',
+    '7z' => 'application/x-7z-compressed',
+    'txt' => 'text/plain',
+    'md' => 'text/markdown',
+    'json' => 'application/json',
+    'csv' => 'text/csv',
+    'log' => 'text/plain',
+    _ => 'application/octet-stream',
+  };
+}
+
+Future<GalleryAttachmentPickResult?> pickGalleryAttachments(
+  BuildContext context, {
+  int maxAssets = 100,
+}) async {
+  final themeColor = Theme.of(context).colorScheme.primary;
+  final assets = await AssetPicker.pickAssets(
+    context,
+    pickerConfig: AssetPickerConfig(
+      requestType: RequestType.common,
+      maxAssets: maxAssets,
+      themeColor: themeColor,
+    ),
+  );
+  if (assets == null || assets.isEmpty) {
+    return null;
+  }
+
+  final attachments = <PickedLocalAttachment>[];
+  var skippedCount = 0;
+  for (final asset in assets) {
+    final rawFile = await asset.file;
+    final path = rawFile?.path.trim() ?? '';
+    if (path.isEmpty) {
+      skippedCount++;
+      continue;
+    }
+
+    final file = File(path);
+    if (!file.existsSync()) {
+      skippedCount++;
+      continue;
+    }
+
+    final filename = (asset.title ?? '').trim().isNotEmpty
+        ? asset.title!.trim()
+        : path.split(Platform.pathSeparator).last;
+    attachments.add(
+      PickedLocalAttachment(
+        filePath: path,
+        filename: filename,
+        mimeType: guessLocalAttachmentMimeType(filename),
+        size: await file.length(),
+      ),
+    );
+  }
+
+  return GalleryAttachmentPickResult(
+    attachments: attachments,
+    skippedCount: skippedCount,
+  );
+}

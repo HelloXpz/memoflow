@@ -14,6 +14,7 @@ import 'desktop_tray_controller.dart';
 import 'desktop_exit_coordinator.dart';
 import '../../state/memos/app_bootstrap_adapter_provider.dart';
 import '../../state/settings/ai_settings_provider.dart';
+import '../../state/settings/preferences_provider.dart';
 import 'desktop_quick_input_controller.dart';
 
 typedef DesktopQuickInputLauncher =
@@ -253,6 +254,30 @@ class DesktopWindowManager {
         } catch (error, stackTrace) {
           log.error(
             'Desktop AI settings reload failed',
+            error: error,
+            stackTrace: stackTrace,
+          );
+          return false;
+        }
+      case desktopMainReloadPreferencesMethod:
+        final log = _bootstrapAdapter.readLogManager(_ref);
+        try {
+          await _ref.read(appPreferencesProvider.notifier).reloadFromStorage();
+          final quickInputWindowId = _desktopQuickInputWindowId;
+          if (quickInputWindowId != null && quickInputWindowId > 0) {
+            try {
+              await DesktopMultiWindow.invokeMethod(
+                quickInputWindowId,
+                desktopMainReloadPreferencesMethod,
+                null,
+              );
+            } catch (_) {}
+          }
+          log.info('Desktop preferences reload handled');
+          return true;
+        } catch (error, stackTrace) {
+          log.error(
+            'Desktop preferences reload failed',
             error: error,
             stackTrace: stackTrace,
           );

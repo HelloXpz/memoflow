@@ -1,6 +1,7 @@
 import '../../core/app_localization.dart';
 import '../../core/desktop/shortcuts.dart';
 import '../../core/theme_colors.dart';
+import 'memo_toolbar_preferences.dart';
 
 enum AppLanguage {
   system('legacy.app_language.system'),
@@ -106,6 +107,7 @@ class AppPreferences {
     aiSummaryAllowPrivateMemos: false,
     thirdPartyShareEnabled: true,
     windowsCloseToTray: true,
+    memoToolbarPreferences: MemoToolbarPreferences.defaults,
     desktopShortcutBindings: desktopShortcutDefaultBindings,
     lastSeenAppVersion: '',
     skippedUpdateVersion: '',
@@ -153,6 +155,7 @@ class AppPreferences {
     required this.aiSummaryAllowPrivateMemos,
     required this.thirdPartyShareEnabled,
     required this.windowsCloseToTray,
+    required this.memoToolbarPreferences,
     required this.desktopShortcutBindings,
     required this.lastSeenAppVersion,
     required this.skippedUpdateVersion,
@@ -191,6 +194,7 @@ class AppPreferences {
   final bool aiSummaryAllowPrivateMemos;
   final bool thirdPartyShareEnabled;
   final bool windowsCloseToTray;
+  final MemoToolbarPreferences memoToolbarPreferences;
   final Map<DesktopShortcutAction, DesktopShortcutBinding>
   desktopShortcutBindings;
   final String lastSeenAppVersion;
@@ -250,6 +254,7 @@ class AppPreferences {
     'aiSummaryAllowPrivateMemos': aiSummaryAllowPrivateMemos,
     'thirdPartyShareEnabled': thirdPartyShareEnabled,
     'windowsCloseToTray': windowsCloseToTray,
+    'memoToolbarPreferences': memoToolbarPreferences.toJson(),
     'desktopShortcutBindings': desktopShortcutBindingsToStorage(
       desktopShortcutBindings,
     ),
@@ -486,11 +491,16 @@ class AppPreferences {
       );
     }
 
+    MemoToolbarPreferences parseMemoToolbarPreferences() {
+      return MemoToolbarPreferences.fromJson(json['memoToolbarPreferences']);
+    }
+
     final parsedFamily = parseFontFamily();
     final parsedFile = parseFontFile();
     final parsedCustomTheme = parseCustomTheme();
     final parsedAccountThemeColors = parseAccountThemeColors();
     final parsedAccountCustomThemes = parseAccountCustomThemes();
+    final parsedMemoToolbarPreferences = parseMemoToolbarPreferences();
     final parsedDesktopShortcutBindings = parseDesktopShortcutBindings();
     final parsedLaunchAction = parseLaunchAction();
     final normalizedLaunchAction = parsedLaunchAction == LaunchAction.sync
@@ -576,6 +586,7 @@ class AppPreferences {
         'windowsCloseToTray',
         AppPreferences.defaults.windowsCloseToTray,
       ),
+      memoToolbarPreferences: parsedMemoToolbarPreferences,
       desktopShortcutBindings: parsedDesktopShortcutBindings,
       lastSeenAppVersion: parseLastSeenAppVersion(),
       skippedUpdateVersion: parseSkippedUpdateVersion(),
@@ -616,6 +627,7 @@ class AppPreferences {
     bool? aiSummaryAllowPrivateMemos,
     bool? thirdPartyShareEnabled,
     bool? windowsCloseToTray,
+    MemoToolbarPreferences? memoToolbarPreferences,
     Map<DesktopShortcutAction, DesktopShortcutBinding>? desktopShortcutBindings,
     String? lastSeenAppVersion,
     String? skippedUpdateVersion,
@@ -667,6 +679,8 @@ class AppPreferences {
       thirdPartyShareEnabled:
           thirdPartyShareEnabled ?? this.thirdPartyShareEnabled,
       windowsCloseToTray: windowsCloseToTray ?? this.windowsCloseToTray,
+      memoToolbarPreferences:
+          memoToolbarPreferences ?? this.memoToolbarPreferences,
       desktopShortcutBindings:
           desktopShortcutBindings ?? this.desktopShortcutBindings,
       lastSeenAppVersion: lastSeenAppVersion ?? this.lastSeenAppVersion,
