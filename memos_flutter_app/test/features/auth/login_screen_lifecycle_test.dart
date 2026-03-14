@@ -496,4 +496,81 @@ void main() {
     expect(sessionController.lastPasswordBaseUrl?.scheme, 'http');
     expect(sessionController.lastPasswordBaseUrl?.host, 'example.com');
   });
+
+  testWidgets('http switch hint stays visible and updates with protocol', (
+    tester,
+  ) async {
+    prepareViewport(tester);
+    final observer = _RecordingNavigatorObserver();
+    final sessionController = _TestSessionController();
+    const protocolHint =
+        'Use the shield icon on the right to switch connection protocols.';
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appSessionProvider.overrideWith((ref) => sessionController),
+          loginControllerProvider.overrideWith(
+            (ref) => _FakeLoginController(ref),
+          ),
+        ],
+        child: _LoginTestHost(observer: observer),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text(protocolHint), findsOneWidget);
+
+    final loginContext = tester.element(find.byType(LoginScreen));
+    await tester.tap(find.byIcon(Icons.shield_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(loginContext.t.strings.common.confirm));
+    await tester.pumpAndSettle();
+
+    expect(find.text(protocolHint), findsOneWidget);
+  });
+
+  testWidgets('server url prefix reflects protocol toggle', (tester) async {
+    prepareViewport(tester);
+    final observer = _RecordingNavigatorObserver();
+    final sessionController = _TestSessionController();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appSessionProvider.overrideWith((ref) => sessionController),
+          loginControllerProvider.overrideWith(
+            (ref) => _FakeLoginController(ref),
+          ),
+        ],
+        child: _LoginTestHost(observer: observer),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('https://'), findsOneWidget);
+    expect(find.text('http://'), findsNothing);
+
+    final fields = find.byType(TextFormField);
+    await tester.tap(fields.at(1));
+    await tester.pumpAndSettle();
+
+    expect(find.text('https://'), findsOneWidget);
+    expect(find.text('http://'), findsNothing);
+
+    final loginContext = tester.element(find.byType(LoginScreen));
+    await tester.tap(find.byIcon(Icons.shield_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(loginContext.t.strings.common.confirm));
+    await tester.pumpAndSettle();
+
+    expect(find.text('https://'), findsNothing);
+    expect(find.text('http://'), findsOneWidget);
+
+    await tester.tap(fields.at(1));
+    await tester.pumpAndSettle();
+
+    expect(find.text('https://'), findsNothing);
+    expect(find.text('http://'), findsOneWidget);
+  });
 }

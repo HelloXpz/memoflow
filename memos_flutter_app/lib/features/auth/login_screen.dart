@@ -823,23 +823,35 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             onChanged: onChanged,
             decoration: InputDecoration(
               hintText: hint,
-              prefixText: prefixText,
+              prefixIcon: prefixText == null
+                  ? null
+                  : Padding(
+                      padding: const EdgeInsets.only(left: 16, right: 4),
+                      child: Text(
+                        prefixText,
+                        style: TextStyle(
+                          color: textMain,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+              prefixIconConstraints: prefixText == null
+                  ? null
+                  : const BoxConstraints(minWidth: 0, minHeight: 0),
               suffixIcon: suffixIcon,
               suffixIconConstraints: suffixIcon == null
                   ? null
                   : const BoxConstraints(minWidth: 52, minHeight: 44),
-              prefixStyle: TextStyle(
-                color: textMain,
-                fontWeight: FontWeight.w600,
-              ),
               hintStyle: TextStyle(
                 color: textMuted.withValues(alpha: 0.6),
                 fontWeight: FontWeight.w500,
               ),
               border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 14,
+              contentPadding: EdgeInsets.only(
+                left: prefixText == null ? 16 : 0,
+                right: 16,
+                top: 14,
+                bottom: 14,
               ),
             ),
             validator: validator,
@@ -881,6 +893,43 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildHttpSwitchHint({required Color textMuted}) {
+    final message = context.tr(
+      zh: '\u53f3\u4fa7\u76fe\u724c\u56fe\u6807\u53ef\u7528\u4e8e\u5207\u6362\u8fde\u63a5\u534f\u8bae\u3002',
+      en: 'Use the shield icon on the right to switch connection protocols.',
+    );
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: textMuted.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.info_outline_rounded,
+            size: 16,
+            color: textMuted.withValues(alpha: 0.9),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                fontSize: 12,
+                height: 1.4,
+                color: textMuted,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1162,6 +1211,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           }
                           return null;
                         },
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 10),
+                        child: _buildHttpSwitchHint(textMuted: textMuted),
                       ),
                       const SizedBox(height: 14),
                       if (_loginMode == _LoginMode.password) ...[
