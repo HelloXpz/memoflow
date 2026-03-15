@@ -53,8 +53,8 @@ void main() {
             expect(capturedRequest.queryParameters['memoId'], '101');
 
             if (version == MemoApiVersion.v026) {
-              expect(jsonBody['createTime'], '2026-03-13T18:00:00.000Z');
-              expect(jsonBody['displayTime'], '2026-03-13T18:00:00.000Z');
+              expect(jsonBody.containsKey('createTime'), isFalse);
+              expect(jsonBody.containsKey('displayTime'), isFalse);
               expect(jsonBody['relations'], isA<List<dynamic>>());
             } else {
               expect(jsonBody.containsKey('createTime'), isFalse);

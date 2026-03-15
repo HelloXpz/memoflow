@@ -32,6 +32,33 @@ void main() {
     );
   });
 
+  test(
+    'returns follow-up create time when create body timestamps are disabled',
+    () {
+      final createTime = DateTime.utc(2026, 3, 13, 18, 0);
+
+      expect(
+        resolveCreateMemoFollowUpCreateTime(
+          supportsCreateMemoTimestampsInCreateBody: false,
+          supportsMemoCreateTimeUpdate: true,
+          createTime: createTime,
+        ),
+        createTime,
+      );
+    },
+  );
+
+  test('skips follow-up create time when update path cannot patch it', () {
+    expect(
+      resolveCreateMemoFollowUpCreateTime(
+        supportsCreateMemoTimestampsInCreateBody: false,
+        supportsMemoCreateTimeUpdate: false,
+        createTime: DateTime.utc(2026, 3, 13, 18, 0),
+      ),
+      isNull,
+    );
+  });
+
   Memo memoWithUid(String uid) {
     final now = DateTime.utc(2026, 3, 13, 22, 0);
     return Memo(

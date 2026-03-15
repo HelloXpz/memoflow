@@ -12,6 +12,18 @@ DateTime? resolveCreateMemoFollowUpDisplayTime({
   return (displayTime ?? createTime)?.toUtc();
 }
 
+DateTime? resolveCreateMemoFollowUpCreateTime({
+  required bool supportsCreateMemoTimestampsInCreateBody,
+  required bool supportsMemoCreateTimeUpdate,
+  required DateTime? createTime,
+}) {
+  if (supportsCreateMemoTimestampsInCreateBody ||
+      !supportsMemoCreateTimeUpdate) {
+    return null;
+  }
+  return createTime?.toUtc();
+}
+
 bool shouldPreserveLocalCreateTime({
   required LocalMemo? localMemo,
   required int localSyncState,

@@ -559,9 +559,20 @@ mixin _MemosApiMemos on _MemosApiBase {
   }
 
   bool _supportsCreateMemoTimestampFieldsInModernBody() {
+    if (_shouldAvoidCreateMemoTimestampFieldsInModernBodyForCompatibility()) {
+      return false;
+    }
     return _supportsModernCreateMemoBodyFields(
       minimum: const _ServerVersion(0, 26, 0),
     );
+  }
+
+  bool _shouldAvoidCreateMemoTimestampFieldsInModernBodyForCompatibility() {
+    final version = _serverVersion;
+    if (version == null) {
+      return false;
+    }
+    return version.major == 0 && version.minor == 26;
   }
 
   bool _supportsCreateMemoRelationsInModernBody() {

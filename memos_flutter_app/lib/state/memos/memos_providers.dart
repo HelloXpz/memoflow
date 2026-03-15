@@ -3002,6 +3002,12 @@ class RemoteSyncController extends SyncControllerBase {
       createTime: createTime,
       displayTime: resolvedDisplayTime,
     );
+    final followUpCreateTime = resolveCreateMemoFollowUpCreateTime(
+      supportsCreateMemoTimestampsInCreateBody:
+          api.supportsCreateMemoTimestampsInCreateBody,
+      supportsMemoCreateTimeUpdate: api.supportsMemoCreateTimeUpdate,
+      createTime: createTime,
+    );
     try {
       final created = await api.createMemo(
         memoId: uid,
@@ -3009,8 +3015,12 @@ class RemoteSyncController extends SyncControllerBase {
         visibility: visibility,
         pinned: pinned,
         location: location,
-        createTime: createTime,
-        displayTime: resolvedDisplayTime,
+        createTime: api.supportsCreateMemoTimestampsInCreateBody
+            ? createTime
+            : null,
+        displayTime: api.supportsCreateMemoTimestampsInCreateBody
+            ? resolvedDisplayTime
+            : null,
         relations: normalizedRelations,
       );
       final remoteUid = created.uid;
@@ -3025,10 +3035,11 @@ class RemoteSyncController extends SyncControllerBase {
       } else if (normalizedRelations.isNotEmpty) {
         _notifyRelationsSynced(targetUid, normalizedRelations);
       }
-      if (followUpDisplayTime != null) {
+      if (followUpCreateTime != null || followUpDisplayTime != null) {
         try {
           await api.updateMemo(
             memoUid: targetUid,
+            createTime: followUpCreateTime,
             displayTime: followUpDisplayTime,
           );
         } on DioException catch (e) {
