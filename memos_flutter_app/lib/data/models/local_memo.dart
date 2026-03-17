@@ -1,14 +1,12 @@
 import 'dart:convert';
 
+import '../../core/memo_relations.dart';
 import 'content_fingerprint.dart';
 import 'attachment.dart';
+import 'memo.dart';
 import 'memo_location.dart';
 
-enum SyncState {
-  synced,
-  pending,
-  error,
-}
+enum SyncState { synced, pending, error }
 
 class LocalMemo {
   const LocalMemo({
@@ -42,6 +40,28 @@ class LocalMemo {
   final MemoLocation? location;
   final SyncState syncState;
   final String? lastError;
+
+  factory LocalMemo.fromRemote(Memo memo) {
+    return LocalMemo(
+      uid: memo.uid,
+      content: memo.content,
+      contentFingerprint: memo.contentFingerprint,
+      visibility: memo.visibility,
+      pinned: memo.pinned,
+      state: memo.state,
+      createTime: memo.createTime.toLocal(),
+      updateTime: memo.updateTime.toLocal(),
+      tags: memo.tags,
+      attachments: memo.attachments,
+      relationCount: countReferenceRelations(
+        memoUid: memo.uid,
+        relations: memo.relations,
+      ),
+      location: memo.location,
+      syncState: SyncState.synced,
+      lastError: null,
+    );
+  }
 
   factory LocalMemo.fromDb(Map<String, dynamic> row) {
     final content = (row['content'] as String?) ?? '';
@@ -82,9 +102,20 @@ class LocalMemo {
       visibility: (row['visibility'] as String?) ?? 'PRIVATE',
       pinned: ((row['pinned'] as int?) ?? 0) == 1,
       state: (row['state'] as String?) ?? 'NORMAL',
-      createTime: DateTime.fromMillisecondsSinceEpoch(((row['create_time'] as int?) ?? 0) * 1000, isUtc: true).toLocal(),
-      updateTime: DateTime.fromMillisecondsSinceEpoch(((row['update_time'] as int?) ?? 0) * 1000, isUtc: true).toLocal(),
-      tags: tagsText.isEmpty ? const [] : tagsText.split(' ').where((t) => t.isNotEmpty).toList(growable: false),
+      createTime: DateTime.fromMillisecondsSinceEpoch(
+        ((row['create_time'] as int?) ?? 0) * 1000,
+        isUtc: true,
+      ).toLocal(),
+      updateTime: DateTime.fromMillisecondsSinceEpoch(
+        ((row['update_time'] as int?) ?? 0) * 1000,
+        isUtc: true,
+      ).toLocal(),
+      tags: tagsText.isEmpty
+          ? const []
+          : tagsText
+                .split(' ')
+                .where((t) => t.isNotEmpty)
+                .toList(growable: false),
       attachments: attachments,
       relationCount: (row['relation_count'] as int?) ?? 0,
       location: location,
@@ -101,7 +132,9 @@ class LocalMemo {
     final lat = _readDouble(latitude);
     final lng = _readDouble(longitude);
     if (lat == null || lng == null) return null;
-    final text = placeholder is String ? placeholder : placeholder?.toString() ?? '';
+    final text = placeholder is String
+        ? placeholder
+        : placeholder?.toString() ?? '';
     return MemoLocation(placeholder: text, latitude: lat, longitude: lng);
   }
 

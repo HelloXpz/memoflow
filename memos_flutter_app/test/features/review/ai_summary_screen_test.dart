@@ -15,6 +15,7 @@ import 'package:memos_flutter_app/data/models/instance_profile.dart';
 import 'package:memos_flutter_app/data/models/user.dart';
 import 'package:memos_flutter_app/data/repositories/ai_settings_repository.dart';
 import 'package:memos_flutter_app/features/review/ai_analysis_preview_screen.dart';
+import 'package:memos_flutter_app/features/review/ai_insight_history_shared.dart';
 import 'package:memos_flutter_app/features/review/ai_insight_models.dart';
 import 'package:memos_flutter_app/features/review/ai_insight_settings_sheet.dart';
 import 'package:memos_flutter_app/features/review/ai_summary_screen.dart';
@@ -666,14 +667,81 @@ Future<void> main() async {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
-    expect(
-      find.textContaining('analysis accuracy may be lower'),
-      findsWidgets,
-    );
+    expect(find.textContaining('analysis accuracy may be lower'), findsWidgets);
 
     final startButton = tester.widget<FilledButton>(
       find.widgetWithText(FilledButton, 'Start Analysis'),
     );
     expect(startButton.onPressed, isNotNull);
+  });
+
+  testWidgets('initial history selection opens the report view directly', (
+    tester,
+  ) async {
+    final db = AppDatabase(
+      dbName:
+          'ai_summary_initial_history_test_${DateTime.now().microsecondsSinceEpoch}.db',
+    );
+    final aiRepository = _MemoryAiSettingsRepository(
+      AiSettings.defaultsFor(AppLanguage.en),
+    );
+    final prefsRepository = _MemoryAppPreferencesRepository(
+      AppPreferences.defaultsForLanguage(AppLanguage.en),
+    );
+    const report = AiSavedAnalysisReport(
+      taskId: 42,
+      taskUid: 'task-initial-history',
+      status: AiTaskStatus.completed,
+      summary: 'Saved summary from history.',
+      sections: <AiAnalysisSectionData>[
+        AiAnalysisSectionData(
+          sectionKey: 'main',
+          title: 'Overview',
+          body: 'This is loaded straight into the report view.',
+          evidenceKeys: <String>[],
+        ),
+      ],
+      evidences: <AiAnalysisEvidenceData>[],
+      followUpSuggestions: <String>['Keep going'],
+      isStale: false,
+    );
+
+    addTearDown(() async {
+      await db.close();
+    });
+
+    await tester.pumpWidget(
+      _buildTestApp(
+        child: AiSummaryScreen(
+          initialHistorySelection: AiInsightHistorySelection(
+            report: report,
+            rangeStart: DateTime.utc(2026, 3, 1).millisecondsSinceEpoch ~/ 1000,
+            rangeEndExclusive:
+                DateTime.utc(2026, 3, 8).millisecondsSinceEpoch ~/ 1000,
+            insightId: AiInsightId.emotionMap,
+            titleOverride: 'History Entry',
+          ),
+        ),
+        overrides: [
+          appSessionProvider.overrideWith((ref) => _TestSessionController()),
+          databaseProvider.overrideWithValue(db),
+          aiSettingsProvider.overrideWith(
+            (ref) => _TestAiSettingsController(ref, aiRepository),
+          ),
+          appPreferencesProvider.overrideWith(
+            (ref) => _TestAppPreferencesController(ref, prefsRepository),
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('History Entry'), findsWidgets);
+    expect(find.text('Saved summary from history.'), findsOneWidget);
+    expect(
+      find.text('This is loaded straight into the report view.'),
+      findsOneWidget,
+    );
   });
 }

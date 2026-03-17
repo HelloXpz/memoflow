@@ -4,9 +4,9 @@
 /// To regenerate, run: `dart run slang`
 ///
 /// Locales: 5
-/// Strings: 6716 (1343 per locale)
+/// Strings: 6774 (1354 per locale)
 ///
-/// Built on 2026-03-14 at 08:24 UTC
+/// Built on 2026-03-17 at 03:26 UTC
 
 // coverage:ignore-file
 // ignore_for_file: type=lint
@@ -1035,6 +1035,13 @@ class _StringsStringsLegacyEn {
 	String get msg_network_timeout_try => 'Network timeout. Please try again.';
 	String get msg_unlock => 'Unlock';
 	String msg_ago_3({required Object diff_inDays}) => '${diff_inDays} ago';
+	String msg_random_walk_days_ago_exact({required Object days}) => '${days} days ago';
+	String get msg_random_walk_day_period_dawn => 'Dawn';
+	String get msg_random_walk_day_period_morning => 'Morning';
+	String get msg_random_walk_day_period_noon => 'Noon';
+	String get msg_random_walk_day_period_afternoon => 'Afternoon';
+	String get msg_random_walk_day_period_dusk => 'Dusk';
+	String get msg_random_walk_day_period_night => 'Night';
 	String get msg_deserve_coffee_i_m_pulling_all => 'To deserve this coffee, I\'m pulling an all-nighter to write 100 lines of code!';
 	String get msg_token_name => 'Token Name';
 	String get msg_restore_completed => 'Restore completed';
@@ -1165,6 +1172,11 @@ class _StringsStringsLegacyEn {
 	String msg_sign_failed({required Object message}) => 'Sign-in failed: ${message}';
 	String get msg_notification_exact_alarm_permissions_required_send => 'Notification and exact alarm permissions are required to send reminders on time.';
 	String get msg_random_review => 'Random Review';
+	String get msg_random_review_source_scope => 'Note source';
+	String get msg_random_review_source_all_notes => 'All notes';
+	String get msg_random_review_source_explore_notes => 'Explore notes';
+	String get msg_random_review_source_ai_history => 'AI history';
+	String get msg_random_review_ai_history_date_range => 'AI summary time';
 	String get msg_public => 'Public';
 	String get msg_all_2 => 'All';
 	String get msg_add_custom_model => 'Add custom model';
@@ -2992,6 +3004,13 @@ class _StringsStringsLegacyDe extends _StringsStringsLegacyEn {
 	@override String get msg_network_timeout_try => 'Netzwerk-Timeout. Bitte versuche es erneut.';
 	@override String get msg_unlock => 'Entsperren';
 	@override String msg_ago_3({required Object diff_inDays}) => 'vor ${diff_inDays}';
+	@override String msg_random_walk_days_ago_exact({required Object days}) => 'vor ${days} Tagen';
+	@override String get msg_random_walk_day_period_dawn => 'Früher Morgen';
+	@override String get msg_random_walk_day_period_morning => 'Vormittag';
+	@override String get msg_random_walk_day_period_noon => 'Mittag';
+	@override String get msg_random_walk_day_period_afternoon => 'Nachmittag';
+	@override String get msg_random_walk_day_period_dusk => 'Abenddämmerung';
+	@override String get msg_random_walk_day_period_night => 'Nacht';
 	@override String get msg_deserve_coffee_i_m_pulling_all => 'Um diesen Kaffee zu verdienen, mache ich eine Nachtschicht, um 100 Zeilen Code zu schreiben!';
 	@override String get msg_token_name => 'Token-Name';
 	@override String get msg_restore_completed => 'Wiederherstellung abgeschlossen';
@@ -3122,6 +3141,11 @@ class _StringsStringsLegacyDe extends _StringsStringsLegacyEn {
 	@override String msg_sign_failed({required Object message}) => 'Anmeldung fehlgeschlagen: ${message}';
 	@override String get msg_notification_exact_alarm_permissions_required_send => 'Benachrichtigungs- und Berechtigungen für exakte Alarme sind erforderlich, um Erinnerungen pünktlich zu senden.';
 	@override String get msg_random_review => 'Zufällige Überprüfung';
+	@override String get msg_random_review_source_scope => 'Notizquelle';
+	@override String get msg_random_review_source_all_notes => 'Alle Notizen';
+	@override String get msg_random_review_source_explore_notes => 'Notizen aus Entdecken';
+	@override String get msg_random_review_source_ai_history => 'KI-Verlauf';
+	@override String get msg_random_review_ai_history_date_range => 'Zeit der KI-Zusammenfassung';
 	@override String get msg_public => 'Öffentlich';
 	@override String get msg_all_2 => 'Alle';
 	@override String get msg_add_custom_model => 'Benutzerdefiniertes Modell hinzufügen';
@@ -4538,6 +4562,13 @@ class _StringsStringsLegacyJa extends _StringsStringsLegacyEn {
 	@override String get msg_network_timeout_try => 'ネットワークがタイムアウトしました。もう一度お試しください。';
 	@override String get msg_unlock => 'ロック解除';
 	@override String msg_ago_3({required Object diff_inDays}) => '${diff_inDays}前';
+	@override String msg_random_walk_days_ago_exact({required Object days}) => '${days}日前';
+	@override String get msg_random_walk_day_period_dawn => '明け方';
+	@override String get msg_random_walk_day_period_morning => '午前';
+	@override String get msg_random_walk_day_period_noon => '正午';
+	@override String get msg_random_walk_day_period_afternoon => '午後';
+	@override String get msg_random_walk_day_period_dusk => '夕方';
+	@override String get msg_random_walk_day_period_night => '夜';
 	@override String get msg_deserve_coffee_i_m_pulling_all => 'このコーヒーに見合うように、100行のコードを書くために徹夜しています！';
 	@override String get msg_token_name => 'トークン名';
 	@override String get msg_restore_completed => '復元が完了しました';
@@ -4668,6 +4699,11 @@ class _StringsStringsLegacyJa extends _StringsStringsLegacyEn {
 	@override String msg_sign_failed({required Object message}) => 'サインインに失敗しました: ${message}';
 	@override String get msg_notification_exact_alarm_permissions_required_send => '通知と正確なアラームの権限は、リマインダーを時間どおりに送信するために必要です。';
 	@override String get msg_random_review => 'ランダムレビュー';
+	@override String get msg_random_review_source_scope => 'ノートの取得範囲';
+	@override String get msg_random_review_source_all_notes => 'すべてのノート';
+	@override String get msg_random_review_source_explore_notes => '探索画面のノート';
+	@override String get msg_random_review_source_ai_history => 'AI 履歴まとめ';
+	@override String get msg_random_review_ai_history_date_range => 'AI 要約の作成時間';
 	@override String get msg_public => '公開';
 	@override String get msg_all_2 => 'すべて';
 	@override String get msg_add_custom_model => 'カスタムモデルを追加';
@@ -5537,7 +5573,18 @@ class _StringsStringsLegacyZhHans extends _StringsStringsLegacyEn {
 	@override String msg_playback_failed({required Object e}) => '播放失败: ${e}';
 	@override String get msg_path_copied => '路径已复制';
 	@override String get msg_auth_settings => '认证设置';
-	@override String get msg_randomly_draw_memo_cards => '随机抽取你的卡片笔记';
+	@override String get msg_randomly_draw_memo_cards => '翻开旧时刻、偶遇过去的自己';
+	@override String msg_random_walk_days_ago_exact({required Object days}) => '${days}天前';
+	@override String get msg_random_walk_day_period_dawn => '清晨';
+	@override String get msg_random_walk_day_period_morning => '上午';
+	@override String get msg_random_walk_day_period_noon => '中午';
+	@override String get msg_random_walk_day_period_afternoon => '下午';
+	@override String get msg_random_walk_day_period_dusk => '傍晚';
+	@override String get msg_random_walk_day_period_night => '夜晚';
+	@override String get msg_random_review_source_all_notes => '全部笔记';
+	@override String get msg_random_review_source_explore_notes => '探索笔记';
+	@override String get msg_random_review_source_ai_history => 'AI 历史';
+	@override String get msg_random_review_ai_history_date_range => 'AI 总结时间';
 	@override String get msg_copy_log_text => '复制日志文本';
 	@override String get msg_yes => '是';
 	@override String get msg_save_open_alipay_scan => '长按保存后打开支付宝扫一扫';
@@ -7488,7 +7535,18 @@ class _StringsStringsLegacyZhHantTw extends _StringsStringsLegacyEn {
 	@override String msg_playback_failed({required Object e}) => '播放失败: ${e}';
 	@override String get msg_path_copied => '路径已复制';
 	@override String get msg_auth_settings => '认证设置';
-	@override String get msg_randomly_draw_memo_cards => '随机抽取你的卡片笔记';
+	@override String get msg_randomly_draw_memo_cards => '翻開舊時刻、偶遇過去的自己';
+	@override String msg_random_walk_days_ago_exact({required Object days}) => '${days}天前';
+	@override String get msg_random_walk_day_period_dawn => '清晨';
+	@override String get msg_random_walk_day_period_morning => '上午';
+	@override String get msg_random_walk_day_period_noon => '中午';
+	@override String get msg_random_walk_day_period_afternoon => '下午';
+	@override String get msg_random_walk_day_period_dusk => '傍晚';
+	@override String get msg_random_walk_day_period_night => '夜晚';
+	@override String get msg_random_review_source_all_notes => '全部筆記';
+	@override String get msg_random_review_source_explore_notes => '探索筆記';
+	@override String get msg_random_review_source_ai_history => 'AI 歷史';
+	@override String get msg_random_review_ai_history_date_range => 'AI 總結時間';
 	@override String get msg_copy_log_text => '复制日志文本';
 	@override String get msg_yes => '是';
 	@override String get msg_save_open_alipay_scan => '长按保存后打开支付宝扫一扫';
@@ -9850,6 +9908,13 @@ extension on Translations {
 			case 'strings.legacy.msg_network_timeout_try': return 'Network timeout. Please try again.';
 			case 'strings.legacy.msg_unlock': return 'Unlock';
 			case 'strings.legacy.msg_ago_3': return ({required Object diff_inDays}) => '${diff_inDays} ago';
+			case 'strings.legacy.msg_random_walk_days_ago_exact': return ({required Object days}) => '${days} days ago';
+			case 'strings.legacy.msg_random_walk_day_period_dawn': return 'Dawn';
+			case 'strings.legacy.msg_random_walk_day_period_morning': return 'Morning';
+			case 'strings.legacy.msg_random_walk_day_period_noon': return 'Noon';
+			case 'strings.legacy.msg_random_walk_day_period_afternoon': return 'Afternoon';
+			case 'strings.legacy.msg_random_walk_day_period_dusk': return 'Dusk';
+			case 'strings.legacy.msg_random_walk_day_period_night': return 'Night';
 			case 'strings.legacy.msg_deserve_coffee_i_m_pulling_all': return 'To deserve this coffee, I\'m pulling an all-nighter to write 100 lines of code!';
 			case 'strings.legacy.msg_token_name': return 'Token Name';
 			case 'strings.legacy.msg_restore_completed': return 'Restore completed';
@@ -9980,6 +10045,11 @@ extension on Translations {
 			case 'strings.legacy.msg_sign_failed': return ({required Object message}) => 'Sign-in failed: ${message}';
 			case 'strings.legacy.msg_notification_exact_alarm_permissions_required_send': return 'Notification and exact alarm permissions are required to send reminders on time.';
 			case 'strings.legacy.msg_random_review': return 'Random Review';
+			case 'strings.legacy.msg_random_review_source_scope': return 'Note source';
+			case 'strings.legacy.msg_random_review_source_all_notes': return 'All notes';
+			case 'strings.legacy.msg_random_review_source_explore_notes': return 'Explore notes';
+			case 'strings.legacy.msg_random_review_source_ai_history': return 'AI history';
+			case 'strings.legacy.msg_random_review_ai_history_date_range': return 'AI summary time';
 			case 'strings.legacy.msg_public': return 'Public';
 			case 'strings.legacy.msg_all_2': return 'All';
 			case 'strings.legacy.msg_add_custom_model': return 'Add custom model';
@@ -11278,6 +11348,13 @@ extension on _StringsDe {
 			case 'strings.legacy.msg_network_timeout_try': return 'Netzwerk-Timeout. Bitte versuche es erneut.';
 			case 'strings.legacy.msg_unlock': return 'Entsperren';
 			case 'strings.legacy.msg_ago_3': return ({required Object diff_inDays}) => 'vor ${diff_inDays}';
+			case 'strings.legacy.msg_random_walk_days_ago_exact': return ({required Object days}) => 'vor ${days} Tagen';
+			case 'strings.legacy.msg_random_walk_day_period_dawn': return 'Früher Morgen';
+			case 'strings.legacy.msg_random_walk_day_period_morning': return 'Vormittag';
+			case 'strings.legacy.msg_random_walk_day_period_noon': return 'Mittag';
+			case 'strings.legacy.msg_random_walk_day_period_afternoon': return 'Nachmittag';
+			case 'strings.legacy.msg_random_walk_day_period_dusk': return 'Abenddämmerung';
+			case 'strings.legacy.msg_random_walk_day_period_night': return 'Nacht';
 			case 'strings.legacy.msg_deserve_coffee_i_m_pulling_all': return 'Um diesen Kaffee zu verdienen, mache ich eine Nachtschicht, um 100 Zeilen Code zu schreiben!';
 			case 'strings.legacy.msg_token_name': return 'Token-Name';
 			case 'strings.legacy.msg_restore_completed': return 'Wiederherstellung abgeschlossen';
@@ -11408,6 +11485,11 @@ extension on _StringsDe {
 			case 'strings.legacy.msg_sign_failed': return ({required Object message}) => 'Anmeldung fehlgeschlagen: ${message}';
 			case 'strings.legacy.msg_notification_exact_alarm_permissions_required_send': return 'Benachrichtigungs- und Berechtigungen für exakte Alarme sind erforderlich, um Erinnerungen pünktlich zu senden.';
 			case 'strings.legacy.msg_random_review': return 'Zufällige Überprüfung';
+			case 'strings.legacy.msg_random_review_source_scope': return 'Notizquelle';
+			case 'strings.legacy.msg_random_review_source_all_notes': return 'Alle Notizen';
+			case 'strings.legacy.msg_random_review_source_explore_notes': return 'Notizen aus Entdecken';
+			case 'strings.legacy.msg_random_review_source_ai_history': return 'KI-Verlauf';
+			case 'strings.legacy.msg_random_review_ai_history_date_range': return 'Zeit der KI-Zusammenfassung';
 			case 'strings.legacy.msg_public': return 'Öffentlich';
 			case 'strings.legacy.msg_all_2': return 'Alle';
 			case 'strings.legacy.msg_add_custom_model': return 'Benutzerdefiniertes Modell hinzufügen';
@@ -12474,6 +12556,13 @@ extension on _StringsJa {
 			case 'strings.legacy.msg_network_timeout_try': return 'ネットワークがタイムアウトしました。もう一度お試しください。';
 			case 'strings.legacy.msg_unlock': return 'ロック解除';
 			case 'strings.legacy.msg_ago_3': return ({required Object diff_inDays}) => '${diff_inDays}前';
+			case 'strings.legacy.msg_random_walk_days_ago_exact': return ({required Object days}) => '${days}日前';
+			case 'strings.legacy.msg_random_walk_day_period_dawn': return '明け方';
+			case 'strings.legacy.msg_random_walk_day_period_morning': return '午前';
+			case 'strings.legacy.msg_random_walk_day_period_noon': return '正午';
+			case 'strings.legacy.msg_random_walk_day_period_afternoon': return '午後';
+			case 'strings.legacy.msg_random_walk_day_period_dusk': return '夕方';
+			case 'strings.legacy.msg_random_walk_day_period_night': return '夜';
 			case 'strings.legacy.msg_deserve_coffee_i_m_pulling_all': return 'このコーヒーに見合うように、100行のコードを書くために徹夜しています！';
 			case 'strings.legacy.msg_token_name': return 'トークン名';
 			case 'strings.legacy.msg_restore_completed': return '復元が完了しました';
@@ -12604,6 +12693,11 @@ extension on _StringsJa {
 			case 'strings.legacy.msg_sign_failed': return ({required Object message}) => 'サインインに失敗しました: ${message}';
 			case 'strings.legacy.msg_notification_exact_alarm_permissions_required_send': return '通知と正確なアラームの権限は、リマインダーを時間どおりに送信するために必要です。';
 			case 'strings.legacy.msg_random_review': return 'ランダムレビュー';
+			case 'strings.legacy.msg_random_review_source_scope': return 'ノートの取得範囲';
+			case 'strings.legacy.msg_random_review_source_all_notes': return 'すべてのノート';
+			case 'strings.legacy.msg_random_review_source_explore_notes': return '探索画面のノート';
+			case 'strings.legacy.msg_random_review_source_ai_history': return 'AI 履歴まとめ';
+			case 'strings.legacy.msg_random_review_ai_history_date_range': return 'AI 要約の作成時間';
 			case 'strings.legacy.msg_public': return '公開';
 			case 'strings.legacy.msg_all_2': return 'すべて';
 			case 'strings.legacy.msg_add_custom_model': return 'カスタムモデルを追加';
@@ -13152,7 +13246,18 @@ extension on _StringsZhHans {
 			case 'strings.legacy.msg_playback_failed': return ({required Object e}) => '播放失败: ${e}';
 			case 'strings.legacy.msg_path_copied': return '路径已复制';
 			case 'strings.legacy.msg_auth_settings': return '认证设置';
-			case 'strings.legacy.msg_randomly_draw_memo_cards': return '随机抽取你的卡片笔记';
+			case 'strings.legacy.msg_randomly_draw_memo_cards': return '翻开旧时刻、偶遇过去的自己';
+			case 'strings.legacy.msg_random_walk_days_ago_exact': return ({required Object days}) => '${days}天前';
+			case 'strings.legacy.msg_random_walk_day_period_dawn': return '清晨';
+			case 'strings.legacy.msg_random_walk_day_period_morning': return '上午';
+			case 'strings.legacy.msg_random_walk_day_period_noon': return '中午';
+			case 'strings.legacy.msg_random_walk_day_period_afternoon': return '下午';
+			case 'strings.legacy.msg_random_walk_day_period_dusk': return '傍晚';
+			case 'strings.legacy.msg_random_walk_day_period_night': return '夜晚';
+			case 'strings.legacy.msg_random_review_source_all_notes': return '全部笔记';
+			case 'strings.legacy.msg_random_review_source_explore_notes': return '探索笔记';
+			case 'strings.legacy.msg_random_review_source_ai_history': return 'AI 历史';
+			case 'strings.legacy.msg_random_review_ai_history_date_range': return 'AI 总结时间';
 			case 'strings.legacy.msg_copy_log_text': return '复制日志文本';
 			case 'strings.legacy.msg_yes': return '是';
 			case 'strings.legacy.msg_save_open_alipay_scan': return '长按保存后打开支付宝扫一扫';
@@ -14574,7 +14679,18 @@ extension on _StringsZhHantTw {
 			case 'strings.legacy.msg_playback_failed': return ({required Object e}) => '播放失败: ${e}';
 			case 'strings.legacy.msg_path_copied': return '路径已复制';
 			case 'strings.legacy.msg_auth_settings': return '认证设置';
-			case 'strings.legacy.msg_randomly_draw_memo_cards': return '随机抽取你的卡片笔记';
+			case 'strings.legacy.msg_randomly_draw_memo_cards': return '翻開舊時刻、偶遇過去的自己';
+			case 'strings.legacy.msg_random_walk_days_ago_exact': return ({required Object days}) => '${days}天前';
+			case 'strings.legacy.msg_random_walk_day_period_dawn': return '清晨';
+			case 'strings.legacy.msg_random_walk_day_period_morning': return '上午';
+			case 'strings.legacy.msg_random_walk_day_period_noon': return '中午';
+			case 'strings.legacy.msg_random_walk_day_period_afternoon': return '下午';
+			case 'strings.legacy.msg_random_walk_day_period_dusk': return '傍晚';
+			case 'strings.legacy.msg_random_walk_day_period_night': return '夜晚';
+			case 'strings.legacy.msg_random_review_source_all_notes': return '全部筆記';
+			case 'strings.legacy.msg_random_review_source_explore_notes': return '探索筆記';
+			case 'strings.legacy.msg_random_review_source_ai_history': return 'AI 歷史';
+			case 'strings.legacy.msg_random_review_ai_history_date_range': return 'AI 總結時間';
 			case 'strings.legacy.msg_copy_log_text': return '复制日志文本';
 			case 'strings.legacy.msg_yes': return '是';
 			case 'strings.legacy.msg_save_open_alipay_scan': return '长按保存后打开支付宝扫一扫';

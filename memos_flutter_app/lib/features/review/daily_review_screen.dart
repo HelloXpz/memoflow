@@ -4,6 +4,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:appinio_swiper/appinio_swiper.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,12 +20,17 @@ import '../../core/platform_layout.dart';
 import '../../core/tag_colors.dart';
 import '../../core/tags.dart';
 import '../../core/url.dart';
+import '../../data/ai/ai_analysis_models.dart';
 import '../../data/models/attachment.dart';
+import '../../data/models/local_library.dart';
 import '../../data/models/local_memo.dart';
+import '../../data/models/user.dart';
 import '../../state/system/database_provider.dart';
 import '../../state/memos/memo_timeline_provider.dart';
 import '../../state/memos/memos_providers.dart';
-import '../../state/settings/preferences_provider.dart';
+import '../../state/review/ai_analysis_provider.dart';
+import '../../state/sync/sync_coordinator_provider.dart';
+import '../../state/system/local_library_provider.dart';
 import '../../state/system/session_provider.dart';
 import '../../state/tags/tag_color_lookup.dart';
 import '../about/about_screen.dart';
@@ -43,7 +49,11 @@ import '../stats/stats_screen.dart';
 import '../sync/sync_queue_screen.dart';
 import '../tags/tags_screen.dart';
 import '../memos/widgets/audio_row.dart';
+import 'ai_insight_history_shared.dart';
+import 'random_walk_display.dart';
 import 'ai_summary_screen.dart';
+import 'random_walk_models.dart';
+import 'random_walk_providers.dart';
 import '../../i18n/strings.g.dart';
 
 class DailyReviewScreen extends ConsumerStatefulWidget {
@@ -57,19 +67,17 @@ class _DailyReviewScreenState extends ConsumerState<DailyReviewScreen> {
   static const double _collapsedFilterTagMaxHeight = 112;
 
   final _random = math.Random();
-  late final _memosProvider = memosStreamProvider((
-    searchQuery: '',
-    state: 'NORMAL',
-    tag: null,
-    startTimeSec: null,
-    endTimeSecExclusive: null,
-    pageSize: 200,
-  ));
-
-  List<LocalMemo> _deck = const [];
-  List<String> _memoIds = const [];
+  ProviderSubscription<AsyncValue<List<RandomWalkDeckEntry>>>?
+  _deckSubscription;
+  List<RandomWalkDeckEntry> _deck = const [];
+  List<String> _deckKeys = const [];
+  List<String> _deckRevisionKeys = const [];
+  final _creatorCache = <String, User>{};
+  final _creatorFetching = <String>{};
   int _deckVersion = 0;
   int _cursor = 0;
+  String? _activeQueryKey;
+  String? _resolvedQueryKey;
   final _audioPlayer = AudioPlayer();
   final _audioPositionNotifier = ValueNotifier(Duration.zero);
   final _audioDurationNotifier = ValueNotifier<Duration?>(null);
@@ -83,22 +91,16 @@ class _DailyReviewScreenState extends ConsumerState<DailyReviewScreen> {
   String? _playingMemoUid;
   String? _playingAudioUrl;
   bool _audioLoading = false;
-  List<LocalMemo> _allMemos = const [];
+  RandomWalkSourceScope _selectedSource = RandomWalkSourceScope.allMemos;
   Set<String> _selectedTags = <String>{};
   DateTimeRange? _selectedDateRange;
+  late int _sampleSeed;
 
   @override
   void initState() {
     super.initState();
-    ref.listenManual(_memosProvider, (prev, next) {
-      next.whenData((memos) {
-        _allMemos = memos;
-        final filtered = _filterMemos(memos);
-        final changed = _syncDeck(filtered);
-        if (!changed || !mounted) return;
-        setState(() {});
-      });
-    }, fireImmediately: true);
+    _sampleSeed = _nextSampleSeed();
+    _subscribeDeck();
     _audioStateSub = _audioPlayer.playerStateStream.listen((state) {
       if (!mounted) return;
       if (state.playing) {
@@ -140,6 +142,7 @@ class _DailyReviewScreenState extends ConsumerState<DailyReviewScreen> {
 
   @override
   void dispose() {
+    _deckSubscription?.close();
     _audioStateSub?.cancel();
     _audioPositionSub?.cancel();
     _audioDurationSub?.cancel();
@@ -212,40 +215,231 @@ class _DailyReviewScreenState extends ConsumerState<DailyReviewScreen> {
     closeDrawerThenPushReplacement(context, const NotificationsScreen());
   }
 
-  bool _sameIds(List<String> next) {
-    if (_memoIds.length != next.length) return false;
+  int _nextSampleSeed() => _random.nextInt(0x3fffffff);
+
+  RandomWalkQuery get _deckQuery {
+    final sortedTags = _selectedTags.toList(growable: false)..sort();
+    final range = _selectedDateRange;
+    final startSec = range == null
+        ? null
+        : DateTime(
+                range.start.year,
+                range.start.month,
+                range.start.day,
+              ).toUtc().millisecondsSinceEpoch ~/
+              1000;
+    final endSec = range == null
+        ? null
+        : DateTime(
+                range.end.year,
+                range.end.month,
+                range.end.day,
+              ).add(const Duration(days: 1)).toUtc().millisecondsSinceEpoch ~/
+              1000;
+    return RandomWalkQuery(
+      source: _selectedSource,
+      selectedTagKeys: sortedTags,
+      dateStartSec: startSec,
+      dateEndSecExclusive: endSec,
+      sampleLimit: randomWalkSampleLimit,
+      sampleSeed: _sampleSeed,
+    );
+  }
+
+  String _queryKeyFor(RandomWalkQuery query) {
+    return [
+      query.source.name,
+      query.selectedTagKeys.join(','),
+      query.dateStartSec?.toString() ?? '',
+      query.dateEndSecExclusive?.toString() ?? '',
+      query.sampleSeed.toString(),
+    ].join('|');
+  }
+
+  void _subscribeDeck() {
+    final query = _deckQuery;
+    _activeQueryKey = _queryKeyFor(query);
+    _deckSubscription?.close();
+    _deckSubscription = ref.listenManual(randomWalkDeckProvider(query), (
+      prev,
+      next,
+    ) {
+      next.whenData((entries) {
+        _resolvedQueryKey = _activeQueryKey;
+        unawaited(
+          _prefetchCreatorsByName(
+            entries
+                .map((entry) => entry.creatorRef?.trim() ?? '')
+                .where((name) => name.isNotEmpty),
+          ),
+        );
+        final changed = _syncDeck(entries);
+        if (!changed || !mounted) return;
+        setState(() {});
+      });
+    }, fireImmediately: true);
+  }
+
+  Future<void> _prefetchCreatorsByName(Iterable<String> names) async {
+    final api = ref.read(memosApiProvider);
+    final pending = <String>[];
+    for (final raw in names) {
+      final creator = raw.trim();
+      if (creator.isEmpty) continue;
+      if (_creatorCache.containsKey(creator)) continue;
+      if (_creatorFetching.contains(creator)) continue;
+      _creatorFetching.add(creator);
+      pending.add(creator);
+    }
+    if (pending.isEmpty) return;
+
+    final updates = <String, User>{};
+    for (final creator in pending) {
+      try {
+        final user = await api.getUser(name: creator);
+        updates[creator] = user;
+      } catch (_) {
+      } finally {
+        _creatorFetching.remove(creator);
+      }
+    }
+    if (updates.isEmpty || !mounted) return;
+    setState(() => _creatorCache.addAll(updates));
+  }
+
+  String _formatDateYmd(DateTime dt) {
+    return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
+  }
+
+  String _resolveAvatarUrl(String rawUrl, Uri? baseUrl) {
+    final trimmed = rawUrl.trim();
+    if (trimmed.isEmpty) return '';
+    if (trimmed.startsWith('data:')) return trimmed;
+    final lower = trimmed.toLowerCase();
+    if (lower.startsWith('http://') || lower.startsWith('https://')) {
+      return trimmed;
+    }
+    if (baseUrl == null) return trimmed;
+    return joinBaseUrl(baseUrl, trimmed);
+  }
+
+  String _currentUserFallbackLabel(User? user, LocalLibrary? localLibrary) {
+    final display = user?.displayName.trim() ?? '';
+    if (display.isNotEmpty) return display;
+    final username = user?.username.trim() ?? '';
+    if (username.isNotEmpty) return username;
+    final libraryName = localLibrary?.name.trim() ?? '';
+    if (libraryName.isNotEmpty) return libraryName;
+    return '?';
+  }
+
+  String _initialForLabel(String label) {
+    final trimmed = label.trim();
+    if (trimmed.isEmpty) return '?';
+    final rune = trimmed.runes.first;
+    return String.fromCharCode(rune).toUpperCase();
+  }
+
+  Widget _buildHeaderAvatar({
+    required String rawAvatarUrl,
+    required Uri? baseUrl,
+    required String fallback,
+    required Color borderColor,
+    required Color textColor,
+    required bool isDark,
+    double size = 80,
+  }) {
+    final resolvedUrl = _resolveAvatarUrl(rawAvatarUrl, baseUrl);
+    final bg = isDark
+        ? Colors.white.withValues(alpha: 0.08)
+        : Colors.black.withValues(alpha: 0.06);
+    final fallbackWidget = Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: bg,
+        border: Border.all(color: borderColor, width: 1),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        _initialForLabel(fallback),
+        style: TextStyle(
+          fontSize: size * 0.42,
+          fontWeight: FontWeight.w700,
+          color: textColor,
+        ),
+      ),
+    );
+    if (resolvedUrl.isEmpty) return fallbackWidget;
+    if (resolvedUrl.startsWith('data:')) {
+      final bytes = tryDecodeDataUri(resolvedUrl);
+      if (bytes == null) return fallbackWidget;
+      return Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: borderColor, width: 1),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Image.memory(
+          bytes,
+          fit: BoxFit.cover,
+          errorBuilder: (_, _, _) => fallbackWidget,
+        ),
+      );
+    }
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: borderColor, width: 1),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: CachedNetworkImage(
+        imageUrl: resolvedUrl,
+        fit: BoxFit.cover,
+        placeholder: (context, progress) => fallbackWidget,
+        errorWidget: (context, url, error) => fallbackWidget,
+      ),
+    );
+  }
+
+  bool _sameDeckKeys(List<String> next) {
+    if (_deckKeys.length != next.length) return false;
     for (var i = 0; i < next.length; i++) {
-      if (_memoIds[i] != next[i]) return false;
+      if (_deckKeys[i] != next[i]) return false;
     }
     return true;
   }
 
-  bool _syncDeck(List<LocalMemo> memos) {
-    final ids = memos.map((m) => m.uid).toList(growable: false);
-    if (_sameIds(ids)) {
-      final lookup = {for (final memo in memos) memo.uid: memo};
-      var changed = false;
-      final next = <LocalMemo>[];
-      for (final memo in _deck) {
-        final updated = lookup[memo.uid] ?? memo;
-        if (memo.contentFingerprint != updated.contentFingerprint ||
-            memo.pinned != updated.pinned ||
-            memo.state != updated.state ||
-            memo.updateTime != updated.updateTime ||
-            memo.syncState != updated.syncState ||
-            memo.lastError != updated.lastError) {
-          changed = true;
-        }
-        next.add(updated);
+  bool _sameDeckRevisionKeys(List<String> next) {
+    if (_deckRevisionKeys.length != next.length) return false;
+    for (var i = 0; i < next.length; i++) {
+      if (_deckRevisionKeys[i] != next[i]) return false;
+    }
+    return true;
+  }
+
+  bool _syncDeck(List<RandomWalkDeckEntry> entries) {
+    final keys = entries.map((entry) => entry.key).toList(growable: false);
+    final revisions = entries
+        .map((entry) => entry.revisionKey)
+        .toList(growable: false);
+    if (_sameDeckKeys(keys)) {
+      if (_sameDeckRevisionKeys(revisions)) {
+        return false;
       }
-      if (changed) {
-        _deck = next;
-      }
-      return changed;
+      _deck = entries;
+      _deckRevisionKeys = revisions;
+      return true;
     }
 
-    _memoIds = ids;
-    _deck = List<LocalMemo>.from(memos)..shuffle(_random);
+    _deckKeys = keys;
+    _deckRevisionKeys = revisions;
+    _deck = entries;
     _deckVersion += 1;
     _cursor = 0;
     return true;
@@ -477,78 +671,47 @@ class _DailyReviewScreenState extends ConsumerState<DailyReviewScreen> {
     );
   }
 
-  List<LocalMemo> _filterMemos(List<LocalMemo> memos) {
-    final tagColors = ref.read(tagColorLookupProvider);
-    final normalizedTagKeys = _selectedTags
-        .map(tagColors.resolveCanonicalPath)
-        .map(_tagKey)
-        .where((key) => key.isNotEmpty)
-        .toSet();
-    final range = _selectedDateRange;
-
-    final hasTagFilter = normalizedTagKeys.isNotEmpty;
-    final hasDateFilter = range != null;
-    if (!hasTagFilter && !hasDateFilter) {
-      return memos;
+  Future<void> _openAiHistoryEntry(AiSavedAnalysisHistoryEntry entry) async {
+    final report = await ref
+        .read(aiAnalysisRepositoryProvider)
+        .loadAnalysisReportByTaskId(entry.taskId);
+    if (!mounted) return;
+    if (report == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(aiInsightHistoryOpenFailedText(context))),
+      );
+      return;
     }
-
-    final dateWindow = range == null
-        ? null
-        : (
-            start: DateTime(
-              range.start.year,
-              range.start.month,
-              range.start.day,
-            ),
-            endExclusive: DateTime(
-              range.end.year,
-              range.end.month,
-              range.end.day,
-            ).add(const Duration(days: 1)),
-          );
-
-    final filtered = <LocalMemo>[];
-    for (final memo in memos) {
-      if (hasTagFilter) {
-        final memoTagKeys = memo.tags
-            .map(_normalizeTag)
-            .map(tagColors.resolveCanonicalPath)
-            .map(_tagKey)
-            .where((key) => key.isNotEmpty)
-            .toSet();
-        if (memoTagKeys.intersection(normalizedTagKeys).isEmpty) {
-          continue;
-        }
-      }
-      if (hasDateFilter) {
-        final createdAt = memo.createTime;
-        if (createdAt.isBefore(dateWindow!.start) ||
-            !createdAt.isBefore(dateWindow.endExclusive)) {
-          continue;
-        }
-      }
-      filtered.add(memo);
-    }
-    return filtered;
+    final descriptor = resolveAiInsightHistoryDescriptor(
+      context,
+      ref,
+      entry.promptTemplate,
+    );
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => AiSummaryScreen(
+          initialHistorySelection: AiInsightHistorySelection(
+            report: report,
+            rangeStart: entry.rangeStart,
+            rangeEndExclusive: entry.rangeEndExclusive,
+            insightId: descriptor.insightId,
+            titleOverride: descriptor.titleOverride,
+          ),
+        ),
+      ),
+    );
   }
 
   List<String> _availableTags(
     List<TagStat> tagStats,
     TagColorLookup tagColors,
   ) {
-    final tagSet = <String>{};
-    for (final memo in _allMemos) {
-      for (final rawTag in memo.tags) {
-        final normalized = _normalizeTag(rawTag);
-        if (normalized.isEmpty) continue;
-        final canonical = tagColors.resolveCanonicalPath(normalized);
-        final resolved = canonical.isEmpty ? normalized : canonical;
-        tagSet.add(resolved);
-      }
-    }
-
     final ordered = <String>[];
-    final remaining = tagSet.toSet();
+    final remaining = <String>{
+      for (final stat in tagStats)
+        if (tagColors.resolveCanonicalPath(stat.path).isNotEmpty)
+          tagColors.resolveCanonicalPath(stat.path),
+    };
     for (final stat in tagStats) {
       final path = tagColors.resolveCanonicalPath(stat.path);
       if (path.isEmpty || !remaining.remove(path)) continue;
@@ -558,6 +721,27 @@ class _DailyReviewScreenState extends ConsumerState<DailyReviewScreen> {
     final leftovers = remaining.toList(growable: false)
       ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
     return [...ordered, ...leftovers];
+  }
+
+  bool get _sourceSupportsTagFilter =>
+      _selectedSource != RandomWalkSourceScope.aiHistory;
+
+  String _sourceLabel(RandomWalkSourceScope source, BuildContext context) {
+    return switch (source) {
+      RandomWalkSourceScope.allMemos =>
+        context.t.strings.legacy.msg_random_review_source_all_notes,
+      RandomWalkSourceScope.exploreMemos =>
+        context.t.strings.legacy.msg_random_review_source_explore_notes,
+      RandomWalkSourceScope.aiHistory =>
+        context.t.strings.legacy.msg_random_review_source_ai_history,
+    };
+  }
+
+  String _dateFilterLabel(BuildContext context, RandomWalkSourceScope source) {
+    if (source == RandomWalkSourceScope.aiHistory) {
+      return context.t.strings.legacy.msg_random_review_ai_history_date_range;
+    }
+    return context.t.strings.legacy.msg_select_date_range;
   }
 
   List<String> _sortTags(
@@ -583,11 +767,6 @@ class _DailyReviewScreenState extends ConsumerState<DailyReviewScreen> {
 
   String _normalizeTag(String raw) {
     return normalizeTagPath(raw);
-  }
-
-  String _tagKey(String raw) {
-    final normalized = _normalizeTag(raw);
-    return normalized.toLowerCase();
   }
 
   DateTimeRange _normalizeRange(DateTimeRange range) {
@@ -634,6 +813,7 @@ class _DailyReviewScreenState extends ConsumerState<DailyReviewScreen> {
   }
 
   void _applyFilters({
+    required RandomWalkSourceScope source,
     required Set<String> tags,
     required DateTimeRange? dateRange,
   }) {
@@ -646,9 +826,11 @@ class _DailyReviewScreenState extends ConsumerState<DailyReviewScreen> {
     final normalizedRange = dateRange == null
         ? null
         : _normalizeRange(dateRange);
+    _selectedSource = source;
     _selectedTags = normalizedTags;
     _selectedDateRange = normalizedRange;
-    _syncDeck(_filterMemos(_allMemos));
+    _sampleSeed = _nextSampleSeed();
+    _subscribeDeck();
     unawaited(_stopAudioPlayback());
     if (!mounted) return;
     setState(() {});
@@ -659,6 +841,7 @@ class _DailyReviewScreenState extends ConsumerState<DailyReviewScreen> {
         ref.read(tagStatsProvider).valueOrNull ?? const <TagStat>[];
     final tagColors = ref.read(tagColorLookupProvider);
     final availableTags = _availableTags(tagStats, tagColors);
+    var draftSource = _selectedSource;
     var draftTags = Set<String>.from(_selectedTags);
     var draftRange = _selectedDateRange;
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -729,6 +912,34 @@ class _DailyReviewScreenState extends ConsumerState<DailyReviewScreen> {
       );
     }
 
+    Widget buildSourceChip(
+      RandomWalkSourceScope source,
+      StateSetter setModalState,
+    ) {
+      final selected = draftSource == source;
+      return FilterChip(
+        label: Text(_sourceLabel(source, context)),
+        selected: selected,
+        onSelected: (_) {
+          setModalState(() {
+            draftSource = source;
+          });
+        },
+        backgroundColor: chipBg,
+        selectedColor: accent.withValues(alpha: isDark ? 0.24 : 0.15),
+        side: BorderSide(
+          color: selected
+              ? accent.withValues(alpha: isDark ? 0.62 : 0.55)
+              : border,
+        ),
+        labelStyle: TextStyle(
+          color: selected ? accent : textMain,
+          fontWeight: FontWeight.w600,
+        ),
+        showCheckmark: false,
+      );
+    }
+
     await showDialog<void>(
       context: context,
       barrierColor: Colors.black.withValues(alpha: isDark ? 0.56 : 0.4),
@@ -777,6 +988,7 @@ class _DailyReviewScreenState extends ConsumerState<DailyReviewScreen> {
                             TextButton(
                               onPressed: () {
                                 setModalState(() {
+                                  draftSource = RandomWalkSourceScope.allMemos;
                                   draftTags = <String>{};
                                   draftRange = null;
                                   tagsExpanded = false;
@@ -797,6 +1009,9 @@ class _DailyReviewScreenState extends ConsumerState<DailyReviewScreen> {
                                 ),
                                 168.0,
                               );
+                              final showTagFilters =
+                                  draftSource !=
+                                  RandomWalkSourceScope.aiHistory;
 
                               Widget buildTagViewport() {
                                 return Stack(
@@ -898,100 +1113,133 @@ class _DailyReviewScreenState extends ConsumerState<DailyReviewScreen> {
                               return Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          context
-                                              .t
-                                              .strings
-                                              .legacy
-                                              .msg_select_tags,
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w600,
-                                            color: textMuted,
-                                          ),
-                                        ),
-                                      ),
-                                      TextButton.icon(
-                                        onPressed: () {
-                                          setModalState(() {
-                                            tagsExpanded = !tagsExpanded;
-                                          });
-                                        },
-                                        style: TextButton.styleFrom(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 8,
-                                            vertical: 4,
-                                          ),
-                                          minimumSize: const Size(0, 0),
-                                          tapTargetSize:
-                                              MaterialTapTargetSize.shrinkWrap,
-                                          visualDensity: VisualDensity.compact,
-                                        ),
-                                        icon: AnimatedRotation(
-                                          turns: tagsExpanded ? 0.5 : 0,
-                                          duration: const Duration(
-                                            milliseconds: 180,
-                                          ),
-                                          curve: Curves.easeOutCubic,
-                                          child: const Icon(
-                                            Icons.expand_more_rounded,
-                                            size: 18,
-                                          ),
-                                        ),
-                                        label: Text(
-                                          tagsExpanded
-                                              ? context
-                                                    .t
-                                                    .strings
-                                                    .legacy
-                                                    .msg_collapse
-                                              : context
-                                                    .t
-                                                    .strings
-                                                    .legacy
-                                                    .msg_expand,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 6),
-                                  if (availableTags.isEmpty)
-                                    Padding(
-                                      padding: const EdgeInsets.only(bottom: 8),
-                                      child: Text(
-                                        context
-                                            .t
-                                            .strings
-                                            .legacy
-                                            .msg_no_tags_yet,
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w500,
-                                          color: textMuted,
-                                        ),
-                                      ),
-                                    )
-                                  else if (tagsExpanded)
-                                    Expanded(child: buildTagViewport())
-                                  else
-                                    AnimatedContainer(
-                                      duration: const Duration(
-                                        milliseconds: 180,
-                                      ),
-                                      curve: Curves.easeOutCubic,
-                                      height: collapsedTagHeight,
-                                      child: buildTagViewport(),
-                                    ),
-                                  const SizedBox(height: 18),
                                   Text(
                                     context
                                         .t
                                         .strings
                                         .legacy
-                                        .msg_select_date_range,
+                                        .msg_random_review_source_scope,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: textMuted,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: [
+                                      buildSourceChip(
+                                        RandomWalkSourceScope.allMemos,
+                                        setModalState,
+                                      ),
+                                      buildSourceChip(
+                                        RandomWalkSourceScope.exploreMemos,
+                                        setModalState,
+                                      ),
+                                      buildSourceChip(
+                                        RandomWalkSourceScope.aiHistory,
+                                        setModalState,
+                                      ),
+                                    ],
+                                  ),
+                                  if (showTagFilters) ...[
+                                    const SizedBox(height: 18),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            context
+                                                .t
+                                                .strings
+                                                .legacy
+                                                .msg_select_tags,
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w600,
+                                              color: textMuted,
+                                            ),
+                                          ),
+                                        ),
+                                        TextButton.icon(
+                                          onPressed: () {
+                                            setModalState(() {
+                                              tagsExpanded = !tagsExpanded;
+                                            });
+                                          },
+                                          style: TextButton.styleFrom(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 4,
+                                            ),
+                                            minimumSize: const Size(0, 0),
+                                            tapTargetSize: MaterialTapTargetSize
+                                                .shrinkWrap,
+                                            visualDensity:
+                                                VisualDensity.compact,
+                                          ),
+                                          icon: AnimatedRotation(
+                                            turns: tagsExpanded ? 0.5 : 0,
+                                            duration: const Duration(
+                                              milliseconds: 180,
+                                            ),
+                                            curve: Curves.easeOutCubic,
+                                            child: const Icon(
+                                              Icons.expand_more_rounded,
+                                              size: 18,
+                                            ),
+                                          ),
+                                          label: Text(
+                                            tagsExpanded
+                                                ? context
+                                                      .t
+                                                      .strings
+                                                      .legacy
+                                                      .msg_collapse
+                                                : context
+                                                      .t
+                                                      .strings
+                                                      .legacy
+                                                      .msg_expand,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 6),
+                                    if (availableTags.isEmpty)
+                                      Padding(
+                                        padding: const EdgeInsets.only(
+                                          bottom: 8,
+                                        ),
+                                        child: Text(
+                                          context
+                                              .t
+                                              .strings
+                                              .legacy
+                                              .msg_no_tags_yet,
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w500,
+                                            color: textMuted,
+                                          ),
+                                        ),
+                                      )
+                                    else if (tagsExpanded)
+                                      Expanded(child: buildTagViewport())
+                                    else
+                                      AnimatedContainer(
+                                        duration: const Duration(
+                                          milliseconds: 180,
+                                        ),
+                                        curve: Curves.easeOutCubic,
+                                        height: collapsedTagHeight,
+                                        child: buildTagViewport(),
+                                      ),
+                                  ],
+                                  const SizedBox(height: 18),
+                                  Text(
+                                    _dateFilterLabel(context, draftSource),
                                     style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w600,
@@ -1090,6 +1338,7 @@ class _DailyReviewScreenState extends ConsumerState<DailyReviewScreen> {
                               child: FilledButton(
                                 onPressed: () {
                                   _applyFilters(
+                                    source: draftSource,
                                     tags: draftTags,
                                     dateRange: draftRange,
                                   );
@@ -1124,7 +1373,9 @@ class _DailyReviewScreenState extends ConsumerState<DailyReviewScreen> {
         : MemoFlowPalette.textLight;
     final textMuted = textMain.withValues(alpha: isDark ? 0.55 : 0.6);
     final hasActiveFilter =
-        _selectedTags.isNotEmpty || _selectedDateRange != null;
+        _selectedSource != RandomWalkSourceScope.allMemos ||
+        (_sourceSupportsTagFilter && _selectedTags.isNotEmpty) ||
+        _selectedDateRange != null;
     final enableWindowsDragToMove =
         !kIsWeb && defaultTargetPlatform == TargetPlatform.windows;
     final screenWidth = MediaQuery.sizeOf(context).width;
@@ -1132,8 +1383,12 @@ class _DailyReviewScreenState extends ConsumerState<DailyReviewScreen> {
     final tagStats =
         ref.watch(tagStatsProvider).valueOrNull ?? const <TagStat>[];
     final tagColors = ref.watch(tagColorLookupProvider);
-    final selectedTags = _sortTags(_selectedTags, tagStats, tagColors);
+    final selectedTags = _sourceSupportsTagFilter
+        ? _sortTags(_selectedTags, tagStats, tagColors)
+        : const <String>[];
     final account = ref.watch(appSessionProvider).valueOrNull?.currentAccount;
+    final currentUser = account?.user;
+    final localLibrary = ref.watch(currentLocalLibraryProvider);
     final baseUrl = account?.baseUrl;
     final sessionController = ref.read(appSessionProvider.notifier);
     final serverVersion = account == null
@@ -1146,7 +1401,8 @@ class _DailyReviewScreenState extends ConsumerState<DailyReviewScreen> {
     final token = account?.personalAccessToken ?? '';
     final authHeader = token.trim().isEmpty ? null : 'Bearer $token';
 
-    final memosAsync = ref.watch(_memosProvider);
+    final deckAsync = ref.watch(randomWalkDeckProvider(_deckQuery));
+    final syncState = ref.watch(syncCoordinatorProvider);
     final drawerPanel = AppDrawer(
       selected: AppDrawerDestination.dailyReview,
       onSelect: _navigate,
@@ -1203,196 +1459,325 @@ class _DailyReviewScreenState extends ConsumerState<DailyReviewScreen> {
           ],
         ),
         body: () {
-          final pageBody = memosAsync.when(
-            data: (memos) {
-              if (memos.isEmpty) {
-                return Center(
-                  child: Text(
-                    context.t.strings.legacy.msg_no_content_yet,
-                    style: TextStyle(color: textMuted),
-                  ),
-                );
-              }
+          final canUseCachedDeck =
+              _activeQueryKey == _resolvedQueryKey && _deck.isNotEmpty;
+          final showRefreshChip =
+              canUseCachedDeck &&
+              (deckAsync.isLoading ||
+                  syncState.memos.running ||
+                  syncState.localScan.running);
 
-              final deck = _deck;
-              if (deck.isEmpty) {
-                return Center(
-                  child: Text(
-                    context.t.strings.legacy.msg_no_content_yet,
-                    style: TextStyle(color: textMuted),
-                  ),
-                );
-              }
-              final total = deck.length;
-              final displayIndex = total == 0
-                  ? 0
-                  : (_cursor + 1).clamp(1, total);
-              final canLoopCards = deck.length > 1;
-              final backgroundCardCount = deck.length <= 2
-                  ? 0
-                  : math.min(3, deck.length - 2);
+          Widget buildDeckBody(List<RandomWalkDeckEntry> entries) {
+            if (entries.isEmpty) {
+              return Center(
+                child: Text(
+                  context.t.strings.legacy.msg_no_content_yet,
+                  style: TextStyle(color: textMuted),
+                ),
+              );
+            }
 
-              return Column(
-                children: [
-                  const SizedBox(height: 8),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            context
-                                .t
-                                .strings
-                                .legacy
-                                .msg_randomly_draw_memo_cards,
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: textMuted,
-                            ),
-                          ),
-                        ),
-                        Text(
-                          '$displayIndex / $total',
+            final deck = entries;
+            final total = deck.length;
+            final displayIndex = total == 0 ? 0 : (_cursor + 1).clamp(1, total);
+            final canLoopCards = deck.length > 1;
+            final backgroundCardCount = deck.length <= 2
+                ? 0
+                : math.min(3, deck.length - 2);
+            final avatarBorderColor = isDark
+                ? MemoFlowPalette.borderDark
+                : MemoFlowPalette.borderLight;
+
+            return Column(
+              children: [
+                const SizedBox(height: 8),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          context.t.strings.legacy.msg_randomly_draw_memo_cards,
                           style: TextStyle(
                             fontSize: 12,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w600,
                             color: textMuted,
                           ),
                         ),
+                      ),
+                      if (showRefreshChip) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: MemoFlowPalette.primary.withValues(
+                              alpha: isDark ? 0.2 : 0.1,
+                            ),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            context.t.strings.legacy.msg_syncing_2,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: MemoFlowPalette.primary,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                      ],
+                      Text(
+                        '$displayIndex / $total',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: textMuted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (hasActiveFilter)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        if (_selectedSource != RandomWalkSourceScope.allMemos)
+                          _ActiveFilterChip(
+                            label: _sourceLabel(_selectedSource, context),
+                            isDark: isDark,
+                            surfaceColor: bg,
+                          ),
+                        for (final tag in selectedTags)
+                          _ActiveFilterChip(
+                            label: '#$tag',
+                            isDark: isDark,
+                            surfaceColor: bg,
+                            colors: tagColors.resolveChipColorsByPath(
+                              tag,
+                              surfaceColor: card,
+                              isDark: isDark,
+                            ),
+                          ),
+                        if (_selectedDateRange != null)
+                          _ActiveFilterChip(
+                            label: _formatRangeLabel(
+                              _selectedDateRange,
+                              context,
+                            ),
+                            isDark: isDark,
+                            surfaceColor: bg,
+                          ),
                       ],
                     ),
                   ),
-                  if (hasActiveFilter)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-                      child: Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          for (final tag in selectedTags)
-                            _ActiveFilterChip(
-                              label: '#$tag',
-                              isDark: isDark,
-                              surfaceColor: bg,
-                              colors: tagColors.resolveChipColorsByPath(
-                                tag,
-                                surfaceColor: card,
-                                isDark: isDark,
+                const SizedBox(height: 10),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 60, 24, 140),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final maxCardWidth = useDesktopSidePane
+                            ? math.min(
+                                kMemoFlowDesktopMemoCardMaxWidth,
+                                constraints.maxWidth,
+                              )
+                            : constraints.maxWidth;
+                        return Align(
+                          alignment: Alignment.topCenter,
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(maxWidth: maxCardWidth),
+                            child: AppinioSwiper(
+                              key: ValueKey(_deckVersion),
+                              cardCount: deck.length,
+                              backgroundCardCount: backgroundCardCount,
+                              backgroundCardScale: 0.92,
+                              backgroundCardOffset: const Offset(0, 24),
+                              initialIndex: 0,
+                              loop: canLoopCards,
+                              isDisabled: !canLoopCards,
+                              swipeOptions: const SwipeOptions.symmetric(
+                                horizontal: true,
                               ),
-                            ),
-                          if (_selectedDateRange != null)
-                            _ActiveFilterChip(
-                              label: _formatRangeLabel(
-                                _selectedDateRange,
-                                context,
-                              ),
-                              isDark: isDark,
-                              surfaceColor: bg,
-                            ),
-                        ],
-                      ),
-                    ),
-                  const SizedBox(height: 10),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 60, 24, 140),
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          final maxCardWidth = useDesktopSidePane
-                              ? math.min(
-                                  kMemoFlowDesktopMemoCardMaxWidth,
-                                  constraints.maxWidth,
-                                )
-                              : constraints.maxWidth;
-                          return Align(
-                            alignment: Alignment.topCenter,
-                            child: ConstrainedBox(
-                              constraints: BoxConstraints(
-                                maxWidth: maxCardWidth,
-                              ),
-                              child: AppinioSwiper(
-                                key: ValueKey(_deckVersion),
-                                cardCount: deck.length,
-                                backgroundCardCount: backgroundCardCount,
-                                backgroundCardScale: 0.92,
-                                backgroundCardOffset: const Offset(0, 24),
-                                initialIndex: 0,
-                                loop: canLoopCards,
-                                isDisabled: !canLoopCards,
-                                swipeOptions: const SwipeOptions.symmetric(
-                                  horizontal: true,
-                                ),
-                                maxAngle: 14,
-                                onSwipeEnd:
-                                    (previousIndex, targetIndex, activity) {
-                                      if (!mounted) return;
-                                      unawaited(_stopAudioPlayback());
-                                      setState(() {
-                                        _cursor = deck.isEmpty
-                                            ? 0
-                                            : targetIndex % deck.length;
-                                      });
-                                    },
-                                cardBuilder: (context, index) {
-                                  final memo = deck[index];
-                                  final isAudioActive =
-                                      _playingMemoUid == memo.uid;
+                              maxAngle: 14,
+                              onSwipeEnd:
+                                  (previousIndex, targetIndex, activity) {
+                                    if (!mounted) return;
+                                    unawaited(_stopAudioPlayback());
+                                    setState(() {
+                                      _cursor = deck.isEmpty
+                                          ? 0
+                                          : targetIndex % deck.length;
+                                    });
+                                  },
+                              cardBuilder: (context, index) {
+                                final entry = deck[index];
+                                if (entry.isAiHistory) {
+                                  final history = entry.historyEntry!;
+                                  final createdAt =
+                                      DateTime.fromMillisecondsSinceEpoch(
+                                        history.createdTime,
+                                        isUtc: true,
+                                      ).toLocal();
+                                  final headerPrimaryText =
+                                      '${formatExactDaysAgo(exactDaysAgo(createdAt, DateTime.now()), context.appLanguage)} \u00B7 ${resolveDayPeriod(createdAt, context)}';
+                                  final headerSecondaryText = _formatDateYmd(
+                                    createdAt,
+                                  );
+                                  final headerAvatar = _buildHeaderAvatar(
+                                    rawAvatarUrl: currentUser?.avatarUrl ?? '',
+                                    baseUrl: baseUrl,
+                                    fallback: _currentUserFallbackLabel(
+                                      currentUser,
+                                      localLibrary,
+                                    ),
+                                    borderColor: avatarBorderColor,
+                                    textColor: textMain,
+                                    isDark: isDark,
+                                  );
                                   return KeyedSubtree(
-                                    key: ValueKey(memo.uid),
+                                    key: ValueKey(entry.key),
                                     child: RepaintBoundary(
-                                      child: _RandomWalkCard(
-                                        memo: memo,
+                                      child: _RandomWalkAiHistoryCard(
+                                        entry: history,
+                                        bodyText:
+                                            entry.fullBodyText
+                                                    ?.trim()
+                                                    .isNotEmpty ==
+                                                true
+                                            ? entry.fullBodyText!.trim()
+                                            : history.summary.trim(),
+                                        headerPrimaryText: headerPrimaryText,
+                                        headerSecondaryText:
+                                            headerSecondaryText,
+                                        headerAvatar: headerAvatar,
                                         card: card,
                                         textMain: textMain,
                                         textMuted: textMuted,
                                         isDark: isDark,
-                                        baseUrl: baseUrl,
-                                        authHeader: authHeader,
-                                        rebaseAbsoluteFileUrlForV024:
-                                            rebaseAbsoluteFileUrlForV024,
-                                        attachAuthForSameOriginAbsolute:
-                                            attachAuthForSameOriginAbsolute,
-                                        audioPlaying:
-                                            isAudioActive &&
-                                            _audioPlayer.playing,
-                                        audioLoading:
-                                            isAudioActive && _audioLoading,
-                                        audioPositionListenable: isAudioActive
-                                            ? _audioPositionNotifier
-                                            : null,
-                                        audioDurationListenable: isAudioActive
-                                            ? _audioDurationNotifier
-                                            : null,
-                                        onAudioTap: () => unawaited(
-                                          _toggleAudioPlayback(memo),
-                                        ),
-                                        onToggleTask: (request) => unawaited(
-                                          _toggleMemoCheckbox(
-                                            memo,
-                                            request.taskIndex,
-                                          ),
+                                        onTap: () => unawaited(
+                                          _openAiHistoryEntry(history),
                                         ),
                                       ),
                                     ),
                                   );
-                                },
-                              ),
+                                }
+                                final memo = entry.memo!;
+                                final createdAt = memo.createTime;
+                                final headerPrimaryText =
+                                    '${formatExactDaysAgo(exactDaysAgo(createdAt, DateTime.now()), context.appLanguage)} \u00B7 ${resolveDayPeriod(createdAt, context)}';
+                                final headerSecondaryText = _formatDateYmd(
+                                  createdAt,
+                                );
+                                final creator =
+                                    _creatorCache[entry.creatorRef?.trim() ??
+                                        ''];
+                                final avatarFallback =
+                                    entry.memoOrigin ==
+                                        RandomWalkMemoOrigin.explore
+                                    ? (creator?.displayName.trim().isNotEmpty ==
+                                              true
+                                          ? creator!.displayName.trim()
+                                          : creator?.username
+                                                    .trim()
+                                                    .isNotEmpty ==
+                                                true
+                                          ? creator!.username.trim()
+                                          : entry.creatorFallback)
+                                    : _currentUserFallbackLabel(
+                                        currentUser,
+                                        localLibrary,
+                                      );
+                                final avatarUrl =
+                                    entry.memoOrigin ==
+                                        RandomWalkMemoOrigin.explore
+                                    ? creator?.avatarUrl ?? ''
+                                    : currentUser?.avatarUrl ?? '';
+                                final headerAvatar = _buildHeaderAvatar(
+                                  rawAvatarUrl: avatarUrl,
+                                  baseUrl: baseUrl,
+                                  fallback: avatarFallback,
+                                  borderColor: avatarBorderColor,
+                                  textColor: textMain,
+                                  isDark: isDark,
+                                );
+                                final isAudioActive =
+                                    _playingMemoUid == memo.uid;
+                                final canToggleTasks =
+                                    entry.memoOrigin ==
+                                    RandomWalkMemoOrigin.localAll;
+                                return KeyedSubtree(
+                                  key: ValueKey(entry.key),
+                                  child: RepaintBoundary(
+                                    child: _RandomWalkCard(
+                                      memo: memo,
+                                      headerPrimaryText: headerPrimaryText,
+                                      headerSecondaryText: headerSecondaryText,
+                                      headerAvatar: headerAvatar,
+                                      card: card,
+                                      textMain: textMain,
+                                      textMuted: textMuted,
+                                      isDark: isDark,
+                                      baseUrl: baseUrl,
+                                      authHeader: authHeader,
+                                      rebaseAbsoluteFileUrlForV024:
+                                          rebaseAbsoluteFileUrlForV024,
+                                      attachAuthForSameOriginAbsolute:
+                                          attachAuthForSameOriginAbsolute,
+                                      audioPlaying:
+                                          isAudioActive && _audioPlayer.playing,
+                                      audioLoading:
+                                          isAudioActive && _audioLoading,
+                                      audioPositionListenable: isAudioActive
+                                          ? _audioPositionNotifier
+                                          : null,
+                                      audioDurationListenable: isAudioActive
+                                          ? _audioDurationNotifier
+                                          : null,
+                                      onAudioTap: () =>
+                                          unawaited(_toggleAudioPlayback(memo)),
+                                      onToggleTask: canToggleTasks
+                                          ? (request) => unawaited(
+                                              _toggleMemoCheckbox(
+                                                memo,
+                                                request.taskIndex,
+                                              ),
+                                            )
+                                          : null,
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
-                          );
-                        },
-                      ),
+                          ),
+                        );
+                      },
                     ),
                   ),
-                  const SizedBox(height: 22),
-                ],
-              );
+                ),
+                const SizedBox(height: 22),
+              ],
+            );
+          }
+
+          final pageBody = deckAsync.when(
+            data: buildDeckBody,
+            loading: () => canUseCachedDeck
+                ? buildDeckBody(_deck)
+                : const Center(child: CircularProgressIndicator()),
+            error: (e, _) {
+              if (canUseCachedDeck) {
+                return buildDeckBody(_deck);
+              }
+              final message = e is RandomWalkSignInRequiredException
+                  ? context.t.strings.legacy.msg_not_signed
+                  : context.t.strings.legacy.msg_failed_load_4(e: e);
+              return Center(child: Text(message));
             },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(
-              child: Text(context.t.strings.legacy.msg_failed_load_4(e: e)),
-            ),
           );
           if (!useDesktopSidePane) {
             return pageBody;
@@ -1457,9 +1842,157 @@ class _ActiveFilterChip extends StatelessWidget {
   }
 }
 
+class _RandomWalkAiHistoryCard extends StatelessWidget {
+  const _RandomWalkAiHistoryCard({
+    required this.entry,
+    required this.bodyText,
+    required this.headerPrimaryText,
+    required this.headerSecondaryText,
+    required this.headerAvatar,
+    required this.card,
+    required this.textMain,
+    required this.textMuted,
+    required this.isDark,
+    required this.onTap,
+  });
+
+  final AiSavedAnalysisHistoryEntry entry;
+  final String bodyText;
+  final String headerPrimaryText;
+  final String headerSecondaryText;
+  final Widget headerAvatar;
+  final Color card;
+  final Color textMain;
+  final Color textMuted;
+  final bool isDark;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final content = bodyText.trim();
+    final contentStyle = TextStyle(
+      fontSize: 16,
+      height: 1.6,
+      fontWeight: FontWeight.w600,
+      color: textMain,
+    );
+    final borderColor = isDark
+        ? MemoFlowPalette.borderDark
+        : MemoFlowPalette.borderLight;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Hero(
+        tag: 'ai-history-${entry.taskId}',
+        child: RepaintBoundary(
+          child: Container(
+            decoration: BoxDecoration(
+              color: card,
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(color: borderColor),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.28 : 0.08),
+                  blurRadius: 28,
+                  offset: const Offset(0, 18),
+                ),
+              ],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              headerPrimaryText,
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                color: textMain,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              headerSecondaryText,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: textMuted.withValues(alpha: 0.72),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      headerAvatar,
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final bodyHeight = constraints.maxHeight;
+                        final fadeHeight = bodyHeight * 0.2;
+                        return Stack(
+                          children: [
+                            SizedBox(
+                              height: bodyHeight,
+                              width: double.infinity,
+                              child: SingleChildScrollView(
+                                physics: const NeverScrollableScrollPhysics(),
+                                child: MemoMarkdown(
+                                  data: content,
+                                  textStyle: contentStyle,
+                                  normalizeHeadings: true,
+                                  renderImages: false,
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              height: fadeHeight,
+                              child: IgnorePointer(
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [card.withAlpha(0), card],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _RandomWalkCard extends StatelessWidget {
   const _RandomWalkCard({
     required this.memo,
+    required this.headerPrimaryText,
+    required this.headerSecondaryText,
+    required this.headerAvatar,
     required this.card,
     required this.textMain,
     required this.textMuted,
@@ -1477,6 +2010,9 @@ class _RandomWalkCard extends StatelessWidget {
   });
 
   final LocalMemo memo;
+  final String headerPrimaryText;
+  final String headerSecondaryText;
+  final Widget headerAvatar;
   final Color card;
   final Color textMain;
   final Color textMuted;
@@ -1494,11 +2030,6 @@ class _RandomWalkCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dt = memo.updateTime;
-    final dateText =
-        '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
-    final language = context.appLanguage;
-    final relative = _relative(dt, language);
     final content = memo.content.trim().isEmpty
         ? context.t.strings.legacy.msg_empty_content
         : memo.content.trim();
@@ -1638,33 +2169,34 @@ class _RandomWalkCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        dateText,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: textMuted.withValues(alpha: 0.7),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              headerPrimaryText,
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                color: textMain,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              headerSecondaryText,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: textMuted.withValues(alpha: 0.72),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(width: 10),
-                      Container(
-                        width: 4,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: textMuted.withValues(alpha: 0.5),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Text(
-                        relative,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: textMuted.withValues(alpha: 0.6),
-                        ),
-                      ),
+                      const SizedBox(width: 12),
+                      headerAvatar,
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -1791,43 +2323,6 @@ class _RandomWalkCard extends StatelessWidget {
     );
   }
 
-  String _relative(DateTime dt, AppLanguage language) {
-    final now = DateTime.now();
-    final diff = now.difference(dt);
-    if (diff.inDays < 1) {
-      return trByLanguageKey(language: language, key: 'legacy.msg_today');
-    }
-    if (diff.inDays < 7) {
-      return trByLanguageKey(
-        language: language,
-        key: 'legacy.msg_ago_3',
-        params: {'diff_inDays': diff.inDays},
-      );
-    }
-    if (diff.inDays < 30) {
-      final weeks = (diff.inDays / 7).floor();
-      return trByLanguageKey(
-        language: language,
-        key: 'legacy.msg_ago_4',
-        params: {'weeks': weeks},
-      );
-    }
-    if (diff.inDays < 365) {
-      final months = (diff.inDays / 30).floor();
-      return trByLanguageKey(
-        language: language,
-        key: 'legacy.msg_ago',
-        params: {'months': months},
-      );
-    }
-    final years = (diff.inDays / 365).floor();
-    return trByLanguageKey(
-      language: language,
-      key: 'legacy.msg_ago_2',
-      params: {'years': years},
-    );
-  }
-
   static String? _parseVoiceDuration(String content) {
     final value = _parseVoiceDurationValue(content);
     if (value == null) return null;
@@ -1844,7 +2339,7 @@ class _RandomWalkCard extends StatelessWidget {
   static Duration? _parseVoiceDurationValue(String content) {
     final linePattern = RegExp(r'^[-*+]?\s*', unicode: true);
     final valuePattern = RegExp(
-      r'^(时长|Duration)\s*[:：]\s*(\d{1,2}):(\d{1,2}):(\d{1,2})$',
+      r'^(?:\u65f6\u957f|Duration)\s*[:\uFF1A]\s*(\d{1,2}):(\d{1,2}):(\d{1,2})$',
       caseSensitive: false,
       unicode: true,
     );

@@ -44,6 +44,7 @@ import '../../state/system/database_provider.dart';
 import '../../state/sync/sync_coordinator_provider.dart';
 import '../../application/sync/sync_request.dart';
 import 'daily_review_screen.dart';
+import 'ai_insight_history_shared.dart';
 import 'ai_insight_models.dart';
 import 'ai_insight_history_screen.dart';
 import 'ai_insight_settings_sheet.dart';
@@ -52,7 +53,9 @@ import 'quick_prompt_editor_screen.dart';
 import '../../i18n/strings.g.dart';
 
 class AiSummaryScreen extends ConsumerStatefulWidget {
-  const AiSummaryScreen({super.key});
+  const AiSummaryScreen({super.key, this.initialHistorySelection});
+
+  final AiInsightHistorySelection? initialHistorySelection;
 
   @override
   ConsumerState<AiSummaryScreen> createState() => _AiSummaryScreenState();
@@ -73,6 +76,18 @@ class _AiSummaryScreenState extends ConsumerState<AiSummaryScreen> {
   var _referencesExpanded = false;
   var _analysisProgress = 0.0;
   DateTimeRange? _reportRangeOverride;
+
+  @override
+  void initState() {
+    super.initState();
+    final initialSelection = widget.initialHistorySelection;
+    if (initialSelection == null) return;
+    _analysisReport = initialSelection.report;
+    _view = _AiSummaryView.report;
+    _selectedInsightId = initialSelection.insightId;
+    _selectedInsightTitleOverride = initialSelection.titleOverride?.trim();
+    _reportRangeOverride = initialSelection.range;
+  }
 
   AiInsightDefinition get _selectedInsightDefinition =>
       definitionForInsight(_selectedInsightId);

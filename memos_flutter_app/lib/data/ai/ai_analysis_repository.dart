@@ -604,11 +604,10 @@ LIMIT 1;
 
   Future<List<AiSavedAnalysisHistoryEntry>> listAnalysisReportHistory({
     required AiAnalysisType analysisType,
-    int limit = 50,
+    int? limit = 50,
   }) async {
     final db = await _db;
-    final rows = await db.rawQuery(
-      '''
+    final sql = StringBuffer('''
 SELECT
   t.id AS task_id,
   t.task_uid,
@@ -626,10 +625,15 @@ FROM ai_analysis_tasks t
 JOIN ai_analysis_results r ON r.task_id = t.id
 WHERE t.analysis_type = ?
 ORDER BY t.created_time DESC
-LIMIT ?;
-''',
-      <Object?>[aiAnalysisTypeToStorage(analysisType), limit],
-    );
+''');
+    final args = <Object?>[aiAnalysisTypeToStorage(analysisType)];
+    if (limit != null && limit > 0) {
+      sql.write('LIMIT ?;\n');
+      args.add(limit);
+    } else {
+      sql.write(';\n');
+    }
+    final rows = await db.rawQuery(sql.toString(), args);
     return rows
         .map(
           (row) => AiSavedAnalysisHistoryEntry(

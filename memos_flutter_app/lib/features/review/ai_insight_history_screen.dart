@@ -10,46 +10,8 @@ import '../../core/desktop_window_controls.dart';
 import '../../core/memoflow_palette.dart';
 import '../../data/ai/ai_analysis_models.dart';
 import '../../state/review/ai_analysis_provider.dart';
-import '../../state/settings/ai_settings_provider.dart';
+import 'ai_insight_history_shared.dart';
 import 'ai_insight_models.dart';
-import 'quick_prompt_editor_screen.dart';
-
-class AiInsightHistorySelection {
-  const AiInsightHistorySelection({
-    required this.report,
-    required this.rangeStart,
-    required this.rangeEndExclusive,
-    required this.insightId,
-    this.titleOverride,
-  });
-
-  final AiSavedAnalysisReport report;
-  final int rangeStart;
-  final int rangeEndExclusive;
-  final AiInsightId insightId;
-  final String? titleOverride;
-
-  DateTimeRange get range {
-    final start = DateTime.fromMillisecondsSinceEpoch(
-      rangeStart * 1000,
-      isUtc: true,
-    ).toLocal();
-    final endExclusive = DateTime.fromMillisecondsSinceEpoch(
-      rangeEndExclusive * 1000,
-      isUtc: true,
-    ).toLocal();
-    final normalizedStart = DateTime(start.year, start.month, start.day);
-    final normalizedEndExclusive = DateTime(
-      endExclusive.year,
-      endExclusive.month,
-      endExclusive.day,
-    );
-    return DateTimeRange(
-      start: normalizedStart,
-      end: normalizedEndExclusive.subtract(const Duration(days: 1)),
-    );
-  }
-}
 
 class AiInsightHistoryScreen extends ConsumerStatefulWidget {
   const AiInsightHistoryScreen({super.key});
@@ -86,7 +48,11 @@ class _AiInsightHistoryScreenState
       ).showSnackBar(SnackBar(content: Text(_loadFailedText())));
       return;
     }
-    final descriptor = _resolveInsightDescriptor(entry.promptTemplate);
+    final descriptor = resolveAiInsightHistoryDescriptor(
+      context,
+      ref,
+      entry.promptTemplate,
+    );
     Navigator.of(context).pop(
       AiInsightHistorySelection(
         report: report,
@@ -98,47 +64,8 @@ class _AiInsightHistoryScreenState
     );
   }
 
-  _InsightDescriptor _resolveInsightDescriptor(String promptTemplate) {
-    final normalized = promptTemplate.trim();
-    final settings = ref.read(aiSettingsProvider);
-    for (final definition in visibleAiInsightDefinitions) {
-      final resolved = resolveInsightPromptTemplate(
-        context,
-        insightId: definition.id,
-        templates: settings.insightPromptTemplates,
-      ).trim();
-      if (resolved.isNotEmpty && resolved == normalized) {
-        return _InsightDescriptor(
-          insightId: definition.id,
-          title: definition.title(context),
-          icon: definition.icon,
-          accent: definition.accent,
-        );
-      }
-    }
-    final customTemplate = settings.customInsightTemplate;
-    if (customTemplate.isConfigured &&
-        customTemplate.promptTemplate.trim() == normalized) {
-      return _InsightDescriptor(
-        insightId: AiInsightId.customTemplate,
-        title: customTemplate.title.trim(),
-        titleOverride: customTemplate.title.trim(),
-        icon: QuickPromptIconCatalog.resolve(customTemplate.iconKey),
-        accent: MemoFlowPalette.primary,
-      );
-    }
-    final fallback = _historyTitle();
-    return _InsightDescriptor(
-      insightId: AiInsightId.emotionMap,
-      title: fallback,
-      titleOverride: fallback,
-      icon: Icons.history_rounded,
-      accent: MemoFlowPalette.primary,
-    );
-  }
-
   String _historyTitle() {
-    return _isZhLocale() ? '\u5386\u53f2\u601d\u8003' : 'Insight History';
+    return aiInsightHistoryTitle(context);
   }
 
   String _emptyTitle() {
@@ -154,23 +81,11 @@ class _AiInsightHistoryScreenState
   }
 
   String _loadFailedText() {
-    return _isZhLocale()
-        ? '\u8fd9\u6761\u5386\u53f2\u6682\u65f6\u6253\u4e0d\u5f00\u3002'
-        : 'This history entry cannot be opened right now.';
+    return aiInsightHistoryOpenFailedText(context);
   }
 
   String _staleLabel() {
-    return _isZhLocale() ? '\u7b14\u8bb0\u5df2\u66f4\u65b0' : 'Notes updated';
-  }
-
-  String _visibilityLabel(AiSavedAnalysisHistoryEntry entry) {
-    final labels = <String>[
-      if (entry.includePublic) (_isZhLocale() ? '\u516c\u5f00' : 'Public'),
-      if (entry.includePrivate) (_isZhLocale() ? '\u79c1\u5bc6' : 'Private'),
-      if (entry.includeProtected)
-        (_isZhLocale() ? '\u53d7\u4fdd\u62a4' : 'Protected'),
-    ];
-    return labels.join(' · ');
+    return aiInsightHistoryStaleLabel(context);
   }
 
   String _formatCreatedTime(int createdTime) {
@@ -302,7 +217,9 @@ class _AiInsightHistoryScreenState
             separatorBuilder: (_, _) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
               final entry = items[index];
-              final descriptor = _resolveInsightDescriptor(
+              final descriptor = resolveAiInsightHistoryDescriptor(
+                context,
+                ref,
                 entry.promptTemplate,
               );
               final isOpening = _openingTaskId == entry.taskId;
@@ -398,7 +315,7 @@ class _AiInsightHistoryScreenState
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                _visibilityLabel(entry),
+                                aiInsightHistoryVisibilityLabel(context, entry),
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: textMuted,
@@ -445,20 +362,4 @@ class _AiInsightHistoryScreenState
       ),
     );
   }
-}
-
-class _InsightDescriptor {
-  const _InsightDescriptor({
-    required this.insightId,
-    required this.title,
-    required this.icon,
-    required this.accent,
-    this.titleOverride,
-  });
-
-  final AiInsightId insightId;
-  final String title;
-  final String? titleOverride;
-  final IconData icon;
-  final Color accent;
 }
