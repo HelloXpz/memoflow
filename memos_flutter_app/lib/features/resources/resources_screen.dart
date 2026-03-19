@@ -37,8 +37,27 @@ import '../tags/tags_screen.dart';
 import '../sync/sync_queue_screen.dart';
 import '../../i18n/strings.g.dart';
 
-class ResourcesScreen extends ConsumerWidget {
+enum _AttachmentKind { image, video, audio, file }
+
+class _AttachmentSection {
+  const _AttachmentSection({required this.kind, required this.entries});
+
+  final _AttachmentKind kind;
+  final List<ResourceEntry> entries;
+}
+
+class ResourcesScreen extends ConsumerStatefulWidget {
   const ResourcesScreen({super.key});
+
+  @visibleForTesting
+  static void Function(String routeName)? debugRouteRequestOverride;
+
+  @override
+  ConsumerState<ResourcesScreen> createState() => _ResourcesScreenState();
+}
+
+class _ResourcesScreenState extends ConsumerState<ResourcesScreen> {
+  final Set<_AttachmentKind> _collapsedKinds = <_AttachmentKind>{};
 
   File? _localAttachmentFile(Attachment attachment) {
     final raw = attachment.externalLink.trim();
@@ -205,6 +224,13 @@ class ResourcesScreen extends ConsumerWidget {
     final localFile = _localAttachmentFile(attachment);
 
     if (isImage) {
+      final debugRouteRequestOverride =
+          ResourcesScreen.debugRouteRequestOverride;
+      if (debugRouteRequestOverride != null) {
+        debugRouteRequestOverride('resources/image-preview');
+        return;
+      }
+
       final url = _resolveRemoteUrl(baseUrl, attachment, thumbnail: false);
       if (localFile == null && (url == null || url.isEmpty)) {
         _showUnsupportedPreview(context);
@@ -212,6 +238,7 @@ class ResourcesScreen extends ConsumerWidget {
       }
       Navigator.of(context).push(
         MaterialPageRoute<void>(
+          settings: const RouteSettings(name: 'resources/image-preview'),
           builder: (_) => _ImageViewerScreen(
             title: attachment.filename,
             localFile: localFile,
@@ -224,6 +251,13 @@ class ResourcesScreen extends ConsumerWidget {
     }
 
     if (isVideo) {
+      final debugRouteRequestOverride =
+          ResourcesScreen.debugRouteRequestOverride;
+      if (debugRouteRequestOverride != null) {
+        debugRouteRequestOverride('resources/video-preview');
+        return;
+      }
+
       final entry = memoVideoEntryFromAttachment(
         attachment,
         baseUrl,
@@ -238,6 +272,7 @@ class ResourcesScreen extends ConsumerWidget {
       }
       Navigator.of(context).push(
         MaterialPageRoute<void>(
+          settings: const RouteSettings(name: 'resources/video-preview'),
           builder: (_) => AttachmentVideoScreen(
             title: entry.title,
             localFile: entry.localFile,
@@ -253,6 +288,13 @@ class ResourcesScreen extends ConsumerWidget {
     }
 
     if (isAudio) {
+      final debugRouteRequestOverride =
+          ResourcesScreen.debugRouteRequestOverride;
+      if (debugRouteRequestOverride != null) {
+        debugRouteRequestOverride('resources/audio-preview');
+        return;
+      }
+
       final url = _resolveRemoteUrl(baseUrl, attachment, thumbnail: false);
       if (localFile == null && (url == null || url.isEmpty)) {
         _showUnsupportedPreview(context);
@@ -340,8 +382,402 @@ class ResourcesScreen extends ConsumerWidget {
     closeDrawerThenPushReplacement(context, const NotificationsScreen());
   }
 
+  String _displayName(Attachment attachment) {
+    final filename = attachment.filename.trim();
+    if (filename.isNotEmpty) return filename;
+    final uid = attachment.uid.trim();
+    if (uid.isNotEmpty) return uid;
+    return attachment.name;
+  }
+
+  _AttachmentKind _classifyAttachment(Attachment attachment) {
+    final type = attachment.type.trim().toLowerCase();
+    if (type.startsWith('image/')) return _AttachmentKind.image;
+    if (type.startsWith('video/')) return _AttachmentKind.video;
+    if (type.startsWith('audio/')) return _AttachmentKind.audio;
+    return _AttachmentKind.file;
+  }
+
+  int _compareEntries(ResourceEntry a, ResourceEntry b) {
+    final byTime = b.memoUpdateTime.compareTo(a.memoUpdateTime);
+    if (byTime != 0) return byTime;
+
+    final byName = _displayName(
+      a.attachment,
+    ).toLowerCase().compareTo(_displayName(b.attachment).toLowerCase());
+    if (byName != 0) return byName;
+
+    final byMemoUid = a.memoUid.compareTo(b.memoUid);
+    if (byMemoUid != 0) return byMemoUid;
+    return a.attachment.uid.compareTo(b.attachment.uid);
+  }
+
+  List<_AttachmentSection> _groupEntries(List<ResourceEntry> entries) {
+    final grouped = <_AttachmentKind, List<ResourceEntry>>{
+      for (final kind in _AttachmentKind.values) kind: <ResourceEntry>[],
+    };
+    for (final entry in entries) {
+      grouped[_classifyAttachment(entry.attachment)]!.add(entry);
+    }
+
+    final sections = <_AttachmentSection>[];
+    for (final kind in _AttachmentKind.values) {
+      final items = grouped[kind]!;
+      items.sort(_compareEntries);
+      if (items.isEmpty) continue;
+      sections.add(_AttachmentSection(kind: kind, entries: items));
+    }
+    return sections;
+  }
+
+  String _kindLabel(BuildContext context, _AttachmentKind kind) {
+    return switch (kind) {
+      _AttachmentKind.image => context.t.strings.legacy.msg_image,
+      _AttachmentKind.video => context.t.strings.legacy.msg_video,
+      _AttachmentKind.audio => context.t.strings.legacy.msg_audio,
+      _AttachmentKind.file => context.t.strings.legacy.msg_file,
+    };
+  }
+
+  IconData _kindIcon(_AttachmentKind kind) {
+    return switch (kind) {
+      _AttachmentKind.image => Icons.image_outlined,
+      _AttachmentKind.video => Icons.videocam_outlined,
+      _AttachmentKind.audio => Icons.graphic_eq_rounded,
+      _AttachmentKind.file => Icons.insert_drive_file_outlined,
+    };
+  }
+
+  String _fileBadgeLabel(BuildContext context, Attachment attachment) {
+    final extension = p
+        .extension(_displayName(attachment))
+        .replaceFirst('.', '');
+    if (extension.isNotEmpty) return extension.toUpperCase();
+    return context.t.strings.legacy.msg_file;
+  }
+
+  Future<void> _openSourceMemo(BuildContext context, String memoUid) async {
+    final debugRouteRequestOverride = ResourcesScreen.debugRouteRequestOverride;
+    if (debugRouteRequestOverride != null) {
+      debugRouteRequestOverride('resources/open-memo');
+      return;
+    }
+
+    final row = await ref.read(databaseProvider).getMemoByUid(memoUid);
+    if (row == null || !context.mounted) return;
+    final memo = LocalMemo.fromDb(row);
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        settings: const RouteSettings(name: 'resources/open-memo'),
+        builder: (_) => MemoDetailScreen(initialMemo: memo),
+      ),
+    );
+  }
+
+  bool _isSectionCollapsed(_AttachmentKind kind) {
+    return _collapsedKinds.contains(kind);
+  }
+
+  void _toggleSection(_AttachmentKind kind) {
+    setState(() {
+      if (!_collapsedKinds.add(kind)) {
+        _collapsedKinds.remove(kind);
+      }
+    });
+  }
+
+  Widget _buildSectionHeader(BuildContext context, _AttachmentSection section) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isCollapsed = _isSectionCollapsed(section.kind);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          key: ValueKey('resources-section-title-${section.kind.name}'),
+          borderRadius: BorderRadius.circular(10),
+          onTap: () => _toggleSection(section.kind),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 6),
+            child: Row(
+              children: [
+                Icon(
+                  _kindIcon(section.kind),
+                  size: 18,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '${_kindLabel(context, section.kind)} · ${section.entries.length}',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                Icon(
+                  isCollapsed
+                      ? Icons.keyboard_arrow_down_rounded
+                      : Icons.keyboard_arrow_up_rounded,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCardPreview(
+    BuildContext context, {
+    required Attachment attachment,
+    required _AttachmentKind kind,
+    required File? localFile,
+    required String? thumbnailUrl,
+    required String? authHeader,
+    required MemoVideoEntry? videoEntry,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final placeholder = Container(
+      color: colorScheme.surfaceContainerHighest,
+      alignment: Alignment.center,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(_kindIcon(kind), size: 34, color: colorScheme.onSurfaceVariant),
+          const SizedBox(height: 8),
+          if (kind == _AttachmentKind.file)
+            Text(
+              _fileBadgeLabel(context, attachment),
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.5,
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+        ],
+      ),
+    );
+
+    final Widget child = switch (kind) {
+      _AttachmentKind.image when localFile != null => Image.file(
+        localFile,
+        fit: BoxFit.cover,
+      ),
+      _AttachmentKind.image when thumbnailUrl != null => CachedNetworkImage(
+        imageUrl: thumbnailUrl,
+        httpHeaders: authHeader == null ? null : {'Authorization': authHeader},
+        fit: BoxFit.cover,
+        errorWidget: (context, url, error) => placeholder,
+        placeholder: (context, url) => placeholder,
+      ),
+      _AttachmentKind.video when videoEntry != null => AttachmentVideoThumbnail(
+        entry: videoEntry,
+        borderRadius: 12,
+        showPlayIcon: true,
+      ),
+      _ => placeholder,
+    };
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: SizedBox(height: 82, width: double.infinity, child: child),
+    );
+  }
+
+  Widget _buildAttachmentCard(
+    BuildContext context, {
+    required ResourceEntry entry,
+    required Uri? baseUrl,
+    required String? authHeader,
+    required bool rebaseAbsoluteFileUrlForV024,
+    required bool attachAuthForSameOriginAbsolute,
+    required DateFormat dateFmt,
+  }) {
+    final attachment = entry.attachment;
+    final kind = _classifyAttachment(attachment);
+    final displayName = _displayName(attachment);
+    final localFile = _localAttachmentFile(attachment);
+    final thumbnailUrl = _resolveRemoteUrl(
+      baseUrl,
+      attachment,
+      thumbnail: true,
+    );
+    final remoteUrl = _resolveRemoteUrl(baseUrl, attachment, thumbnail: false);
+    final videoEntry = kind == _AttachmentKind.video
+        ? memoVideoEntryFromAttachment(
+            attachment,
+            baseUrl,
+            authHeader,
+            rebaseAbsoluteFileUrlForV024: rebaseAbsoluteFileUrlForV024,
+            attachAuthForSameOriginAbsolute: attachAuthForSameOriginAbsolute,
+          )
+        : null;
+    final hasVideoSource =
+        videoEntry != null &&
+        (videoEntry.localFile != null ||
+            (videoEntry.videoUrl ?? '').isNotEmpty);
+
+    final hasDebugRouteOverride =
+        ResourcesScreen.debugRouteRequestOverride != null;
+    final canPreview =
+        switch (kind) {
+          _AttachmentKind.image ||
+          _AttachmentKind.audio => localFile != null || remoteUrl != null,
+          _AttachmentKind.video =>
+            localFile != null || remoteUrl != null || hasVideoSource,
+          _AttachmentKind.file => false,
+        } ||
+        (hasDebugRouteOverride && kind != _AttachmentKind.file);
+    final canDownload = localFile != null || remoteUrl != null;
+    final colorScheme = Theme.of(context).colorScheme;
+    final actionStyle = IconButton.styleFrom(
+      visualDensity: VisualDensity.compact,
+      foregroundColor: colorScheme.primary,
+      padding: EdgeInsets.zero,
+      minimumSize: const Size(28, 28),
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    );
+
+    return Card(
+      key: ValueKey('resources-card-${entry.memoUid}-${attachment.uid}'),
+      margin: EdgeInsets.zero,
+      elevation: 0,
+      color: colorScheme.surfaceContainerLowest,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        key: ValueKey('resources-card-tap-${entry.memoUid}-${attachment.uid}'),
+        borderRadius: BorderRadius.circular(14),
+        onTap: () {
+          if (canPreview && kind != _AttachmentKind.file) {
+            _openPreview(
+              context,
+              attachment,
+              baseUrl: baseUrl,
+              authHeader: authHeader,
+              rebaseAbsoluteFileUrlForV024: rebaseAbsoluteFileUrlForV024,
+              attachAuthForSameOriginAbsolute: attachAuthForSameOriginAbsolute,
+            );
+            return;
+          }
+          _openSourceMemo(context, entry.memoUid);
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              KeyedSubtree(
+                key: ValueKey(
+                  'resources-card-preview-${entry.memoUid}-${attachment.uid}',
+                ),
+                child: _buildCardPreview(
+                  context,
+                  attachment: attachment,
+                  kind: kind,
+                  localFile: localFile,
+                  thumbnailUrl: thumbnailUrl,
+                  authHeader: authHeader,
+                  videoEntry: videoEntry,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Tooltip(
+                message: displayName,
+                child: Text(
+                  displayName,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    height: 1.2,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  Icon(
+                    _kindIcon(kind),
+                    size: 15,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    _kindLabel(context, kind),
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      dateFmt.format(entry.memoUpdateTime),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const Spacer(),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: colorScheme.outlineVariant.withValues(alpha: 0.55),
+                ),
+              ),
+              Row(
+                children: [
+                  const Spacer(),
+                  Tooltip(
+                    message: context.t.strings.legacy.msg_open_memo,
+                    child: IconButton(
+                      key: ValueKey(
+                        'resources-open-memo-${entry.memoUid}-${attachment.uid}',
+                      ),
+                      style: actionStyle,
+                      onPressed: () => _openSourceMemo(context, entry.memoUid),
+                      icon: const Icon(Icons.note_alt_outlined, size: 18),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Tooltip(
+                    message: context.t.strings.legacy.msg_download,
+                    child: IconButton(
+                      key: ValueKey(
+                        'resources-download-${entry.memoUid}-${attachment.uid}',
+                      ),
+                      style: actionStyle,
+                      onPressed: canDownload
+                          ? () => _downloadAttachment(
+                              context,
+                              attachment,
+                              baseUrl,
+                              authHeader,
+                            )
+                          : null,
+                      icon: const Icon(Icons.download_rounded, size: 18),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final account = ref.watch(appSessionProvider).valueOrNull?.currentAccount;
     final baseUrl = account?.baseUrl;
     final sessionController = ref.read(appSessionProvider.notifier);
@@ -403,164 +839,55 @@ class ResourcesScreen extends ConsumerWidget {
         ),
         body: (() {
           final pageBody = entriesAsync.when(
-            data: (entries) => entries.isEmpty
-                ? Center(
-                    child: Text(context.t.strings.legacy.msg_no_attachments),
-                  )
-                : ListView.separated(
-                    itemBuilder: (context, index) {
-                      final entry = entries[index];
-                      final a = entry.attachment;
-                      final isImage = a.type.startsWith('image/');
-                      final isAudio = a.type.startsWith('audio');
-                      final isVideo = a.type.startsWith('video');
+            data: (entries) {
+              if (entries.isEmpty) {
+                return Center(
+                  child: Text(context.t.strings.legacy.msg_no_attachments),
+                );
+              }
 
-                      final displayName = a.filename.trim().isNotEmpty
-                          ? a.filename
-                          : (a.uid.isNotEmpty ? a.uid : a.name);
-                      final localFile = _localAttachmentFile(a);
-                      final thumbnailUrl = _resolveRemoteUrl(
-                        baseUrl,
-                        a,
-                        thumbnail: true,
-                      );
-                      final remoteUrl = _resolveRemoteUrl(
-                        baseUrl,
-                        a,
-                        thumbnail: false,
-                      );
-                      final videoEntry = isVideo
-                          ? memoVideoEntryFromAttachment(
-                              a,
-                              baseUrl,
-                              authHeader,
-                              rebaseAbsoluteFileUrlForV024:
-                                  rebaseAbsoluteFileUrlForV024,
-                              attachAuthForSameOriginAbsolute:
-                                  attachAuthForSameOriginAbsolute,
-                            )
-                          : null;
-                      final leading = isImage && localFile != null
-                          ? ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.file(
-                                localFile,
-                                width: 44,
-                                height: 44,
-                                fit: BoxFit.cover,
-                              ),
-                            )
-                          : isImage && thumbnailUrl != null
-                          ? ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: CachedNetworkImage(
-                                imageUrl: thumbnailUrl,
-                                httpHeaders: authHeader == null
-                                    ? null
-                                    : {'Authorization': authHeader},
-                                width: 44,
-                                height: 44,
-                                fit: BoxFit.cover,
-                                errorWidget: (context, url, error) =>
-                                    const SizedBox(
-                                      width: 44,
-                                      height: 44,
-                                      child: Icon(Icons.image),
-                                    ),
-                              ),
-                            )
-                          : isVideo && videoEntry != null
-                          ? SizedBox(
-                              width: 44,
-                              height: 44,
-                              child: AttachmentVideoThumbnail(
-                                entry: videoEntry,
-                                borderRadius: 8,
-                                showPlayIcon: true,
-                              ),
-                            )
-                          : Icon(isAudio ? Icons.mic : Icons.attach_file);
-
-                      final hasVideoSource =
-                          videoEntry != null &&
-                          (videoEntry.localFile != null ||
-                              (videoEntry.videoUrl ?? '').isNotEmpty);
-                      final canPreview =
-                          (isImage || isAudio || isVideo) &&
-                          (localFile != null ||
-                              remoteUrl != null ||
-                              hasVideoSource);
-                      final canDownload =
-                          localFile != null || remoteUrl != null;
-
-                      return ListTile(
-                        leading: leading,
-                        title: Text(displayName),
-                        subtitle: Text(
-                          '${a.type} · ${dateFmt.format(entry.memoUpdateTime)}',
+              final sections = _groupEntries(entries);
+              return Scrollbar(
+                child: CustomScrollView(
+                  slivers: [
+                    for (final section in sections) ...[
+                      SliverToBoxAdapter(
+                        child: _buildSectionHeader(context, section),
+                      ),
+                      if (!_isSectionCollapsed(section.kind))
+                        SliverPadding(
+                          padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+                          sliver: SliverGrid(
+                            gridDelegate:
+                                const SliverGridDelegateWithMaxCrossAxisExtent(
+                                  maxCrossAxisExtent: 220,
+                                  crossAxisSpacing: 12,
+                                  mainAxisSpacing: 12,
+                                  mainAxisExtent: 214,
+                                ),
+                            delegate: SliverChildBuilderDelegate((
+                              context,
+                              index,
+                            ) {
+                              return _buildAttachmentCard(
+                                context,
+                                entry: section.entries[index],
+                                baseUrl: baseUrl,
+                                authHeader: authHeader,
+                                rebaseAbsoluteFileUrlForV024:
+                                    rebaseAbsoluteFileUrlForV024,
+                                attachAuthForSameOriginAbsolute:
+                                    attachAuthForSameOriginAbsolute,
+                                dateFmt: dateFmt,
+                              );
+                            }, childCount: section.entries.length),
+                          ),
                         ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              tooltip: context.t.strings.legacy.msg_preview,
-                              icon: const Icon(Icons.visibility_outlined),
-                              onPressed: canPreview
-                                  ? () => _openPreview(
-                                      context,
-                                      a,
-                                      baseUrl: baseUrl,
-                                      authHeader: authHeader,
-                                      rebaseAbsoluteFileUrlForV024:
-                                          rebaseAbsoluteFileUrlForV024,
-                                      attachAuthForSameOriginAbsolute:
-                                          attachAuthForSameOriginAbsolute,
-                                    )
-                                  : null,
-                              visualDensity: VisualDensity.compact,
-                              constraints: const BoxConstraints(
-                                minWidth: 36,
-                                minHeight: 36,
-                              ),
-                            ),
-                            IconButton(
-                              tooltip: context.t.strings.legacy.msg_download,
-                              icon: const Icon(Icons.download),
-                              onPressed: canDownload
-                                  ? () => _downloadAttachment(
-                                      context,
-                                      a,
-                                      baseUrl,
-                                      authHeader,
-                                    )
-                                  : null,
-                              visualDensity: VisualDensity.compact,
-                              constraints: const BoxConstraints(
-                                minWidth: 36,
-                                minHeight: 36,
-                              ),
-                            ),
-                          ],
-                        ),
-                        onTap: () async {
-                          final row = await ref
-                              .read(databaseProvider)
-                              .getMemoByUid(entry.memoUid);
-                          if (row == null) return;
-                          final memo = LocalMemo.fromDb(row);
-                          if (!context.mounted) return;
-                          Navigator.of(context).push(
-                            MaterialPageRoute<void>(
-                              builder: (_) =>
-                                  MemoDetailScreen(initialMemo: memo),
-                            ),
-                          );
-                        },
-                      );
-                    },
-                    separatorBuilder: (_, _) => const Divider(height: 1),
-                    itemCount: entries.length,
-                  ),
+                    ],
+                  ],
+                ),
+              );
+            },
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, _) => Center(
               child: Text(context.t.strings.legacy.msg_failed_load_4(e: e)),
@@ -569,6 +896,20 @@ class ResourcesScreen extends ConsumerWidget {
           if (!useDesktopSidePane) {
             return pageBody;
           }
+
+          final desktopContent = Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxWidth: kMemoFlowDesktopContentMaxWidth,
+                ),
+                child: pageBody,
+              ),
+            ),
+          );
+
           return Row(
             children: [
               SizedBox(width: kMemoFlowDesktopDrawerWidth, child: drawerPanel),
@@ -579,7 +920,7 @@ class ResourcesScreen extends ConsumerWidget {
                     ? Colors.white.withValues(alpha: 0.08)
                     : Colors.black.withValues(alpha: 0.08),
               ),
-              Expanded(child: pageBody),
+              Expanded(child: desktopContent),
             ],
           );
         })(),
