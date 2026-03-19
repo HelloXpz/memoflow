@@ -11,6 +11,7 @@ common:
   selectValidServerVersion: "有効なサーバーバージョンを選択してください"
   serverVersionValue: "サーバーバージョン: $version"
   selectServerVersionRange021To026: "0.21〜0.26 のサーバーバージョンを手動で選択してください"
+  serverVersionProbeHint: "サインインする前に、選択したサーバー バージョンのコア API のみがプローブされます。"
 languages:
   system: "システムに従う"
   zhHans: "中国語（簡体字）"
@@ -165,6 +166,70 @@ locationPicker:
   providerMissingGoogleKey: "位置を選択する前に、Google Maps API Key の設定が必要です。"
   providerUnsupportedPlatform: "埋め込み地図ピッカーは Android と Windows でのみ利用できます。"
 
+aiInsight:
+  title: "AI要約"
+  subtitle: "AI があなたの記録をさまざまな角度から読み解くのを手伝います"
+  settingsTitle: "AI分析設定"
+  startAnalysis: "分析を開始"
+  common:
+    enabled: "有効"
+    disabled: "無効"
+  timeRange:
+    title: "期間"
+    last3Days: "直近3日"
+    last7Days: "直近7日"
+    last30Days: "直近30日"
+    customRange: "カスタム範囲"
+  privacyScope:
+    title: "プライバシー範囲"
+    includePrivateNotes: "非公開メモを含める"
+    description: "有効にすると、非公開メモも AI モデルに送信して分析します。"
+  promptSettings:
+    title: "プロンプト設定"
+    editPromptTemplate: "プロンプトテンプレートを編集"
+    description: "上級ユーザー向けに、このインサイトで使う AI プロンプトをカスタマイズできます。"
+    emptyTemplateHint: "このインサイトにはまだプロンプトテンプレートがありません。分析を始める前に追加してください。"
+    editorDescription: "このテンプレートは「$insight」の分析に使用されます。"
+    editorPlaceholder: "AI に重点的に見てほしいこと、比較したいこと、要約したいこと、強調したいことを入力してください。"
+    clearTemplate: "クリア"
+  contentPreview:
+    title: "内容プレビュー"
+    sectionTitle: "内容プレビュー"
+    notesToSend: "送信するメモ数"
+    estimatedTokens: "推定トークン数"
+    previewContent: "プレビュー内容"
+    timeRange: "期間"
+    loading: "プレビューを準備中…"
+    previewLoadFailed: "内容プレビューの準備に失敗しました。"
+    truncatedNotice: "現在の分析上限に収めるため、内容を一部省略しました。"
+    emptyState: "現在の設定に一致するメモがありません。期間やプライバシー範囲を変更してみてください。"
+    noteCount: "$count 件のメモ"
+    tokenCount: "$count トークン"
+  cards:
+    todayClues:
+      title: "今日の手がかり"
+      description: "最近の記録から、まず注目すべき出来事、緊張、未解決の流れを AI が抽出します。"
+    emotionMap:
+      title: "感情マップ"
+      description: "記録に流れる感情の動きを読み取り、最近の状態に影響しているものを見つけます。"
+    themeResonance:
+      title: "テーマの反響"
+      description: "最近の記録に繰り返し現れるテーマを見つけ、何に立ち返っているのかを浮かび上がらせます。"
+    thoughtTrace:
+      title: "思考の軌跡"
+      description: "隠れた前提、未解決の問い、さらに掘り下げる価値のある思考の流れを明らかにします。"
+    blindSpotDiscovery:
+      title: "盲点の発見"
+      description: "書いている最中には見落としやすいサインや微細なパターンを見つけます。"
+    relationshipView:
+      title: "関係性ビュー"
+      description: "人ややり取り、変化する関係性という視点からメモを捉え直します。"
+    actionExtraction:
+      title: "行動の抽出"
+      description: "振り返りを、試したり確認したりフォローできる具体的な次の行動に変えます。"
+    longTermTrajectory:
+      title: "長期的な軌跡"
+      description: "時間をまたいで記録を見渡し、意味のある変化、繰り返すサイクル、長期的な変容を見つけます。"
 aiProxy:
   title: "Proxy Settings"
   notConfigured: "Not configured"
@@ -1269,3 +1334,240 @@ legacy:
     error_empty_response: "AIの応答が空です"
     error_missing_content: "AIの応答内容が欠落しています"
     default_prompt: "あなたはミニマリストなノートアシスタントです。核心的なポイントを抽出し、上品な形式で整理してください。返信はプロフェッショナルで穏やか、簡潔な語調を保ち、できるだけ箇条書きと短い段落を使ってください。"
+  msg_action_shortcut: アクション - ショートカット
+  msg_adcode: 行政上の市外局番
+  msg_added_attachment_count: $count アタッチメントを追加しました。
+  msg_added_files: $count ファイルを追加しました。
+  msg_added_files_with_skipped: $count ファイルを追加しました。$detailsをスキップしました。
+  msg_added_photo_attachment: 写真添付ファイルを追加しました。
+  msg_api_route: APIルート
+  msg_attachment: アタッチメント
+  msg_available_variable_docs: 利用可能な変数ドキュメント
+  msg_available_variable_docs_desc: タップすると、中央のダイアログに変数テーブルと意味メモが表示されます。
+  msg_average_daily_characters: 1 日の平均文字数
+  msg_average_value: 平均$value
+  msg_bold: 大胆な
+  msg_camera_failed: カメラの故障:$error
+  msg_camera_file_missing: カメラファイルがありません。
+  msg_camera_permission_denied_windows: カメラの許可が拒否されました。 Windows 設定でカメラ アクセスを有効にします。
+  msg_capture_photo: 写真をキャプチャする
+  msg_check_system_permissions_or_retry_later: システム権限を確認するか、後でもう一度試してください。
+  msg_checkbox: チェックボックス
+  msg_city_plus_weather_plus_temperature: 都市 + 天気 + 気温
+  msg_close_window_minimize_to_tray: ウィンドウを閉じるときにトレイを最小化する
+  msg_close_window_minimize_to_tray_desc: 有効にすると、右上の閉じるボタンをクリックしてもアプリは終了しません。システム トレイからウィンドウを復元できます。
+  msg_code_block: コードブロック
+  msg_common_writing_time: 一般的な執筆時間
+  msg_configure_windows_desktop_shortcuts: Windows デスクトップのショートカットを構成する
+  msg_copy_diagnostics: コピー診断
+  msg_copy_last_lines: 最後の$lines行をコピー
+  msg_current_date: 現在の日付
+  msg_current_datetime: 現在の日付と時刻
+  msg_current_shortcut: 現在:$binding
+  msg_current_streak_days: 現在の連続日数 (日)
+  msg_current_time: 現在時刻
+  msg_current_window_pin_not_supported: 現在のウィンドウでは固定はサポートされていません。
+  msg_currently_using_api: 現在 API$version を使用しています。
+  msg_cut: カット
+  msg_daily_memo_trend: 日々のメモの傾向
+  msg_date_format_variable: 日付形式 ({{date}})
+  msg_date_memo_count_tooltip: '$date
+
+    $countメモ'
+  msg_date_time_weather_variable_desc: 日付/時刻変数は変数設定の形式に従います。気象変数は AMap 気象設定に依存します。
+  msg_datetime_format_variable: 日時形式 ({{datetime}})
+  msg_default_shortcuts_restored: デフォルトのショートカットが復元されました。
+  msg_delete_template: テンプレートの削除
+  msg_delete_template_confirm_with_name: 「$name」を削除しますか？
+  msg_diagnostics_copied: 診断がコピーされました
+  msg_edit_template: テンプレートの編集
+  msg_editor: エディタ
+  msg_enable_sync_bridge_first: まず同期ブリッジを有効にしてください。
+  msg_enable_weather_variables: 気象変数を有効にする
+  msg_encrypt_save_placeholder: 暗号化保存 (プレースホルダー)
+  msg_encryption_feature_placeholder: 暗号化は現在プレースホルダーであり、まだ強制されていません。
+  msg_enter_and_confirm_password: パスワードを入力して確認してください。
+  msg_enter_content_before_creating_link: リンクを作成する前にコンテンツを入力してください。
+  msg_enter_repository_name_hint: リポジトリ名を入力してください
+  msg_enter_repository_name_prompt: リポジトリ名を入力してください。
+  msg_error: エラー
+  msg_example: 例
+  msg_example_beijing: 北京
+  msg_example_beijing_city: 北京市
+  msg_example_beijing_sunny_25c: 北京 晴れ 25℃
+  msg_example_northeast: 北東
+  msg_example_saturday: 土曜日
+  msg_example_sunny: 晴れ
+  msg_example_sunny_25c: 晴れ 25℃
+  msg_export_logs_bundle: ログバンドルのエクスポート
+  msg_failed_export_logs: ログのエクスポートに失敗しました:$error
+  msg_feature: 特徴
+  msg_feature_not_implemented_placeholder_with_label: 「$label」はまだ実装されていません (プレースホルダー)。
+  msg_file_save_location: ファイルの保存場所
+  msg_file_selection_failed: ファイルの選択に失敗しました:$error
+  msg_files_unavailable_from_picker: ピッカーからファイルを利用できません。
+  msg_focus_input_area: フォーカス入力エリア
+  msg_gallery_mobile_only: ギャラリーはモバイルでのみ利用できます。
+  msg_gallery_original_selection_summary: 選択された$selectedCount · オリジナル$originalCount
+  msg_global: グローバル
+  msg_got_it: わかった
+  msg_highlight: ハイライト
+  msg_humidity_without_percent: 湿度 (%記号なし)
+  msg_image: 画像
+  msg_keep_unknown_variables_raw: 未知の変数をそのまま保持する
+  msg_keep_unknown_variables_raw_desc: 無効にすると、不明な変数は空の文字列に置き換えられます。
+  msg_link: リンク
+  msg_links_label: リンク
+  msg_loading_memos: メモを読み込んでいます...
+  msg_local_storage_unavailable: ローカルストレージが利用できない
+  msg_log_bundle_created: 作成されたログ バンドル:$path (エクスポート ID:$exportId)
+  msg_longest_streak_days: 最長連続記録 (日)
+  msg_many_templates_support_scroll: テンプレートが多い場合、この領域は垂直スクロールをサポートします。
+  msg_max_characters_single_day: 1日の最大文字数
+  msg_maximize: 最大化する
+  msg_meaning: 意味
+  msg_memo_count: メモ数
+  msg_minimize: 最小化する
+  msg_month_characters_tooltip: '$month
+
+    $chars 文字'
+  msg_monthly_overview: $month 月次概要
+  msg_most_active_day: 最も活動的な日
+  msg_need_at_least_five_tags: タグが 5 つ未満です。さらにタグを追加して再試行してください。
+  msg_new_template: テンプレートの追加
+  msg_next_page: 次のページ
+  msg_no_active_session_after_sign_in: サインイン後にアクティブなセッションがありません
+  msg_no_camera_detected: カメラが検出されませんでした。
+  msg_no_data: データなし
+  msg_no_files_selected: ファイルが選択されていません。
+  msg_no_recording_input_device_found: 録音入力デバイスが見つかりません。
+  msg_no_system_logs_yet: システムログはまだありません
+  msg_no_templates_click_add: テンプレートはまだありません。 「テンプレートを追加」をクリックしてテンプレートを作成します。
+  msg_no_templates_yet: まだテンプレートがありません
+  msg_no_valid_files_selected: 有効なファイルが選択されていません。
+  msg_not_selected: 未選択
+  msg_on_this_day: この日には
+  msg_only_windows_desktop_supports_this_setting: この設定をサポートしているのは Windows デスクトップのみです。
+  msg_open_camera_settings: カメラ設定を開く
+  msg_open_settings: 設定を開く
+  msg_ordered_list: 順序付きリスト
+  msg_original_image: オリジナル
+  msg_password_feature_placeholder: パスワードのサポートは現在プレースホルダーであり、まだ強制されていません。
+  msg_paste: ペースト
+  msg_press_new_shortcut: 新しいショートカットを押します...
+  msg_previous_page: 前のページへ
+  msg_probe_failed: プローブが失敗しました:$error
+  msg_publish_memo: メモを公開する
+  msg_qr_scan_not_supported_pair_manually: QR スキャンはこのプラットフォームではサポートされていません。ホスト、ポート、ペアコードを使用して手動でペアリングしてください。
+  msg_qr_scan_not_supported_use_manual_pairing: 'QR スキャンはこのプラットフォームではサポートされていません。
+
+    代わりに手動ペアリングを使用してください。'
+  msg_quick_input_channel_not_ready_retry: クイック入力チャンネルの準備ができていません。メイン ウィンドウを再度開いて、再試行してください。
+  msg_quick_input_failed_with_error: クイック入力に失敗しました:$error
+  msg_quick_input_save_failed_with_error: クイック入力の保存に失敗しました:$error
+  msg_quick_record: クイックレコード
+  msg_quick_search: クイック検索...
+  msg_redo: やり直し
+  msg_repository_name: リポジトリ名
+  msg_request_body: リクエストボディ
+  msg_request_headers: リクエストヘッダー
+  msg_response_body: 応答本文
+  msg_response_headers: 応答ヘッダー
+  msg_restore_defaults: デフォルトに戻す
+  msg_restore_window: 復元する
+  msg_save_failed_check_content_retry: 保存に失敗しました。内容を確認して再度お試しください。
+  msg_saved_to_memoflow: メモフローに保存されました
+  msg_screenshot_mode: スクリーンショットモード
+  msg_screenshot_mode_detail: クリーンなキャプチャのためにステータス/ナビゲーション バーを非表示にする
+  msg_select_file_save_location: ファイルの保存場所を選択してください。
+  msg_select_location: 場所を選択してください
+  msg_shift_enter_supported: Shift + Enterもサポート
+  msg_shortcut_binding_in_use: $binding はすでに「$action」によって使用されています。
+  msg_shortcut_requires_modifier: 少なくとも 1 つの修飾キー (Ctrl/Cmd/Shift/Alt) を含めます。
+  msg_shortcut_settings: ショートカット設定
+  msg_shortcuts_overview: ショートカットの概要
+  msg_shortcuts_overview_opened: 開いたショートカットの概要。
+  msg_shortcuts_supported_windows_macos: ショートカット設定をサポートしているのは Windows と macOS のみです。
+  msg_show_hide_memoflow: メモフローの表示/非表示
+  msg_showing_last_lines: 最後の$lines 行を表示しています
+  msg_source_value: 出典:$source
+  msg_startup_slogan: レコードが自然に流れるようにする
+  msg_storage_read_failed_some_features_limited: ストレージの読み取りに失敗しました。一部の機能は制限されています。
+  msg_sync_completed_summary: 同期完了:$succeeded/$total は成功、$failed は失敗しました。
+  msg_sync_failed_with_error: 同期に失敗しました:$error
+  msg_sync_to_obsidian: 黒曜石と同期する
+  msg_sync_to_obsidian_confirm: 現在のローカル ライブラリ内のすべてのメモ (添付ファイルを含む) を、ペアリングされた Obsidian に一度に同期します。続く？
+  msg_sync_to_obsidian_in_progress: Obsidian と同期しています...
+  msg_system_edit_shortcuts_note: コピー/貼り付け/切り取りには、システムのデフォルトのショートカットを使用します。
+  msg_system_logs: システムログ
+  msg_system_logs_copied: コピーされたシステム ログ ($lines 行)
+  msg_tag: タグ
+  msg_tag_cloud_tooltip: '$count メモ
+
+    $percent%
+
+    最新:$latest'
+  msg_temperature_without_unit: 温度（単位なし）
+  msg_template: テンプレート
+  msg_template_content: テンプレートの内容
+  msg_template_content_example: '変数を使用できます。例: {{date}} {{weather}}'
+  msg_template_feature_desc: 有効にすると、エディターのツールバーからテンプレートを選択できるようになります。いずれかを選択すると、エディターのコンテンツが置き換えられます。
+  msg_template_feature_manage_desc: テンプレートを有効にして、テンプレート名、コンテンツ、変数を管理します。
+  msg_template_feature_title: テンプレートを有効にする
+  msg_template_list: テンプレート一覧
+  msg_template_name: テンプレート名
+  msg_template_name_example: 例：朝の振り返り
+  msg_template_variable_settings: テンプレート変数の設定
+  msg_template_variables: テンプレート変数
+  msg_time_format_variable: 時刻形式 ({{time}})
+  msg_todo: 藤堂
+  msg_toggle_memoflow_failed_with_error: MemoFlow の表示/非表示に失敗しました:$error
+  msg_toggle_sidebar: サイドバーの切り替え
+  msg_total_characters_metric: 総文字数
+  msg_total_characters_short: 総文字数
+  msg_total_count_times: 合計$count 回
+  msg_total_days: 合計日数
+  msg_total_memos_metric: 合計メモ
+  msg_unable_open_windows_camera_settings: Windows のカメラ設定を開けません。
+  msg_unavailable_file_count: $count は利用できません
+  msg_underline: 下線
+  msg_undo: 元に戻す
+  msg_unnamed_tag: 名前のないタグ
+  msg_unordered_list: 順序なしリスト
+  msg_unsupported_version_value: サポートされていないバージョン:$version
+  msg_variable: 変数
+  msg_variable_settings: 変数設定
+  msg_version_probe_complete: バージョン調査が完了しました
+  msg_version_probe_failed: バージョン調査に失敗しました
+  msg_version_probe_passed_with_version: v$version プローブが渡されました
+  msg_visibility_value: 可視性:$value
+  msg_vs_last_month_decrease_memo_count: 先月よりもメモが減りました
+  msg_vs_last_month_increase_memo_count: 先月よりメモが増えた
+  msg_vs_last_month_same_memo_count: 先月と同じメモ数
+  msg_weather_city_adcode_or_name: 気象都市 (コードまたは都市名)
+  msg_weather_city_example: '例: 110000'
+  msg_weather_city_label: 気象都市
+  msg_weather_condition: 気象条件
+  msg_weather_fallback_text: 天気フォールバックテキスト
+  msg_weather_plus_temperature_without_city: 天気 + 気温 (都市なし)
+  msg_weather_province: 気象省
+  msg_weather_report_time: 天気予報の時間
+  msg_weather_variable_tokens: '変数: {{weather}} / {{weather.*}}'
+  msg_weather_variables_city: 気象変数:$city
+  msg_weather_variables_disabled: 天気変数は無効です
+  msg_weather_variables_enabled_city_not_set: 気象変数が有効 (都市は設定されていません)
+  msg_weekday_friday: 金
+  msg_weekday_monday: 月
+  msg_weekday_name: 曜日名
+  msg_weekday_saturday: 土
+  msg_weekday_sunday: 太陽
+  msg_weekday_thursday: 木
+  msg_weekday_tuesday: 火
+  msg_weekday_wednesday: 水
+  msg_wind_direction: 風向き
+  msg_wind_power: 風力
+  msg_windows_enable_location_access: $message。 Windows 設定で位置情報アクセスを有効にします。
+  msg_windows_paging_note: 'Windows ページング: PageUp 前のページ、PageDown 次のページ。'
+  msg_windows_related_settings: Windows関連の設定
+  msg_write_current_thought: 考えていることを書き留めてください...
+  msg_yearly_character_trend: 年間キャラクタートレンド

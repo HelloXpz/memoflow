@@ -11,6 +11,7 @@ common:
   selectValidServerVersion: "Bitte eine gültige Serverversion auswählen"
   serverVersionValue: "Serverversion: $version"
   selectServerVersionRange021To026: "Bitte wählen Sie manuell eine Serverversion zwischen 0.21 und 0.26"
+  serverVersionProbeHint: "Vor der Anmeldung werden nur die Kern-APIs der ausgewaehlten Serverversion geprueft."
 languages:
   system: "System folgen"
   zhHans: "Chinesisch (Vereinfacht)"
@@ -165,6 +166,70 @@ locationPicker:
   providerMissingGoogleKey: "Vor der Standortauswahl wird der Google Maps API Key benötigt."
   providerUnsupportedPlatform: "Der eingebettete Kartenwähler ist nur auf Android und Windows verfügbar."
 
+aiInsight:
+  cards:
+    actionExtraction:
+      description: Verwandeln Sie Reflexionen in konkrete naechste Schritte, die Sie ausprobieren, testen oder weiterverfolgen koennen.
+      title: Handlungsableitung
+    blindSpotDiscovery:
+      description: Erkennen Sie uebersehene Signale oder subtile Muster, die beim Schreiben leicht untergehen.
+      title: Blinde Flecken
+    emotionMap:
+      description: Analysieren Sie den emotionalen Verlauf in Ihren Notizen und sehen Sie, was zuletzt Ihren Zustand gepraegt hat.
+      title: Emotionskarte
+    longTermTrajectory:
+      description: Betrachten Sie Ihre Notizen ueber laengere Zeitraeume hinweg und erkennen Sie bedeutsame Veraenderungen, wiederkehrende Zyklen und langfristigen Wandel.
+      title: Langfristige Entwicklung
+    relationshipView:
+      description: Betrachten Sie Ihre Notizen neu durch die Linse von Menschen, Interaktionen und sich veraendernden Beziehungsdynamiken.
+      title: Beziehungsansicht
+    themeResonance:
+      description: Finden Sie wiederkehrende Themen in aktuellen Notizen und machen Sie sichtbar, worauf Sie immer wieder zurueckkommen.
+      title: Themenresonanz
+    thoughtTrace:
+      description: Machen Sie verborgene Annahmen, ungeloeste Fragen und Denkrichtungen sichtbar, die es weiterzuverfolgen lohnt.
+      title: Gedankenspur
+    todayClues:
+      description: Die KI hebt aktuelle Ereignisse, Spannungen und offene Themen hervor, die zuerst Ihre Aufmerksamkeit verdienen.
+      title: Aktuelle Hinweise
+  common:
+    disabled: Deaktiviert
+    enabled: Aktiviert
+  contentPreview:
+    emptyState: Keine Notizen entsprechen den aktuellen Einstellungen. Versuchen Sie es mit einem anderen Zeitraum oder Privatsphaere-Bereich.
+    estimatedTokens: Geschaetzte Token
+    loading: Vorschau wird vorbereitet...
+    noteCount: $count Notizen
+    notesToSend: Zu sendende Notizen
+    previewContent: Vorschauinhalt
+    previewLoadFailed: Die Inhaltsvorschau konnte nicht vorbereitet werden.
+    sectionTitle: Inhaltsvorschau
+    timeRange: Zeitraum
+    title: Inhaltsvorschau
+    tokenCount: $count Token
+    truncatedNotice: Der Inhalt wurde gekuerzt, um innerhalb des aktuellen Analyselimits zu bleiben.
+  privacyScope:
+    description: Wenn aktiviert, werden auch private Notizen zur Analyse an das KI-Modell gesendet.
+    includePrivateNotes: Private Notizen einbeziehen
+    title: Privatsphaere-Bereich
+  promptSettings:
+    clearTemplate: Leeren
+    description: Ermoeglicht fortgeschrittenen Nutzern, den fuer diese Analyse verwendeten KI-Prompt anzupassen.
+    editPromptTemplate: Prompt-Vorlage bearbeiten
+    editorDescription: Diese Vorlage wird fuer die Analyse "$insight" verwendet.
+    editorPlaceholder: Beschreiben Sie, worauf sich die KI konzentrieren, was sie vergleichen, zusammenfassen oder hervorheben soll.
+    emptyTemplateHint: Fuer diese Analyse gibt es noch keine Prompt-Vorlage. Fuegen Sie eine hinzu, bevor Sie die Analyse starten.
+    title: Prompt-Einstellungen
+  settingsTitle: KI-Analyseeinstellungen
+  startAnalysis: Analyse starten
+  subtitle: Lassen Sie sich von KI dabei helfen, Ihre Notizen aus verschiedenen Blickwinkeln zu verstehen.
+  timeRange:
+    customRange: Benutzerdefinierter Zeitraum
+    last30Days: Letzte 30 Tage
+    last3Days: Letzte 3 Tage
+    last7Days: Letzte 7 Tage
+    title: Zeitraum
+  title: KI-Zusammenfassung
 aiProxy:
   title: "Proxy Settings"
   notConfigured: "Not configured"
@@ -1270,3 +1335,239 @@ legacy:
     error_empty_response: "AI-Antwort ist leer"
     error_missing_content: "Inhalt der AI-Antwort fehlt"
     default_prompt: "Du bist ein minimalistischer Notizassistent. Extrahiere die Kernaussagen und formatiere sie elegant. Antworte professionell, freundlich und prägnant. Verwende nach Möglichkeit Listen und kurze Absätze."
+  msg_action_shortcut: Aktion – Verknüpfung
+  msg_adcode: Verwaltungsvorwahl
+  msg_added_attachment_count: $count-Anhang(e) hinzugefügt.
+  msg_added_files: $count-Datei(en) hinzugefügt.
+  msg_added_files_with_skipped: $count-Datei(en) hinzugefügt. $details übersprungen.
+  msg_added_photo_attachment: Fotoanhang hinzugefügt.
+  msg_api_route: API-Route
+  msg_attachment: Anhang
+  msg_available_variable_docs: Verfügbare Variablendokumente
+  msg_available_variable_docs_desc: Tippen Sie, um die Variablentabelle und Bedeutungshinweise im mittleren Dialog anzuzeigen.
+  msg_average_daily_characters: Durchschnittliche tägliche Charaktere
+  msg_average_value: Durchschnittlicher $value
+  msg_bold: Deutlich
+  msg_camera_failed: 'Kamera ausgefallen: $error'
+  msg_camera_file_missing: Kameradatei fehlt.
+  msg_camera_permission_denied_windows: Kameraberechtigung verweigert. Aktivieren Sie den Kamerazugriff in den Windows-Einstellungen.
+  msg_capture_photo: Foto aufnehmen
+  msg_check_system_permissions_or_retry_later: Bitte überprüfen Sie die Systemberechtigungen oder versuchen Sie es später erneut.
+  msg_checkbox: Kontrollkästchen
+  msg_city_plus_weather_plus_temperature: Stadt + Wetter + Temperatur
+  msg_close_window_minimize_to_tray: Beim Schließen des Fensters auf die Taskleiste minimieren
+  msg_close_window_minimize_to_tray_desc: Wenn diese Option aktiviert ist, wird die App durch Klicken auf die Schaltfläche zum Schließen oben rechts nicht beendet. Sie können das Fenster über die Taskleiste wiederherstellen.
+  msg_code_block: Codeblock
+  msg_common_writing_time: Gemeinsame Schreibzeit
+  msg_configure_windows_desktop_shortcuts: Konfigurieren Sie Windows-Desktop-Verknüpfungen
+  msg_copy_diagnostics: Diagnose kopieren
+  msg_copy_last_lines: Kopieren Sie die letzten $lines-Zeilen
+  msg_current_date: Aktuelles Datum
+  msg_current_datetime: Aktuelles Datum und Uhrzeit
+  msg_current_shortcut: 'Aktuell: $binding'
+  msg_current_streak_days: Aktueller Streak (Tage)
+  msg_current_time: Aktuelle Uhrzeit
+  msg_current_window_pin_not_supported: Das Anheften wird im aktuellen Fenster nicht unterstützt.
+  msg_currently_using_api: Derzeit wird die API $version verwendet.
+  msg_cut: Schneiden
+  msg_daily_memo_trend: Täglicher Memo-Trend
+  msg_date_format_variable: Datumsformat ({{date}})
+  msg_date_memo_count_tooltip: '$date
+
+    $count Memos'
+  msg_date_time_weather_variable_desc: Date/time variables follow the formats in Variable settings; Wettervariablen hängen von der AMap-Wetterkonfiguration ab.
+  msg_datetime_format_variable: Datum/Uhrzeit-Format ({{datetime}})
+  msg_default_shortcuts_restored: Standardverknüpfungen wiederhergestellt.
+  msg_delete_template: Vorlage löschen
+  msg_delete_template_confirm_with_name: „$name“ löschen?
+  msg_diagnostics_copied: Diagnose kopiert
+  msg_edit_template: Vorlage bearbeiten
+  msg_editor: Editor
+  msg_enable_sync_bridge_first: Bitte aktivieren Sie zuerst die Synchronisierungsbrücke.
+  msg_enable_weather_variables: Wettervariablen aktivieren
+  msg_encrypt_save_placeholder: Verschlüsselte Speicherung (Platzhalter)
+  msg_encryption_feature_placeholder: Die Verschlüsselung ist derzeit ein Platzhalter und wird noch nicht erzwungen.
+  msg_enter_and_confirm_password: Bitte geben Sie das Passwort ein und bestätigen Sie es.
+  msg_enter_content_before_creating_link: Bitte geben Sie Inhalte ein, bevor Sie einen Link erstellen.
+  msg_enter_repository_name_hint: Geben Sie den Repository-Namen ein
+  msg_enter_repository_name_prompt: Bitte geben Sie einen Repository-Namen ein.
+  msg_error: Fehler
+  msg_example: Beispiel
+  msg_example_beijing: Peking
+  msg_example_beijing_city: Gemeinde Peking
+  msg_example_beijing_sunny_25c: Peking Sonnig 25°C
+  msg_example_northeast: Nordost
+  msg_example_saturday: Samstag
+  msg_example_sunny: Sonnig
+  msg_example_sunny_25c: Sonnige 25°C
+  msg_export_logs_bundle: Protokollpaket exportieren
+  msg_failed_export_logs: 'Protokolle konnten nicht exportiert werden: $error'
+  msg_feature: Besonderheit
+  msg_feature_not_implemented_placeholder_with_label: „$label“ ist noch nicht implementiert (Platzhalter).
+  msg_file_save_location: Speicherort der Datei
+  msg_file_selection_failed: 'Dateiauswahl fehlgeschlagen: $error'
+  msg_files_unavailable_from_picker: Dateien sind im Picker nicht verfügbar.
+  msg_focus_input_area: Fokuseingabebereich
+  msg_gallery_original_selection_summary: Ausgewähltes $selectedCount · Original $originalCount
+  msg_global: Global
+  msg_got_it: Habe es
+  msg_highlight: Hervorheben
+  msg_humidity_without_percent: Luftfeuchtigkeit (ohne %-Symbol)
+  msg_image: Bild
+  msg_keep_unknown_variables_raw: Behalten Sie unbekannte Variablen unverändert bei
+  msg_keep_unknown_variables_raw_desc: Wenn diese Option deaktiviert ist, werden unbekannte Variablen durch eine leere Zeichenfolge ersetzt.
+  msg_link: Link
+  msg_links_label: Links
+  msg_loading_memos: Memos werden geladen...
+  msg_local_storage_unavailable: Der lokale Speicher ist nicht verfügbar
+  msg_log_bundle_created: 'Protokollpaket erstellt: $path (ExportId: $exportId)'
+  msg_longest_streak_days: Längster Streak (Tage)
+  msg_many_templates_support_scroll: Wenn viele Vorlagen vorhanden sind, unterstützt dieser Bereich vertikales Scrollen.
+  msg_max_characters_single_day: Max. Zeichen pro Tag
+  msg_maximize: Maximieren
+  msg_meaning: Bedeutung
+  msg_memo_count: Anzahl der Memos
+  msg_minimize: Minimieren
+  msg_month_characters_tooltip: '$month
+
+    $chars Zeichen'
+  msg_monthly_overview: $month Monatsübersicht
+  msg_most_active_day: Aktivster Tag
+  msg_need_at_least_five_tags: Es sind weniger als 5 Tags vorhanden. Bitte fügen Sie weitere Tags hinzu und versuchen Sie es erneut.
+  msg_new_template: Vorlage hinzufügen
+  msg_next_page: Nächste Seite
+  msg_no_active_session_after_sign_in: Keine aktive Sitzung nach der Anmeldung
+  msg_no_camera_detected: Keine Kamera erkannt.
+  msg_no_data: Keine Daten
+  msg_no_files_selected: Keine Dateien ausgewählt.
+  msg_no_recording_input_device_found: Kein Aufnahme-Eingabegerät gefunden.
+  msg_no_system_logs_yet: Noch keine Systemprotokolle
+  msg_no_templates_click_add: Noch keine Vorlagen. Klicken Sie auf „Vorlage hinzufügen“, um eine zu erstellen.
+  msg_no_templates_yet: Noch keine Vorlagen
+  msg_no_valid_files_selected: Keine gültigen Dateien ausgewählt.
+  msg_not_selected: Nicht ausgewählt
+  msg_on_this_day: An diesem Tag
+  msg_only_windows_desktop_supports_this_setting: Nur der Windows-Desktop unterstützt diese Einstellung.
+  msg_open_camera_settings: Öffnen Sie die Kameraeinstellungen
+  msg_open_settings: Einstellungen öffnen
+  msg_ordered_list: Geordnete Liste
+  msg_original_image: Original
+  msg_password_feature_placeholder: Die Passwortunterstützung ist derzeit ein Platzhalter und noch nicht durchgesetzt.
+  msg_paste: Paste
+  msg_press_new_shortcut: Drücken Sie die neue Verknüpfung...
+  msg_previous_page: Vorherige Seite
+  msg_probe_failed: 'Probe fehlgeschlagen: $error'
+  msg_publish_memo: Memo veröffentlichen
+  msg_qr_scan_not_supported_pair_manually: QR-Scan wird auf dieser Plattform nicht unterstützt. Bitte koppeln Sie manuell mit Host, Port und Pair-Code.
+  msg_qr_scan_not_supported_use_manual_pairing: 'QR-Scan wird auf dieser Plattform nicht unterstützt.
+
+    Verwenden Sie stattdessen die manuelle Kopplung.'
+  msg_quick_input_channel_not_ready_retry: Der Schnelleingabekanal ist nicht bereit. Bitte öffnen Sie das Hauptfenster erneut und versuchen Sie es erneut.
+  msg_quick_input_failed_with_error: 'Schnelleingabe fehlgeschlagen: $error'
+  msg_quick_input_save_failed_with_error: 'Schnelles Speichern der Eingabe fehlgeschlagen: $error'
+  msg_quick_record: Schnelle Aufnahme
+  msg_quick_search: Schnellsuche...
+  msg_redo: Wiederholen
+  msg_repository_name: Repository-Name
+  msg_request_body: Anforderungstext
+  msg_request_headers: Header anfordern
+  msg_response_body: Antwortgremium
+  msg_response_headers: Antwortheader
+  msg_restore_defaults: Standardeinstellungen wiederherstellen
+  msg_restore_window: Wiederherstellen
+  msg_save_failed_check_content_retry: Speichern fehlgeschlagen. Bitte überprüfen Sie den Inhalt und versuchen Sie es erneut.
+  msg_saved_to_memoflow: In MemoFlow gespeichert
+  msg_screenshot_mode: Screenshot-Modus
+  msg_screenshot_mode_detail: Blenden Sie Status-/Navigationsleisten für saubere Aufnahmen aus
+  msg_select_file_save_location: Bitte wählen Sie einen Speicherort für die Datei aus.
+  msg_select_location: Standort auswählen
+  msg_shift_enter_supported: Unterstützt auch Umschalt + Eingabetaste
+  msg_shortcut_binding_in_use: $binding wird bereits von „$action“ verwendet.
+  msg_shortcut_requires_modifier: Fügen Sie mindestens eine Zusatztaste ein (Strg/Befehl/Umschalt/Alt).
+  msg_shortcut_settings: Verknüpfungseinstellungen
+  msg_shortcuts_overview: Übersicht über die Verknüpfungen
+  msg_shortcuts_overview_opened: Geöffnete Verknüpfungsübersicht.
+  msg_shortcuts_supported_windows_macos: Nur Windows und macOS unterstützen Verknüpfungseinstellungen.
+  msg_show_hide_memoflow: MemoFlow ein-/ausblenden
+  msg_showing_last_lines: Zeigt die letzten $lines-Zeilen
+  msg_source_value: 'Quelle: $source'
+  msg_startup_slogan: Lassen Sie die Aufzeichnungen natürlich fließen
+  msg_storage_read_failed_some_features_limited: Das Lesen des Speichers ist fehlgeschlagen. Einige Funktionen sind eingeschränkt.
+  msg_sync_completed_summary: 'Synchronisierung abgeschlossen: $succeeded/$total erfolgreich, $failed fehlgeschlagen.'
+  msg_sync_failed_with_error: 'Synchronisierung fehlgeschlagen: $error'
+  msg_sync_to_obsidian: Mit Obsidian synchronisieren
+  msg_sync_to_obsidian_confirm: Synchronisieren Sie alle Memos in der aktuellen lokalen Bibliothek, einschließlich Anhänge, auf einmal mit dem gekoppelten Obsidian. Weitermachen?
+  msg_sync_to_obsidian_in_progress: Synchronisierung mit Obsidian...
+  msg_system_edit_shortcuts_note: Zum Kopieren/Einfügen/Ausschneiden verwenden Sie die Standardverknüpfungen des Systems.
+  msg_system_logs: Systemprotokolle
+  msg_system_logs_copied: Systemprotokolle kopiert ($lines-Zeilen)
+  msg_tag: Etikett
+  msg_tag_cloud_tooltip: '$count Memos
+
+    $percent%
+
+    Neueste: $latest'
+  msg_temperature_without_unit: Temperatur (ohne Einheit)
+  msg_template: Vorlage
+  msg_template_content: Vorlageninhalt
+  msg_template_content_example: 'Sie können Variablen verwenden, zum Beispiel: {{date}} {{weather}}'
+  msg_template_feature_desc: Nach der Aktivierung können Sie Vorlagen aus der Editor-Symbolleiste auswählen. Wenn Sie eines auswählen, wird der Inhalt des Editors ersetzt.
+  msg_template_feature_manage_desc: Aktivieren Sie Vorlagen, um Vorlagennamen, Inhalte und Variablen zu verwalten.
+  msg_template_feature_title: Aktivieren Sie Vorlagen
+  msg_template_list: Vorlagenliste
+  msg_template_name: Vorlagenname
+  msg_template_name_example: 'Beispiel: Morgenrückblick'
+  msg_template_variable_settings: Einstellungen für Vorlagenvariablen
+  msg_template_variables: Vorlagenvariablen
+  msg_time_format_variable: Zeitformat ({{time}})
+  msg_todo: Todo
+  msg_toggle_memoflow_failed_with_error: 'Ein-/Ausblenden von MemoFlow fehlgeschlagen: $error'
+  msg_toggle_sidebar: Seitenleiste umschalten
+  msg_total_characters_metric: Gesamtzahl der Zeichen
+  msg_total_characters_short: Gesamtzahl der Zeichen
+  msg_total_count_times: $count-Zeiten insgesamt
+  msg_total_days: Gesamtzahl der Tage
+  msg_total_memos_metric: Gesamtnotizen
+  msg_unable_open_windows_camera_settings: Die Windows-Kameraeinstellungen können nicht geöffnet werden.
+  msg_unavailable_file_count: $count nicht verfügbar
+  msg_underline: Unterstreichen
+  msg_undo: Rückgängig machen
+  msg_unnamed_tag: Unbenanntes Tag
+  msg_unordered_list: Ungeordnete Liste
+  msg_unsupported_version_value: 'Nicht unterstützte Version: $version'
+  msg_variable: Variable
+  msg_variable_settings: Variable Einstellungen
+  msg_version_probe_complete: Versionsprüfung abgeschlossen
+  msg_version_probe_failed: Die Versionsprüfung ist fehlgeschlagen
+  msg_version_probe_passed_with_version: v$version-Probe bestanden
+  msg_visibility_value: 'Sichtbarkeit: $value'
+  msg_vs_last_month_decrease_memo_count: Weniger Memos als im letzten Monat
+  msg_vs_last_month_increase_memo_count: Mehr Memos als letzten Monat
+  msg_vs_last_month_same_memo_count: Gleiche Memoanzahl wie im letzten Monat
+  msg_weather_city_adcode_or_name: Wetterstadt (Adcode oder Stadtname)
+  msg_weather_city_example: 'Beispiel: 110000'
+  msg_weather_city_label: Wetterstadt
+  msg_weather_condition: Wetterlage
+  msg_weather_fallback_text: Wetter-Fallback-Text
+  msg_weather_plus_temperature_without_city: Wetter + Temperatur (ohne Stadt)
+  msg_weather_province: Wetterprovinz
+  msg_weather_report_time: Uhrzeit des Wetterberichts
+  msg_weather_variable_tokens: 'Variablen: {{weather}} / {{weather.*}}'
+  msg_weather_variables_city: 'Wettervariablen: $city'
+  msg_weather_variables_disabled: Wettervariablen deaktiviert
+  msg_weather_variables_enabled_city_not_set: Wettervariablen aktiviert (Stadt nicht festgelegt)
+  msg_weekday_friday: Fr
+  msg_weekday_monday: Mo
+  msg_weekday_name: Name des Wochentags
+  msg_weekday_saturday: Sa
+  msg_weekday_sunday: Sonne
+  msg_weekday_thursday: Do
+  msg_weekday_tuesday: Di
+  msg_weekday_wednesday: Heiraten
+  msg_wind_direction: Windrichtung
+  msg_wind_power: Windstärke
+  msg_windows_enable_location_access: $message. Aktivieren Sie den Standortzugriff in den Windows-Einstellungen.
+  msg_windows_paging_note: 'Windows-Paging: PageUp vorherige Seite, PageDown nächste Seite.'
+  msg_windows_related_settings: Windows-bezogene Einstellungen
+  msg_write_current_thought: Schreiben Sie auf, was Sie denken ...
+  msg_yearly_character_trend: Jährlicher Charaktertrend

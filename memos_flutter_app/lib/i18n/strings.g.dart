@@ -4,9 +4,9 @@
 /// To regenerate, run: `dart run slang`
 ///
 /// Locales: 5
-/// Strings: 6950 (1390 per locale)
+/// Strings: 7555 (1511 per locale)
 ///
-/// Built on 2026-03-19 at 03:21 UTC
+/// Built on 2026-03-19 at 14:35 UTC
 
 // coverage:ignore-file
 // ignore_for_file: type=lint
@@ -2197,6 +2197,7 @@ class _StringsStringsDe extends _StringsStringsEn {
 	@override late final _StringsStringsLoginDe login = _StringsStringsLoginDe._(_root);
 	@override late final _StringsStringsSettingsDe settings = _StringsStringsSettingsDe._(_root);
 	@override late final _StringsStringsLocationPickerDe locationPicker = _StringsStringsLocationPickerDe._(_root);
+	@override late final _StringsStringsAiInsightDe aiInsight = _StringsStringsAiInsightDe._(_root);
 	@override late final _StringsStringsAiProxyDe aiProxy = _StringsStringsAiProxyDe._(_root);
 	@override late final _StringsStringsLegacyDe legacy = _StringsStringsLegacyDe._(_root);
 }
@@ -2220,6 +2221,7 @@ class _StringsStringsCommonDe extends _StringsStringsCommonEn {
 	@override String get selectValidServerVersion => 'Bitte eine gültige Serverversion auswählen';
 	@override String serverVersionValue({required Object version}) => 'Serverversion: ${version}';
 	@override String get selectServerVersionRange021To026 => 'Bitte wählen Sie manuell eine Serverversion zwischen 0.21 und 0.26';
+	@override String get serverVersionProbeHint => 'Vor der Anmeldung werden nur die Kern-APIs der ausgewaehlten Serverversion geprueft.';
 }
 
 // Path: strings.languages
@@ -2319,6 +2321,25 @@ class _StringsStringsLocationPickerDe extends _StringsStringsLocationPickerEn {
 	@override String get providerMissingBaiduKey => 'Vor der Standortauswahl wird der Baidu AK benötigt.';
 	@override String get providerMissingGoogleKey => 'Vor der Standortauswahl wird der Google Maps API Key benötigt.';
 	@override String get providerUnsupportedPlatform => 'Der eingebettete Kartenwähler ist nur auf Android und Windows verfügbar.';
+}
+
+// Path: strings.aiInsight
+class _StringsStringsAiInsightDe extends _StringsStringsAiInsightEn {
+	_StringsStringsAiInsightDe._(_StringsDe root) : this._root = root, super._(root);
+
+	@override final _StringsDe _root; // ignore: unused_field
+
+	// Translations
+	@override late final _StringsStringsAiInsightCardsDe cards = _StringsStringsAiInsightCardsDe._(_root);
+	@override late final _StringsStringsAiInsightCommonDe common = _StringsStringsAiInsightCommonDe._(_root);
+	@override late final _StringsStringsAiInsightContentPreviewDe contentPreview = _StringsStringsAiInsightContentPreviewDe._(_root);
+	@override late final _StringsStringsAiInsightPrivacyScopeDe privacyScope = _StringsStringsAiInsightPrivacyScopeDe._(_root);
+	@override late final _StringsStringsAiInsightPromptSettingsDe promptSettings = _StringsStringsAiInsightPromptSettingsDe._(_root);
+	@override String get settingsTitle => 'KI-Analyseeinstellungen';
+	@override String get startAnalysis => 'Analyse starten';
+	@override String get subtitle => 'Lassen Sie sich von KI dabei helfen, Ihre Notizen aus verschiedenen Blickwinkeln zu verstehen.';
+	@override late final _StringsStringsAiInsightTimeRangeDe timeRange = _StringsStringsAiInsightTimeRangeDe._(_root);
+	@override String get title => 'KI-Zusammenfassung';
 }
 
 // Path: strings.aiProxy
@@ -3365,6 +3386,232 @@ class _StringsStringsLegacyDe extends _StringsStringsLegacyEn {
 	@override String import_count_attachments({required Object count}) => '${count}';
 	@override late final _StringsStringsLegacyAppDrawerDe app_drawer = _StringsStringsLegacyAppDrawerDe._(_root);
 	@override late final _StringsStringsLegacyAiSummaryDe ai_summary = _StringsStringsLegacyAiSummaryDe._(_root);
+	@override String get msg_action_shortcut => 'Aktion – Verknüpfung';
+	@override String get msg_adcode => 'Verwaltungsvorwahl';
+	@override String msg_added_attachment_count({required Object count}) => '${count}-Anhang(e) hinzugefügt.';
+	@override String msg_added_files({required Object count}) => '${count}-Datei(en) hinzugefügt.';
+	@override String msg_added_files_with_skipped({required Object count, required Object details}) => '${count}-Datei(en) hinzugefügt. ${details} übersprungen.';
+	@override String get msg_added_photo_attachment => 'Fotoanhang hinzugefügt.';
+	@override String get msg_api_route => 'API-Route';
+	@override String get msg_attachment => 'Anhang';
+	@override String get msg_available_variable_docs => 'Verfügbare Variablendokumente';
+	@override String get msg_available_variable_docs_desc => 'Tippen Sie, um die Variablentabelle und Bedeutungshinweise im mittleren Dialog anzuzeigen.';
+	@override String get msg_average_daily_characters => 'Durchschnittliche tägliche Charaktere';
+	@override String msg_average_value({required Object value}) => 'Durchschnittlicher ${value}';
+	@override String get msg_bold => 'Deutlich';
+	@override String msg_camera_failed({required Object error}) => 'Kamera ausgefallen: ${error}';
+	@override String get msg_camera_file_missing => 'Kameradatei fehlt.';
+	@override String get msg_camera_permission_denied_windows => 'Kameraberechtigung verweigert. Aktivieren Sie den Kamerazugriff in den Windows-Einstellungen.';
+	@override String get msg_capture_photo => 'Foto aufnehmen';
+	@override String get msg_check_system_permissions_or_retry_later => 'Bitte überprüfen Sie die Systemberechtigungen oder versuchen Sie es später erneut.';
+	@override String get msg_checkbox => 'Kontrollkästchen';
+	@override String get msg_city_plus_weather_plus_temperature => 'Stadt + Wetter + Temperatur';
+	@override String get msg_close_window_minimize_to_tray => 'Beim Schließen des Fensters auf die Taskleiste minimieren';
+	@override String get msg_close_window_minimize_to_tray_desc => 'Wenn diese Option aktiviert ist, wird die App durch Klicken auf die Schaltfläche zum Schließen oben rechts nicht beendet. Sie können das Fenster über die Taskleiste wiederherstellen.';
+	@override String get msg_code_block => 'Codeblock';
+	@override String get msg_common_writing_time => 'Gemeinsame Schreibzeit';
+	@override String get msg_configure_windows_desktop_shortcuts => 'Konfigurieren Sie Windows-Desktop-Verknüpfungen';
+	@override String get msg_copy_diagnostics => 'Diagnose kopieren';
+	@override String msg_copy_last_lines({required Object lines}) => 'Kopieren Sie die letzten ${lines}-Zeilen';
+	@override String get msg_current_date => 'Aktuelles Datum';
+	@override String get msg_current_datetime => 'Aktuelles Datum und Uhrzeit';
+	@override String msg_current_shortcut({required Object binding}) => 'Aktuell: ${binding}';
+	@override String get msg_current_streak_days => 'Aktueller Streak (Tage)';
+	@override String get msg_current_time => 'Aktuelle Uhrzeit';
+	@override String get msg_current_window_pin_not_supported => 'Das Anheften wird im aktuellen Fenster nicht unterstützt.';
+	@override String msg_currently_using_api({required Object version}) => 'Derzeit wird die API ${version} verwendet.';
+	@override String get msg_cut => 'Schneiden';
+	@override String get msg_daily_memo_trend => 'Täglicher Memo-Trend';
+	@override String get msg_date_format_variable => 'Datumsformat ({{date}})';
+	@override String msg_date_memo_count_tooltip({required Object date, required Object count}) => '${date}\n${count} Memos';
+	@override String get msg_date_time_weather_variable_desc => 'Date/time variables follow the formats in Variable settings; Wettervariablen hängen von der AMap-Wetterkonfiguration ab.';
+	@override String get msg_datetime_format_variable => 'Datum/Uhrzeit-Format ({{datetime}})';
+	@override String get msg_default_shortcuts_restored => 'Standardverknüpfungen wiederhergestellt.';
+	@override String get msg_delete_template => 'Vorlage löschen';
+	@override String msg_delete_template_confirm_with_name({required Object name}) => '„${name}“ löschen?';
+	@override String get msg_diagnostics_copied => 'Diagnose kopiert';
+	@override String get msg_edit_template => 'Vorlage bearbeiten';
+	@override String get msg_editor => 'Editor';
+	@override String get msg_enable_sync_bridge_first => 'Bitte aktivieren Sie zuerst die Synchronisierungsbrücke.';
+	@override String get msg_enable_weather_variables => 'Wettervariablen aktivieren';
+	@override String get msg_encrypt_save_placeholder => 'Verschlüsselte Speicherung (Platzhalter)';
+	@override String get msg_encryption_feature_placeholder => 'Die Verschlüsselung ist derzeit ein Platzhalter und wird noch nicht erzwungen.';
+	@override String get msg_enter_and_confirm_password => 'Bitte geben Sie das Passwort ein und bestätigen Sie es.';
+	@override String get msg_enter_content_before_creating_link => 'Bitte geben Sie Inhalte ein, bevor Sie einen Link erstellen.';
+	@override String get msg_enter_repository_name_hint => 'Geben Sie den Repository-Namen ein';
+	@override String get msg_enter_repository_name_prompt => 'Bitte geben Sie einen Repository-Namen ein.';
+	@override String get msg_error => 'Fehler';
+	@override String get msg_example => 'Beispiel';
+	@override String get msg_example_beijing => 'Peking';
+	@override String get msg_example_beijing_city => 'Gemeinde Peking';
+	@override String get msg_example_beijing_sunny_25c => 'Peking Sonnig 25°C';
+	@override String get msg_example_northeast => 'Nordost';
+	@override String get msg_example_saturday => 'Samstag';
+	@override String get msg_example_sunny => 'Sonnig';
+	@override String get msg_example_sunny_25c => 'Sonnige 25°C';
+	@override String get msg_export_logs_bundle => 'Protokollpaket exportieren';
+	@override String msg_failed_export_logs({required Object error}) => 'Protokolle konnten nicht exportiert werden: ${error}';
+	@override String get msg_feature => 'Besonderheit';
+	@override String msg_feature_not_implemented_placeholder_with_label({required Object label}) => '„${label}“ ist noch nicht implementiert (Platzhalter).';
+	@override String get msg_file_save_location => 'Speicherort der Datei';
+	@override String msg_file_selection_failed({required Object error}) => 'Dateiauswahl fehlgeschlagen: ${error}';
+	@override String get msg_files_unavailable_from_picker => 'Dateien sind im Picker nicht verfügbar.';
+	@override String get msg_focus_input_area => 'Fokuseingabebereich';
+	@override String msg_gallery_original_selection_summary({required Object selectedCount, required Object originalCount}) => 'Ausgewähltes ${selectedCount} · Original ${originalCount}';
+	@override String get msg_global => 'Global';
+	@override String get msg_got_it => 'Habe es';
+	@override String get msg_highlight => 'Hervorheben';
+	@override String get msg_humidity_without_percent => 'Luftfeuchtigkeit (ohne %-Symbol)';
+	@override String get msg_image => 'Bild';
+	@override String get msg_keep_unknown_variables_raw => 'Behalten Sie unbekannte Variablen unverändert bei';
+	@override String get msg_keep_unknown_variables_raw_desc => 'Wenn diese Option deaktiviert ist, werden unbekannte Variablen durch eine leere Zeichenfolge ersetzt.';
+	@override String get msg_link => 'Link';
+	@override String get msg_links_label => 'Links';
+	@override String get msg_loading_memos => 'Memos werden geladen...';
+	@override String get msg_local_storage_unavailable => 'Der lokale Speicher ist nicht verfügbar';
+	@override String msg_log_bundle_created({required Object path, required Object exportId}) => 'Protokollpaket erstellt: ${path} (ExportId: ${exportId})';
+	@override String get msg_longest_streak_days => 'Längster Streak (Tage)';
+	@override String get msg_many_templates_support_scroll => 'Wenn viele Vorlagen vorhanden sind, unterstützt dieser Bereich vertikales Scrollen.';
+	@override String get msg_max_characters_single_day => 'Max. Zeichen pro Tag';
+	@override String get msg_maximize => 'Maximieren';
+	@override String get msg_meaning => 'Bedeutung';
+	@override String get msg_memo_count => 'Anzahl der Memos';
+	@override String get msg_minimize => 'Minimieren';
+	@override String msg_month_characters_tooltip({required Object month, required Object chars}) => '${month}\n${chars} Zeichen';
+	@override String msg_monthly_overview({required Object month}) => '${month} Monatsübersicht';
+	@override String get msg_most_active_day => 'Aktivster Tag';
+	@override String get msg_need_at_least_five_tags => 'Es sind weniger als 5 Tags vorhanden. Bitte fügen Sie weitere Tags hinzu und versuchen Sie es erneut.';
+	@override String get msg_new_template => 'Vorlage hinzufügen';
+	@override String get msg_next_page => 'Nächste Seite';
+	@override String get msg_no_active_session_after_sign_in => 'Keine aktive Sitzung nach der Anmeldung';
+	@override String get msg_no_camera_detected => 'Keine Kamera erkannt.';
+	@override String get msg_no_data => 'Keine Daten';
+	@override String get msg_no_files_selected => 'Keine Dateien ausgewählt.';
+	@override String get msg_no_recording_input_device_found => 'Kein Aufnahme-Eingabegerät gefunden.';
+	@override String get msg_no_system_logs_yet => 'Noch keine Systemprotokolle';
+	@override String get msg_no_templates_click_add => 'Noch keine Vorlagen. Klicken Sie auf „Vorlage hinzufügen“, um eine zu erstellen.';
+	@override String get msg_no_templates_yet => 'Noch keine Vorlagen';
+	@override String get msg_no_valid_files_selected => 'Keine gültigen Dateien ausgewählt.';
+	@override String get msg_not_selected => 'Nicht ausgewählt';
+	@override String get msg_on_this_day => 'An diesem Tag';
+	@override String get msg_only_windows_desktop_supports_this_setting => 'Nur der Windows-Desktop unterstützt diese Einstellung.';
+	@override String get msg_open_camera_settings => 'Öffnen Sie die Kameraeinstellungen';
+	@override String get msg_open_settings => 'Einstellungen öffnen';
+	@override String get msg_ordered_list => 'Geordnete Liste';
+	@override String get msg_original_image => 'Original';
+	@override String get msg_password_feature_placeholder => 'Die Passwortunterstützung ist derzeit ein Platzhalter und noch nicht durchgesetzt.';
+	@override String get msg_paste => 'Paste';
+	@override String get msg_press_new_shortcut => 'Drücken Sie die neue Verknüpfung...';
+	@override String get msg_previous_page => 'Vorherige Seite';
+	@override String msg_probe_failed({required Object error}) => 'Probe fehlgeschlagen: ${error}';
+	@override String get msg_publish_memo => 'Memo veröffentlichen';
+	@override String get msg_qr_scan_not_supported_pair_manually => 'QR-Scan wird auf dieser Plattform nicht unterstützt. Bitte koppeln Sie manuell mit Host, Port und Pair-Code.';
+	@override String get msg_qr_scan_not_supported_use_manual_pairing => 'QR-Scan wird auf dieser Plattform nicht unterstützt.\nVerwenden Sie stattdessen die manuelle Kopplung.';
+	@override String get msg_quick_input_channel_not_ready_retry => 'Der Schnelleingabekanal ist nicht bereit. Bitte öffnen Sie das Hauptfenster erneut und versuchen Sie es erneut.';
+	@override String msg_quick_input_failed_with_error({required Object error}) => 'Schnelleingabe fehlgeschlagen: ${error}';
+	@override String msg_quick_input_save_failed_with_error({required Object error}) => 'Schnelles Speichern der Eingabe fehlgeschlagen: ${error}';
+	@override String get msg_quick_record => 'Schnelle Aufnahme';
+	@override String get msg_quick_search => 'Schnellsuche...';
+	@override String get msg_redo => 'Wiederholen';
+	@override String get msg_repository_name => 'Repository-Name';
+	@override String get msg_request_body => 'Anforderungstext';
+	@override String get msg_request_headers => 'Header anfordern';
+	@override String get msg_response_body => 'Antwortgremium';
+	@override String get msg_response_headers => 'Antwortheader';
+	@override String get msg_restore_defaults => 'Standardeinstellungen wiederherstellen';
+	@override String get msg_restore_window => 'Wiederherstellen';
+	@override String get msg_save_failed_check_content_retry => 'Speichern fehlgeschlagen. Bitte überprüfen Sie den Inhalt und versuchen Sie es erneut.';
+	@override String get msg_saved_to_memoflow => 'In MemoFlow gespeichert';
+	@override String get msg_screenshot_mode => 'Screenshot-Modus';
+	@override String get msg_screenshot_mode_detail => 'Blenden Sie Status-/Navigationsleisten für saubere Aufnahmen aus';
+	@override String get msg_select_file_save_location => 'Bitte wählen Sie einen Speicherort für die Datei aus.';
+	@override String get msg_select_location => 'Standort auswählen';
+	@override String get msg_shift_enter_supported => 'Unterstützt auch Umschalt + Eingabetaste';
+	@override String msg_shortcut_binding_in_use({required Object binding, required Object action}) => '${binding} wird bereits von „${action}“ verwendet.';
+	@override String get msg_shortcut_requires_modifier => 'Fügen Sie mindestens eine Zusatztaste ein (Strg/Befehl/Umschalt/Alt).';
+	@override String get msg_shortcut_settings => 'Verknüpfungseinstellungen';
+	@override String get msg_shortcuts_overview => 'Übersicht über die Verknüpfungen';
+	@override String get msg_shortcuts_overview_opened => 'Geöffnete Verknüpfungsübersicht.';
+	@override String get msg_shortcuts_supported_windows_macos => 'Nur Windows und macOS unterstützen Verknüpfungseinstellungen.';
+	@override String get msg_show_hide_memoflow => 'MemoFlow ein-/ausblenden';
+	@override String msg_showing_last_lines({required Object lines}) => 'Zeigt die letzten ${lines}-Zeilen';
+	@override String msg_source_value({required Object source}) => 'Quelle: ${source}';
+	@override String get msg_startup_slogan => 'Lassen Sie die Aufzeichnungen natürlich fließen';
+	@override String get msg_storage_read_failed_some_features_limited => 'Das Lesen des Speichers ist fehlgeschlagen. Einige Funktionen sind eingeschränkt.';
+	@override String msg_sync_completed_summary({required Object succeeded, required Object total, required Object failed}) => 'Synchronisierung abgeschlossen: ${succeeded}/${total} erfolgreich, ${failed} fehlgeschlagen.';
+	@override String msg_sync_failed_with_error({required Object error}) => 'Synchronisierung fehlgeschlagen: ${error}';
+	@override String get msg_sync_to_obsidian => 'Mit Obsidian synchronisieren';
+	@override String get msg_sync_to_obsidian_confirm => 'Synchronisieren Sie alle Memos in der aktuellen lokalen Bibliothek, einschließlich Anhänge, auf einmal mit dem gekoppelten Obsidian. Weitermachen?';
+	@override String get msg_sync_to_obsidian_in_progress => 'Synchronisierung mit Obsidian...';
+	@override String get msg_system_edit_shortcuts_note => 'Zum Kopieren/Einfügen/Ausschneiden verwenden Sie die Standardverknüpfungen des Systems.';
+	@override String get msg_system_logs => 'Systemprotokolle';
+	@override String msg_system_logs_copied({required Object lines}) => 'Systemprotokolle kopiert (${lines}-Zeilen)';
+	@override String get msg_tag => 'Etikett';
+	@override String msg_tag_cloud_tooltip({required Object count, required Object percent, required Object latest}) => '${count} Memos\n${percent}%\nNeueste: ${latest}';
+	@override String get msg_temperature_without_unit => 'Temperatur (ohne Einheit)';
+	@override String get msg_template => 'Vorlage';
+	@override String get msg_template_content => 'Vorlageninhalt';
+	@override String get msg_template_content_example => 'Sie können Variablen verwenden, zum Beispiel: {{date}} {{weather}}';
+	@override String get msg_template_feature_desc => 'Nach der Aktivierung können Sie Vorlagen aus der Editor-Symbolleiste auswählen. Wenn Sie eines auswählen, wird der Inhalt des Editors ersetzt.';
+	@override String get msg_template_feature_manage_desc => 'Aktivieren Sie Vorlagen, um Vorlagennamen, Inhalte und Variablen zu verwalten.';
+	@override String get msg_template_feature_title => 'Aktivieren Sie Vorlagen';
+	@override String get msg_template_list => 'Vorlagenliste';
+	@override String get msg_template_name => 'Vorlagenname';
+	@override String get msg_template_name_example => 'Beispiel: Morgenrückblick';
+	@override String get msg_template_variable_settings => 'Einstellungen für Vorlagenvariablen';
+	@override String get msg_template_variables => 'Vorlagenvariablen';
+	@override String get msg_time_format_variable => 'Zeitformat ({{time}})';
+	@override String get msg_todo => 'Todo';
+	@override String msg_toggle_memoflow_failed_with_error({required Object error}) => 'Ein-/Ausblenden von MemoFlow fehlgeschlagen: ${error}';
+	@override String get msg_toggle_sidebar => 'Seitenleiste umschalten';
+	@override String get msg_total_characters_metric => 'Gesamtzahl der Zeichen';
+	@override String get msg_total_characters_short => 'Gesamtzahl der Zeichen';
+	@override String msg_total_count_times({required Object count}) => '${count}-Zeiten insgesamt';
+	@override String get msg_total_days => 'Gesamtzahl der Tage';
+	@override String get msg_total_memos_metric => 'Gesamtnotizen';
+	@override String get msg_unable_open_windows_camera_settings => 'Die Windows-Kameraeinstellungen können nicht geöffnet werden.';
+	@override String msg_unavailable_file_count({required Object count}) => '${count} nicht verfügbar';
+	@override String get msg_underline => 'Unterstreichen';
+	@override String get msg_undo => 'Rückgängig machen';
+	@override String get msg_unnamed_tag => 'Unbenanntes Tag';
+	@override String get msg_unordered_list => 'Ungeordnete Liste';
+	@override String msg_unsupported_version_value({required Object version}) => 'Nicht unterstützte Version: ${version}';
+	@override String get msg_variable => 'Variable';
+	@override String get msg_variable_settings => 'Variable Einstellungen';
+	@override String get msg_version_probe_complete => 'Versionsprüfung abgeschlossen';
+	@override String get msg_version_probe_failed => 'Die Versionsprüfung ist fehlgeschlagen';
+	@override String msg_version_probe_passed_with_version({required Object version}) => 'v${version}-Probe bestanden';
+	@override String msg_visibility_value({required Object value}) => 'Sichtbarkeit: ${value}';
+	@override String get msg_vs_last_month_decrease_memo_count => 'Weniger Memos als im letzten Monat';
+	@override String get msg_vs_last_month_increase_memo_count => 'Mehr Memos als letzten Monat';
+	@override String get msg_vs_last_month_same_memo_count => 'Gleiche Memoanzahl wie im letzten Monat';
+	@override String get msg_weather_city_adcode_or_name => 'Wetterstadt (Adcode oder Stadtname)';
+	@override String get msg_weather_city_example => 'Beispiel: 110000';
+	@override String get msg_weather_city_label => 'Wetterstadt';
+	@override String get msg_weather_condition => 'Wetterlage';
+	@override String get msg_weather_fallback_text => 'Wetter-Fallback-Text';
+	@override String get msg_weather_plus_temperature_without_city => 'Wetter + Temperatur (ohne Stadt)';
+	@override String get msg_weather_province => 'Wetterprovinz';
+	@override String get msg_weather_report_time => 'Uhrzeit des Wetterberichts';
+	@override String get msg_weather_variable_tokens => 'Variablen: {{weather}} / {{weather.*}}';
+	@override String msg_weather_variables_city({required Object city}) => 'Wettervariablen: ${city}';
+	@override String get msg_weather_variables_disabled => 'Wettervariablen deaktiviert';
+	@override String get msg_weather_variables_enabled_city_not_set => 'Wettervariablen aktiviert (Stadt nicht festgelegt)';
+	@override String get msg_weekday_friday => 'Fr';
+	@override String get msg_weekday_monday => 'Mo';
+	@override String get msg_weekday_name => 'Name des Wochentags';
+	@override String get msg_weekday_saturday => 'Sa';
+	@override String get msg_weekday_sunday => 'Sonne';
+	@override String get msg_weekday_thursday => 'Do';
+	@override String get msg_weekday_tuesday => 'Di';
+	@override String get msg_weekday_wednesday => 'Heiraten';
+	@override String get msg_wind_direction => 'Windrichtung';
+	@override String get msg_wind_power => 'Windstärke';
+	@override String msg_windows_enable_location_access({required Object message}) => '${message}. Aktivieren Sie den Standortzugriff in den Windows-Einstellungen.';
+	@override String get msg_windows_paging_note => 'Windows-Paging: PageUp vorherige Seite, PageDown nächste Seite.';
+	@override String get msg_windows_related_settings => 'Windows-bezogene Einstellungen';
+	@override String get msg_write_current_thought => 'Schreiben Sie auf, was Sie denken ...';
+	@override String get msg_yearly_character_trend => 'Jährlicher Charaktertrend';
 }
 
 // Path: strings.login.mode
@@ -3498,6 +3745,97 @@ class _StringsStringsSettingsPreferencesDe extends _StringsStringsSettingsPrefer
 	@override String get cardColor => 'Kartenfarbe';
 	@override String get border => 'Rahmen';
 	@override String get borderColor => 'Rahmenfarbe';
+}
+
+// Path: strings.aiInsight.cards
+class _StringsStringsAiInsightCardsDe extends _StringsStringsAiInsightCardsEn {
+	_StringsStringsAiInsightCardsDe._(_StringsDe root) : this._root = root, super._(root);
+
+	@override final _StringsDe _root; // ignore: unused_field
+
+	// Translations
+	@override late final _StringsStringsAiInsightCardsActionExtractionDe actionExtraction = _StringsStringsAiInsightCardsActionExtractionDe._(_root);
+	@override late final _StringsStringsAiInsightCardsBlindSpotDiscoveryDe blindSpotDiscovery = _StringsStringsAiInsightCardsBlindSpotDiscoveryDe._(_root);
+	@override late final _StringsStringsAiInsightCardsEmotionMapDe emotionMap = _StringsStringsAiInsightCardsEmotionMapDe._(_root);
+	@override late final _StringsStringsAiInsightCardsLongTermTrajectoryDe longTermTrajectory = _StringsStringsAiInsightCardsLongTermTrajectoryDe._(_root);
+	@override late final _StringsStringsAiInsightCardsRelationshipViewDe relationshipView = _StringsStringsAiInsightCardsRelationshipViewDe._(_root);
+	@override late final _StringsStringsAiInsightCardsThemeResonanceDe themeResonance = _StringsStringsAiInsightCardsThemeResonanceDe._(_root);
+	@override late final _StringsStringsAiInsightCardsThoughtTraceDe thoughtTrace = _StringsStringsAiInsightCardsThoughtTraceDe._(_root);
+	@override late final _StringsStringsAiInsightCardsTodayCluesDe todayClues = _StringsStringsAiInsightCardsTodayCluesDe._(_root);
+}
+
+// Path: strings.aiInsight.common
+class _StringsStringsAiInsightCommonDe extends _StringsStringsAiInsightCommonEn {
+	_StringsStringsAiInsightCommonDe._(_StringsDe root) : this._root = root, super._(root);
+
+	@override final _StringsDe _root; // ignore: unused_field
+
+	// Translations
+	@override String get disabled => 'Deaktiviert';
+	@override String get enabled => 'Aktiviert';
+}
+
+// Path: strings.aiInsight.contentPreview
+class _StringsStringsAiInsightContentPreviewDe extends _StringsStringsAiInsightContentPreviewEn {
+	_StringsStringsAiInsightContentPreviewDe._(_StringsDe root) : this._root = root, super._(root);
+
+	@override final _StringsDe _root; // ignore: unused_field
+
+	// Translations
+	@override String get emptyState => 'Keine Notizen entsprechen den aktuellen Einstellungen. Versuchen Sie es mit einem anderen Zeitraum oder Privatsphaere-Bereich.';
+	@override String get estimatedTokens => 'Geschaetzte Token';
+	@override String get loading => 'Vorschau wird vorbereitet...';
+	@override String noteCount({required Object count}) => '${count} Notizen';
+	@override String get notesToSend => 'Zu sendende Notizen';
+	@override String get previewContent => 'Vorschauinhalt';
+	@override String get previewLoadFailed => 'Die Inhaltsvorschau konnte nicht vorbereitet werden.';
+	@override String get sectionTitle => 'Inhaltsvorschau';
+	@override String get timeRange => 'Zeitraum';
+	@override String get title => 'Inhaltsvorschau';
+	@override String tokenCount({required Object count}) => '${count} Token';
+	@override String get truncatedNotice => 'Der Inhalt wurde gekuerzt, um innerhalb des aktuellen Analyselimits zu bleiben.';
+}
+
+// Path: strings.aiInsight.privacyScope
+class _StringsStringsAiInsightPrivacyScopeDe extends _StringsStringsAiInsightPrivacyScopeEn {
+	_StringsStringsAiInsightPrivacyScopeDe._(_StringsDe root) : this._root = root, super._(root);
+
+	@override final _StringsDe _root; // ignore: unused_field
+
+	// Translations
+	@override String get description => 'Wenn aktiviert, werden auch private Notizen zur Analyse an das KI-Modell gesendet.';
+	@override String get includePrivateNotes => 'Private Notizen einbeziehen';
+	@override String get title => 'Privatsphaere-Bereich';
+}
+
+// Path: strings.aiInsight.promptSettings
+class _StringsStringsAiInsightPromptSettingsDe extends _StringsStringsAiInsightPromptSettingsEn {
+	_StringsStringsAiInsightPromptSettingsDe._(_StringsDe root) : this._root = root, super._(root);
+
+	@override final _StringsDe _root; // ignore: unused_field
+
+	// Translations
+	@override String get clearTemplate => 'Leeren';
+	@override String get description => 'Ermoeglicht fortgeschrittenen Nutzern, den fuer diese Analyse verwendeten KI-Prompt anzupassen.';
+	@override String get editPromptTemplate => 'Prompt-Vorlage bearbeiten';
+	@override String editorDescription({required Object insight}) => 'Diese Vorlage wird fuer die Analyse "${insight}" verwendet.';
+	@override String get editorPlaceholder => 'Beschreiben Sie, worauf sich die KI konzentrieren, was sie vergleichen, zusammenfassen oder hervorheben soll.';
+	@override String get emptyTemplateHint => 'Fuer diese Analyse gibt es noch keine Prompt-Vorlage. Fuegen Sie eine hinzu, bevor Sie die Analyse starten.';
+	@override String get title => 'Prompt-Einstellungen';
+}
+
+// Path: strings.aiInsight.timeRange
+class _StringsStringsAiInsightTimeRangeDe extends _StringsStringsAiInsightTimeRangeEn {
+	_StringsStringsAiInsightTimeRangeDe._(_StringsDe root) : this._root = root, super._(root);
+
+	@override final _StringsDe _root; // ignore: unused_field
+
+	// Translations
+	@override String get customRange => 'Benutzerdefinierter Zeitraum';
+	@override String get last30Days => 'Letzte 30 Tage';
+	@override String get last3Days => 'Letzte 3 Tage';
+	@override String get last7Days => 'Letzte 7 Tage';
+	@override String get title => 'Zeitraum';
 }
 
 // Path: strings.legacy.app_language
@@ -3701,6 +4039,94 @@ class _StringsStringsSettingsPreferencesEditorToolbarDe extends _StringsStringsS
 	@override late final _StringsStringsSettingsPreferencesEditorToolbarActionsDe actions = _StringsStringsSettingsPreferencesEditorToolbarActionsDe._(_root);
 }
 
+// Path: strings.aiInsight.cards.actionExtraction
+class _StringsStringsAiInsightCardsActionExtractionDe extends _StringsStringsAiInsightCardsActionExtractionEn {
+	_StringsStringsAiInsightCardsActionExtractionDe._(_StringsDe root) : this._root = root, super._(root);
+
+	@override final _StringsDe _root; // ignore: unused_field
+
+	// Translations
+	@override String get description => 'Verwandeln Sie Reflexionen in konkrete naechste Schritte, die Sie ausprobieren, testen oder weiterverfolgen koennen.';
+	@override String get title => 'Handlungsableitung';
+}
+
+// Path: strings.aiInsight.cards.blindSpotDiscovery
+class _StringsStringsAiInsightCardsBlindSpotDiscoveryDe extends _StringsStringsAiInsightCardsBlindSpotDiscoveryEn {
+	_StringsStringsAiInsightCardsBlindSpotDiscoveryDe._(_StringsDe root) : this._root = root, super._(root);
+
+	@override final _StringsDe _root; // ignore: unused_field
+
+	// Translations
+	@override String get description => 'Erkennen Sie uebersehene Signale oder subtile Muster, die beim Schreiben leicht untergehen.';
+	@override String get title => 'Blinde Flecken';
+}
+
+// Path: strings.aiInsight.cards.emotionMap
+class _StringsStringsAiInsightCardsEmotionMapDe extends _StringsStringsAiInsightCardsEmotionMapEn {
+	_StringsStringsAiInsightCardsEmotionMapDe._(_StringsDe root) : this._root = root, super._(root);
+
+	@override final _StringsDe _root; // ignore: unused_field
+
+	// Translations
+	@override String get description => 'Analysieren Sie den emotionalen Verlauf in Ihren Notizen und sehen Sie, was zuletzt Ihren Zustand gepraegt hat.';
+	@override String get title => 'Emotionskarte';
+}
+
+// Path: strings.aiInsight.cards.longTermTrajectory
+class _StringsStringsAiInsightCardsLongTermTrajectoryDe extends _StringsStringsAiInsightCardsLongTermTrajectoryEn {
+	_StringsStringsAiInsightCardsLongTermTrajectoryDe._(_StringsDe root) : this._root = root, super._(root);
+
+	@override final _StringsDe _root; // ignore: unused_field
+
+	// Translations
+	@override String get description => 'Betrachten Sie Ihre Notizen ueber laengere Zeitraeume hinweg und erkennen Sie bedeutsame Veraenderungen, wiederkehrende Zyklen und langfristigen Wandel.';
+	@override String get title => 'Langfristige Entwicklung';
+}
+
+// Path: strings.aiInsight.cards.relationshipView
+class _StringsStringsAiInsightCardsRelationshipViewDe extends _StringsStringsAiInsightCardsRelationshipViewEn {
+	_StringsStringsAiInsightCardsRelationshipViewDe._(_StringsDe root) : this._root = root, super._(root);
+
+	@override final _StringsDe _root; // ignore: unused_field
+
+	// Translations
+	@override String get description => 'Betrachten Sie Ihre Notizen neu durch die Linse von Menschen, Interaktionen und sich veraendernden Beziehungsdynamiken.';
+	@override String get title => 'Beziehungsansicht';
+}
+
+// Path: strings.aiInsight.cards.themeResonance
+class _StringsStringsAiInsightCardsThemeResonanceDe extends _StringsStringsAiInsightCardsThemeResonanceEn {
+	_StringsStringsAiInsightCardsThemeResonanceDe._(_StringsDe root) : this._root = root, super._(root);
+
+	@override final _StringsDe _root; // ignore: unused_field
+
+	// Translations
+	@override String get description => 'Finden Sie wiederkehrende Themen in aktuellen Notizen und machen Sie sichtbar, worauf Sie immer wieder zurueckkommen.';
+	@override String get title => 'Themenresonanz';
+}
+
+// Path: strings.aiInsight.cards.thoughtTrace
+class _StringsStringsAiInsightCardsThoughtTraceDe extends _StringsStringsAiInsightCardsThoughtTraceEn {
+	_StringsStringsAiInsightCardsThoughtTraceDe._(_StringsDe root) : this._root = root, super._(root);
+
+	@override final _StringsDe _root; // ignore: unused_field
+
+	// Translations
+	@override String get description => 'Machen Sie verborgene Annahmen, ungeloeste Fragen und Denkrichtungen sichtbar, die es weiterzuverfolgen lohnt.';
+	@override String get title => 'Gedankenspur';
+}
+
+// Path: strings.aiInsight.cards.todayClues
+class _StringsStringsAiInsightCardsTodayCluesDe extends _StringsStringsAiInsightCardsTodayCluesEn {
+	_StringsStringsAiInsightCardsTodayCluesDe._(_StringsDe root) : this._root = root, super._(root);
+
+	@override final _StringsDe _root; // ignore: unused_field
+
+	// Translations
+	@override String get description => 'Die KI hebt aktuelle Ereignisse, Spannungen und offene Themen hervor, die zuerst Ihre Aufmerksamkeit verdienen.';
+	@override String get title => 'Aktuelle Hinweise';
+}
+
 // Path: strings.legacy.ai_summary.system
 class _StringsStringsLegacyAiSummarySystemDe extends _StringsStringsLegacyAiSummarySystemEn {
 	_StringsStringsLegacyAiSummarySystemDe._(_StringsDe root) : this._root = root, super._(root);
@@ -3800,6 +4226,7 @@ class _StringsStringsJa extends _StringsStringsEn {
 	@override late final _StringsStringsLoginJa login = _StringsStringsLoginJa._(_root);
 	@override late final _StringsStringsSettingsJa settings = _StringsStringsSettingsJa._(_root);
 	@override late final _StringsStringsLocationPickerJa locationPicker = _StringsStringsLocationPickerJa._(_root);
+	@override late final _StringsStringsAiInsightJa aiInsight = _StringsStringsAiInsightJa._(_root);
 	@override late final _StringsStringsAiProxyJa aiProxy = _StringsStringsAiProxyJa._(_root);
 	@override late final _StringsStringsLegacyJa legacy = _StringsStringsLegacyJa._(_root);
 }
@@ -3823,6 +4250,7 @@ class _StringsStringsCommonJa extends _StringsStringsCommonEn {
 	@override String get selectValidServerVersion => '有効なサーバーバージョンを選択してください';
 	@override String serverVersionValue({required Object version}) => 'サーバーバージョン: ${version}';
 	@override String get selectServerVersionRange021To026 => '0.21〜0.26 のサーバーバージョンを手動で選択してください';
+	@override String get serverVersionProbeHint => 'サインインする前に、選択したサーバー バージョンのコア API のみがプローブされます。';
 }
 
 // Path: strings.languages
@@ -3922,6 +4350,25 @@ class _StringsStringsLocationPickerJa extends _StringsStringsLocationPickerEn {
 	@override String get providerMissingBaiduKey => '位置を選択する前に、Baidu AK の設定が必要です。';
 	@override String get providerMissingGoogleKey => '位置を選択する前に、Google Maps API Key の設定が必要です。';
 	@override String get providerUnsupportedPlatform => '埋め込み地図ピッカーは Android と Windows でのみ利用できます。';
+}
+
+// Path: strings.aiInsight
+class _StringsStringsAiInsightJa extends _StringsStringsAiInsightEn {
+	_StringsStringsAiInsightJa._(_StringsJa root) : this._root = root, super._(root);
+
+	@override final _StringsJa _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'AI要約';
+	@override String get subtitle => 'AI があなたの記録をさまざまな角度から読み解くのを手伝います';
+	@override String get settingsTitle => 'AI分析設定';
+	@override String get startAnalysis => '分析を開始';
+	@override late final _StringsStringsAiInsightCommonJa common = _StringsStringsAiInsightCommonJa._(_root);
+	@override late final _StringsStringsAiInsightTimeRangeJa timeRange = _StringsStringsAiInsightTimeRangeJa._(_root);
+	@override late final _StringsStringsAiInsightPrivacyScopeJa privacyScope = _StringsStringsAiInsightPrivacyScopeJa._(_root);
+	@override late final _StringsStringsAiInsightPromptSettingsJa promptSettings = _StringsStringsAiInsightPromptSettingsJa._(_root);
+	@override late final _StringsStringsAiInsightContentPreviewJa contentPreview = _StringsStringsAiInsightContentPreviewJa._(_root);
+	@override late final _StringsStringsAiInsightCardsJa cards = _StringsStringsAiInsightCardsJa._(_root);
 }
 
 // Path: strings.aiProxy
@@ -4967,6 +5414,233 @@ class _StringsStringsLegacyJa extends _StringsStringsLegacyEn {
 	@override String import_count_attachments({required Object count}) => '${count}';
 	@override late final _StringsStringsLegacyAppDrawerJa app_drawer = _StringsStringsLegacyAppDrawerJa._(_root);
 	@override late final _StringsStringsLegacyAiSummaryJa ai_summary = _StringsStringsLegacyAiSummaryJa._(_root);
+	@override String get msg_action_shortcut => 'アクション - ショートカット';
+	@override String get msg_adcode => '行政上の市外局番';
+	@override String msg_added_attachment_count({required Object count}) => '${count} アタッチメントを追加しました。';
+	@override String msg_added_files({required Object count}) => '${count} ファイルを追加しました。';
+	@override String msg_added_files_with_skipped({required Object count, required Object details}) => '${count} ファイルを追加しました。${details}をスキップしました。';
+	@override String get msg_added_photo_attachment => '写真添付ファイルを追加しました。';
+	@override String get msg_api_route => 'APIルート';
+	@override String get msg_attachment => 'アタッチメント';
+	@override String get msg_available_variable_docs => '利用可能な変数ドキュメント';
+	@override String get msg_available_variable_docs_desc => 'タップすると、中央のダイアログに変数テーブルと意味メモが表示されます。';
+	@override String get msg_average_daily_characters => '1 日の平均文字数';
+	@override String msg_average_value({required Object value}) => '平均${value}';
+	@override String get msg_bold => '大胆な';
+	@override String msg_camera_failed({required Object error}) => 'カメラの故障:${error}';
+	@override String get msg_camera_file_missing => 'カメラファイルがありません。';
+	@override String get msg_camera_permission_denied_windows => 'カメラの許可が拒否されました。 Windows 設定でカメラ アクセスを有効にします。';
+	@override String get msg_capture_photo => '写真をキャプチャする';
+	@override String get msg_check_system_permissions_or_retry_later => 'システム権限を確認するか、後でもう一度試してください。';
+	@override String get msg_checkbox => 'チェックボックス';
+	@override String get msg_city_plus_weather_plus_temperature => '都市 + 天気 + 気温';
+	@override String get msg_close_window_minimize_to_tray => 'ウィンドウを閉じるときにトレイを最小化する';
+	@override String get msg_close_window_minimize_to_tray_desc => '有効にすると、右上の閉じるボタンをクリックしてもアプリは終了しません。システム トレイからウィンドウを復元できます。';
+	@override String get msg_code_block => 'コードブロック';
+	@override String get msg_common_writing_time => '一般的な執筆時間';
+	@override String get msg_configure_windows_desktop_shortcuts => 'Windows デスクトップのショートカットを構成する';
+	@override String get msg_copy_diagnostics => 'コピー診断';
+	@override String msg_copy_last_lines({required Object lines}) => '最後の${lines}行をコピー';
+	@override String get msg_current_date => '現在の日付';
+	@override String get msg_current_datetime => '現在の日付と時刻';
+	@override String msg_current_shortcut({required Object binding}) => '現在:${binding}';
+	@override String get msg_current_streak_days => '現在の連続日数 (日)';
+	@override String get msg_current_time => '現在時刻';
+	@override String get msg_current_window_pin_not_supported => '現在のウィンドウでは固定はサポートされていません。';
+	@override String msg_currently_using_api({required Object version}) => '現在 API${version} を使用しています。';
+	@override String get msg_cut => 'カット';
+	@override String get msg_daily_memo_trend => '日々のメモの傾向';
+	@override String get msg_date_format_variable => '日付形式 ({{date}})';
+	@override String msg_date_memo_count_tooltip({required Object date, required Object count}) => '${date}\n${count}メモ';
+	@override String get msg_date_time_weather_variable_desc => '日付/時刻変数は変数設定の形式に従います。気象変数は AMap 気象設定に依存します。';
+	@override String get msg_datetime_format_variable => '日時形式 ({{datetime}})';
+	@override String get msg_default_shortcuts_restored => 'デフォルトのショートカットが復元されました。';
+	@override String get msg_delete_template => 'テンプレートの削除';
+	@override String msg_delete_template_confirm_with_name({required Object name}) => '「${name}」を削除しますか？';
+	@override String get msg_diagnostics_copied => '診断がコピーされました';
+	@override String get msg_edit_template => 'テンプレートの編集';
+	@override String get msg_editor => 'エディタ';
+	@override String get msg_enable_sync_bridge_first => 'まず同期ブリッジを有効にしてください。';
+	@override String get msg_enable_weather_variables => '気象変数を有効にする';
+	@override String get msg_encrypt_save_placeholder => '暗号化保存 (プレースホルダー)';
+	@override String get msg_encryption_feature_placeholder => '暗号化は現在プレースホルダーであり、まだ強制されていません。';
+	@override String get msg_enter_and_confirm_password => 'パスワードを入力して確認してください。';
+	@override String get msg_enter_content_before_creating_link => 'リンクを作成する前にコンテンツを入力してください。';
+	@override String get msg_enter_repository_name_hint => 'リポジトリ名を入力してください';
+	@override String get msg_enter_repository_name_prompt => 'リポジトリ名を入力してください。';
+	@override String get msg_error => 'エラー';
+	@override String get msg_example => '例';
+	@override String get msg_example_beijing => '北京';
+	@override String get msg_example_beijing_city => '北京市';
+	@override String get msg_example_beijing_sunny_25c => '北京 晴れ 25℃';
+	@override String get msg_example_northeast => '北東';
+	@override String get msg_example_saturday => '土曜日';
+	@override String get msg_example_sunny => '晴れ';
+	@override String get msg_example_sunny_25c => '晴れ 25℃';
+	@override String get msg_export_logs_bundle => 'ログバンドルのエクスポート';
+	@override String msg_failed_export_logs({required Object error}) => 'ログのエクスポートに失敗しました:${error}';
+	@override String get msg_feature => '特徴';
+	@override String msg_feature_not_implemented_placeholder_with_label({required Object label}) => '「${label}」はまだ実装されていません (プレースホルダー)。';
+	@override String get msg_file_save_location => 'ファイルの保存場所';
+	@override String msg_file_selection_failed({required Object error}) => 'ファイルの選択に失敗しました:${error}';
+	@override String get msg_files_unavailable_from_picker => 'ピッカーからファイルを利用できません。';
+	@override String get msg_focus_input_area => 'フォーカス入力エリア';
+	@override String get msg_gallery_mobile_only => 'ギャラリーはモバイルでのみ利用できます。';
+	@override String msg_gallery_original_selection_summary({required Object selectedCount, required Object originalCount}) => '選択された${selectedCount} · オリジナル${originalCount}';
+	@override String get msg_global => 'グローバル';
+	@override String get msg_got_it => 'わかった';
+	@override String get msg_highlight => 'ハイライト';
+	@override String get msg_humidity_without_percent => '湿度 (%記号なし)';
+	@override String get msg_image => '画像';
+	@override String get msg_keep_unknown_variables_raw => '未知の変数をそのまま保持する';
+	@override String get msg_keep_unknown_variables_raw_desc => '無効にすると、不明な変数は空の文字列に置き換えられます。';
+	@override String get msg_link => 'リンク';
+	@override String get msg_links_label => 'リンク';
+	@override String get msg_loading_memos => 'メモを読み込んでいます...';
+	@override String get msg_local_storage_unavailable => 'ローカルストレージが利用できない';
+	@override String msg_log_bundle_created({required Object path, required Object exportId}) => '作成されたログ バンドル:${path} (エクスポート ID:${exportId})';
+	@override String get msg_longest_streak_days => '最長連続記録 (日)';
+	@override String get msg_many_templates_support_scroll => 'テンプレートが多い場合、この領域は垂直スクロールをサポートします。';
+	@override String get msg_max_characters_single_day => '1日の最大文字数';
+	@override String get msg_maximize => '最大化する';
+	@override String get msg_meaning => '意味';
+	@override String get msg_memo_count => 'メモ数';
+	@override String get msg_minimize => '最小化する';
+	@override String msg_month_characters_tooltip({required Object month, required Object chars}) => '${month}\n${chars} 文字';
+	@override String msg_monthly_overview({required Object month}) => '${month} 月次概要';
+	@override String get msg_most_active_day => '最も活動的な日';
+	@override String get msg_need_at_least_five_tags => 'タグが 5 つ未満です。さらにタグを追加して再試行してください。';
+	@override String get msg_new_template => 'テンプレートの追加';
+	@override String get msg_next_page => '次のページ';
+	@override String get msg_no_active_session_after_sign_in => 'サインイン後にアクティブなセッションがありません';
+	@override String get msg_no_camera_detected => 'カメラが検出されませんでした。';
+	@override String get msg_no_data => 'データなし';
+	@override String get msg_no_files_selected => 'ファイルが選択されていません。';
+	@override String get msg_no_recording_input_device_found => '録音入力デバイスが見つかりません。';
+	@override String get msg_no_system_logs_yet => 'システムログはまだありません';
+	@override String get msg_no_templates_click_add => 'テンプレートはまだありません。 「テンプレートを追加」をクリックしてテンプレートを作成します。';
+	@override String get msg_no_templates_yet => 'まだテンプレートがありません';
+	@override String get msg_no_valid_files_selected => '有効なファイルが選択されていません。';
+	@override String get msg_not_selected => '未選択';
+	@override String get msg_on_this_day => 'この日には';
+	@override String get msg_only_windows_desktop_supports_this_setting => 'この設定をサポートしているのは Windows デスクトップのみです。';
+	@override String get msg_open_camera_settings => 'カメラ設定を開く';
+	@override String get msg_open_settings => '設定を開く';
+	@override String get msg_ordered_list => '順序付きリスト';
+	@override String get msg_original_image => 'オリジナル';
+	@override String get msg_password_feature_placeholder => 'パスワードのサポートは現在プレースホルダーであり、まだ強制されていません。';
+	@override String get msg_paste => 'ペースト';
+	@override String get msg_press_new_shortcut => '新しいショートカットを押します...';
+	@override String get msg_previous_page => '前のページへ';
+	@override String msg_probe_failed({required Object error}) => 'プローブが失敗しました:${error}';
+	@override String get msg_publish_memo => 'メモを公開する';
+	@override String get msg_qr_scan_not_supported_pair_manually => 'QR スキャンはこのプラットフォームではサポートされていません。ホスト、ポート、ペアコードを使用して手動でペアリングしてください。';
+	@override String get msg_qr_scan_not_supported_use_manual_pairing => 'QR スキャンはこのプラットフォームではサポートされていません。\n代わりに手動ペアリングを使用してください。';
+	@override String get msg_quick_input_channel_not_ready_retry => 'クイック入力チャンネルの準備ができていません。メイン ウィンドウを再度開いて、再試行してください。';
+	@override String msg_quick_input_failed_with_error({required Object error}) => 'クイック入力に失敗しました:${error}';
+	@override String msg_quick_input_save_failed_with_error({required Object error}) => 'クイック入力の保存に失敗しました:${error}';
+	@override String get msg_quick_record => 'クイックレコード';
+	@override String get msg_quick_search => 'クイック検索...';
+	@override String get msg_redo => 'やり直し';
+	@override String get msg_repository_name => 'リポジトリ名';
+	@override String get msg_request_body => 'リクエストボディ';
+	@override String get msg_request_headers => 'リクエストヘッダー';
+	@override String get msg_response_body => '応答本文';
+	@override String get msg_response_headers => '応答ヘッダー';
+	@override String get msg_restore_defaults => 'デフォルトに戻す';
+	@override String get msg_restore_window => '復元する';
+	@override String get msg_save_failed_check_content_retry => '保存に失敗しました。内容を確認して再度お試しください。';
+	@override String get msg_saved_to_memoflow => 'メモフローに保存されました';
+	@override String get msg_screenshot_mode => 'スクリーンショットモード';
+	@override String get msg_screenshot_mode_detail => 'クリーンなキャプチャのためにステータス/ナビゲーション バーを非表示にする';
+	@override String get msg_select_file_save_location => 'ファイルの保存場所を選択してください。';
+	@override String get msg_select_location => '場所を選択してください';
+	@override String get msg_shift_enter_supported => 'Shift + Enterもサポート';
+	@override String msg_shortcut_binding_in_use({required Object binding, required Object action}) => '${binding} はすでに「${action}」によって使用されています。';
+	@override String get msg_shortcut_requires_modifier => '少なくとも 1 つの修飾キー (Ctrl/Cmd/Shift/Alt) を含めます。';
+	@override String get msg_shortcut_settings => 'ショートカット設定';
+	@override String get msg_shortcuts_overview => 'ショートカットの概要';
+	@override String get msg_shortcuts_overview_opened => '開いたショートカットの概要。';
+	@override String get msg_shortcuts_supported_windows_macos => 'ショートカット設定をサポートしているのは Windows と macOS のみです。';
+	@override String get msg_show_hide_memoflow => 'メモフローの表示/非表示';
+	@override String msg_showing_last_lines({required Object lines}) => '最後の${lines} 行を表示しています';
+	@override String msg_source_value({required Object source}) => '出典:${source}';
+	@override String get msg_startup_slogan => 'レコードが自然に流れるようにする';
+	@override String get msg_storage_read_failed_some_features_limited => 'ストレージの読み取りに失敗しました。一部の機能は制限されています。';
+	@override String msg_sync_completed_summary({required Object succeeded, required Object total, required Object failed}) => '同期完了:${succeeded}/${total} は成功、${failed} は失敗しました。';
+	@override String msg_sync_failed_with_error({required Object error}) => '同期に失敗しました:${error}';
+	@override String get msg_sync_to_obsidian => '黒曜石と同期する';
+	@override String get msg_sync_to_obsidian_confirm => '現在のローカル ライブラリ内のすべてのメモ (添付ファイルを含む) を、ペアリングされた Obsidian に一度に同期します。続く？';
+	@override String get msg_sync_to_obsidian_in_progress => 'Obsidian と同期しています...';
+	@override String get msg_system_edit_shortcuts_note => 'コピー/貼り付け/切り取りには、システムのデフォルトのショートカットを使用します。';
+	@override String get msg_system_logs => 'システムログ';
+	@override String msg_system_logs_copied({required Object lines}) => 'コピーされたシステム ログ (${lines} 行)';
+	@override String get msg_tag => 'タグ';
+	@override String msg_tag_cloud_tooltip({required Object count, required Object percent, required Object latest}) => '${count} メモ\n${percent}%\n最新:${latest}';
+	@override String get msg_temperature_without_unit => '温度（単位なし）';
+	@override String get msg_template => 'テンプレート';
+	@override String get msg_template_content => 'テンプレートの内容';
+	@override String get msg_template_content_example => '変数を使用できます。例: {{date}} {{weather}}';
+	@override String get msg_template_feature_desc => '有効にすると、エディターのツールバーからテンプレートを選択できるようになります。いずれかを選択すると、エディターのコンテンツが置き換えられます。';
+	@override String get msg_template_feature_manage_desc => 'テンプレートを有効にして、テンプレート名、コンテンツ、変数を管理します。';
+	@override String get msg_template_feature_title => 'テンプレートを有効にする';
+	@override String get msg_template_list => 'テンプレート一覧';
+	@override String get msg_template_name => 'テンプレート名';
+	@override String get msg_template_name_example => '例：朝の振り返り';
+	@override String get msg_template_variable_settings => 'テンプレート変数の設定';
+	@override String get msg_template_variables => 'テンプレート変数';
+	@override String get msg_time_format_variable => '時刻形式 ({{time}})';
+	@override String get msg_todo => '藤堂';
+	@override String msg_toggle_memoflow_failed_with_error({required Object error}) => 'MemoFlow の表示/非表示に失敗しました:${error}';
+	@override String get msg_toggle_sidebar => 'サイドバーの切り替え';
+	@override String get msg_total_characters_metric => '総文字数';
+	@override String get msg_total_characters_short => '総文字数';
+	@override String msg_total_count_times({required Object count}) => '合計${count} 回';
+	@override String get msg_total_days => '合計日数';
+	@override String get msg_total_memos_metric => '合計メモ';
+	@override String get msg_unable_open_windows_camera_settings => 'Windows のカメラ設定を開けません。';
+	@override String msg_unavailable_file_count({required Object count}) => '${count} は利用できません';
+	@override String get msg_underline => '下線';
+	@override String get msg_undo => '元に戻す';
+	@override String get msg_unnamed_tag => '名前のないタグ';
+	@override String get msg_unordered_list => '順序なしリスト';
+	@override String msg_unsupported_version_value({required Object version}) => 'サポートされていないバージョン:${version}';
+	@override String get msg_variable => '変数';
+	@override String get msg_variable_settings => '変数設定';
+	@override String get msg_version_probe_complete => 'バージョン調査が完了しました';
+	@override String get msg_version_probe_failed => 'バージョン調査に失敗しました';
+	@override String msg_version_probe_passed_with_version({required Object version}) => 'v${version} プローブが渡されました';
+	@override String msg_visibility_value({required Object value}) => '可視性:${value}';
+	@override String get msg_vs_last_month_decrease_memo_count => '先月よりもメモが減りました';
+	@override String get msg_vs_last_month_increase_memo_count => '先月よりメモが増えた';
+	@override String get msg_vs_last_month_same_memo_count => '先月と同じメモ数';
+	@override String get msg_weather_city_adcode_or_name => '気象都市 (コードまたは都市名)';
+	@override String get msg_weather_city_example => '例: 110000';
+	@override String get msg_weather_city_label => '気象都市';
+	@override String get msg_weather_condition => '気象条件';
+	@override String get msg_weather_fallback_text => '天気フォールバックテキスト';
+	@override String get msg_weather_plus_temperature_without_city => '天気 + 気温 (都市なし)';
+	@override String get msg_weather_province => '気象省';
+	@override String get msg_weather_report_time => '天気予報の時間';
+	@override String get msg_weather_variable_tokens => '変数: {{weather}} / {{weather.*}}';
+	@override String msg_weather_variables_city({required Object city}) => '気象変数:${city}';
+	@override String get msg_weather_variables_disabled => '天気変数は無効です';
+	@override String get msg_weather_variables_enabled_city_not_set => '気象変数が有効 (都市は設定されていません)';
+	@override String get msg_weekday_friday => '金';
+	@override String get msg_weekday_monday => '月';
+	@override String get msg_weekday_name => '曜日名';
+	@override String get msg_weekday_saturday => '土';
+	@override String get msg_weekday_sunday => '太陽';
+	@override String get msg_weekday_thursday => '木';
+	@override String get msg_weekday_tuesday => '火';
+	@override String get msg_weekday_wednesday => '水';
+	@override String get msg_wind_direction => '風向き';
+	@override String get msg_wind_power => '風力';
+	@override String msg_windows_enable_location_access({required Object message}) => '${message}。 Windows 設定で位置情報アクセスを有効にします。';
+	@override String get msg_windows_paging_note => 'Windows ページング: PageUp 前のページ、PageDown 次のページ。';
+	@override String get msg_windows_related_settings => 'Windows関連の設定';
+	@override String get msg_write_current_thought => '考えていることを書き留めてください...';
+	@override String get msg_yearly_character_trend => '年間キャラクタートレンド';
 }
 
 // Path: strings.login.mode
@@ -5100,6 +5774,97 @@ class _StringsStringsSettingsPreferencesJa extends _StringsStringsSettingsPrefer
 	@override String get cardColor => 'カード色';
 	@override String get border => '枠線';
 	@override String get borderColor => '枠線色';
+}
+
+// Path: strings.aiInsight.common
+class _StringsStringsAiInsightCommonJa extends _StringsStringsAiInsightCommonEn {
+	_StringsStringsAiInsightCommonJa._(_StringsJa root) : this._root = root, super._(root);
+
+	@override final _StringsJa _root; // ignore: unused_field
+
+	// Translations
+	@override String get enabled => '有効';
+	@override String get disabled => '無効';
+}
+
+// Path: strings.aiInsight.timeRange
+class _StringsStringsAiInsightTimeRangeJa extends _StringsStringsAiInsightTimeRangeEn {
+	_StringsStringsAiInsightTimeRangeJa._(_StringsJa root) : this._root = root, super._(root);
+
+	@override final _StringsJa _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => '期間';
+	@override String get last3Days => '直近3日';
+	@override String get last7Days => '直近7日';
+	@override String get last30Days => '直近30日';
+	@override String get customRange => 'カスタム範囲';
+}
+
+// Path: strings.aiInsight.privacyScope
+class _StringsStringsAiInsightPrivacyScopeJa extends _StringsStringsAiInsightPrivacyScopeEn {
+	_StringsStringsAiInsightPrivacyScopeJa._(_StringsJa root) : this._root = root, super._(root);
+
+	@override final _StringsJa _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'プライバシー範囲';
+	@override String get includePrivateNotes => '非公開メモを含める';
+	@override String get description => '有効にすると、非公開メモも AI モデルに送信して分析します。';
+}
+
+// Path: strings.aiInsight.promptSettings
+class _StringsStringsAiInsightPromptSettingsJa extends _StringsStringsAiInsightPromptSettingsEn {
+	_StringsStringsAiInsightPromptSettingsJa._(_StringsJa root) : this._root = root, super._(root);
+
+	@override final _StringsJa _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'プロンプト設定';
+	@override String get editPromptTemplate => 'プロンプトテンプレートを編集';
+	@override String get description => '上級ユーザー向けに、このインサイトで使う AI プロンプトをカスタマイズできます。';
+	@override String get emptyTemplateHint => 'このインサイトにはまだプロンプトテンプレートがありません。分析を始める前に追加してください。';
+	@override String editorDescription({required Object insight}) => 'このテンプレートは「${insight}」の分析に使用されます。';
+	@override String get editorPlaceholder => 'AI に重点的に見てほしいこと、比較したいこと、要約したいこと、強調したいことを入力してください。';
+	@override String get clearTemplate => 'クリア';
+}
+
+// Path: strings.aiInsight.contentPreview
+class _StringsStringsAiInsightContentPreviewJa extends _StringsStringsAiInsightContentPreviewEn {
+	_StringsStringsAiInsightContentPreviewJa._(_StringsJa root) : this._root = root, super._(root);
+
+	@override final _StringsJa _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => '内容プレビュー';
+	@override String get sectionTitle => '内容プレビュー';
+	@override String get notesToSend => '送信するメモ数';
+	@override String get estimatedTokens => '推定トークン数';
+	@override String get previewContent => 'プレビュー内容';
+	@override String get timeRange => '期間';
+	@override String get loading => 'プレビューを準備中…';
+	@override String get previewLoadFailed => '内容プレビューの準備に失敗しました。';
+	@override String get truncatedNotice => '現在の分析上限に収めるため、内容を一部省略しました。';
+	@override String get emptyState => '現在の設定に一致するメモがありません。期間やプライバシー範囲を変更してみてください。';
+	@override String noteCount({required Object count}) => '${count} 件のメモ';
+	@override String tokenCount({required Object count}) => '${count} トークン';
+}
+
+// Path: strings.aiInsight.cards
+class _StringsStringsAiInsightCardsJa extends _StringsStringsAiInsightCardsEn {
+	_StringsStringsAiInsightCardsJa._(_StringsJa root) : this._root = root, super._(root);
+
+	@override final _StringsJa _root; // ignore: unused_field
+
+	// Translations
+	@override late final _StringsStringsAiInsightCardsTodayCluesJa todayClues = _StringsStringsAiInsightCardsTodayCluesJa._(_root);
+	@override late final _StringsStringsAiInsightCardsEmotionMapJa emotionMap = _StringsStringsAiInsightCardsEmotionMapJa._(_root);
+	@override late final _StringsStringsAiInsightCardsThemeResonanceJa themeResonance = _StringsStringsAiInsightCardsThemeResonanceJa._(_root);
+	@override late final _StringsStringsAiInsightCardsThoughtTraceJa thoughtTrace = _StringsStringsAiInsightCardsThoughtTraceJa._(_root);
+	@override late final _StringsStringsAiInsightCardsBlindSpotDiscoveryJa blindSpotDiscovery = _StringsStringsAiInsightCardsBlindSpotDiscoveryJa._(_root);
+	@override late final _StringsStringsAiInsightCardsRelationshipViewJa relationshipView = _StringsStringsAiInsightCardsRelationshipViewJa._(_root);
+	@override late final _StringsStringsAiInsightCardsActionExtractionJa actionExtraction = _StringsStringsAiInsightCardsActionExtractionJa._(_root);
+	@override late final _StringsStringsAiInsightCardsLongTermTrajectoryJa longTermTrajectory = _StringsStringsAiInsightCardsLongTermTrajectoryJa._(_root);
 }
 
 // Path: strings.legacy.app_language
@@ -5301,6 +6066,94 @@ class _StringsStringsSettingsPreferencesEditorToolbarJa extends _StringsStringsS
 	@override String get customButtonPreview => 'Preview';
 	@override late final _StringsStringsSettingsPreferencesEditorToolbarCustomIconsJa customIcons = _StringsStringsSettingsPreferencesEditorToolbarCustomIconsJa._(_root);
 	@override late final _StringsStringsSettingsPreferencesEditorToolbarActionsJa actions = _StringsStringsSettingsPreferencesEditorToolbarActionsJa._(_root);
+}
+
+// Path: strings.aiInsight.cards.todayClues
+class _StringsStringsAiInsightCardsTodayCluesJa extends _StringsStringsAiInsightCardsTodayCluesEn {
+	_StringsStringsAiInsightCardsTodayCluesJa._(_StringsJa root) : this._root = root, super._(root);
+
+	@override final _StringsJa _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => '今日の手がかり';
+	@override String get description => '最近の記録から、まず注目すべき出来事、緊張、未解決の流れを AI が抽出します。';
+}
+
+// Path: strings.aiInsight.cards.emotionMap
+class _StringsStringsAiInsightCardsEmotionMapJa extends _StringsStringsAiInsightCardsEmotionMapEn {
+	_StringsStringsAiInsightCardsEmotionMapJa._(_StringsJa root) : this._root = root, super._(root);
+
+	@override final _StringsJa _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => '感情マップ';
+	@override String get description => '記録に流れる感情の動きを読み取り、最近の状態に影響しているものを見つけます。';
+}
+
+// Path: strings.aiInsight.cards.themeResonance
+class _StringsStringsAiInsightCardsThemeResonanceJa extends _StringsStringsAiInsightCardsThemeResonanceEn {
+	_StringsStringsAiInsightCardsThemeResonanceJa._(_StringsJa root) : this._root = root, super._(root);
+
+	@override final _StringsJa _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'テーマの反響';
+	@override String get description => '最近の記録に繰り返し現れるテーマを見つけ、何に立ち返っているのかを浮かび上がらせます。';
+}
+
+// Path: strings.aiInsight.cards.thoughtTrace
+class _StringsStringsAiInsightCardsThoughtTraceJa extends _StringsStringsAiInsightCardsThoughtTraceEn {
+	_StringsStringsAiInsightCardsThoughtTraceJa._(_StringsJa root) : this._root = root, super._(root);
+
+	@override final _StringsJa _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => '思考の軌跡';
+	@override String get description => '隠れた前提、未解決の問い、さらに掘り下げる価値のある思考の流れを明らかにします。';
+}
+
+// Path: strings.aiInsight.cards.blindSpotDiscovery
+class _StringsStringsAiInsightCardsBlindSpotDiscoveryJa extends _StringsStringsAiInsightCardsBlindSpotDiscoveryEn {
+	_StringsStringsAiInsightCardsBlindSpotDiscoveryJa._(_StringsJa root) : this._root = root, super._(root);
+
+	@override final _StringsJa _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => '盲点の発見';
+	@override String get description => '書いている最中には見落としやすいサインや微細なパターンを見つけます。';
+}
+
+// Path: strings.aiInsight.cards.relationshipView
+class _StringsStringsAiInsightCardsRelationshipViewJa extends _StringsStringsAiInsightCardsRelationshipViewEn {
+	_StringsStringsAiInsightCardsRelationshipViewJa._(_StringsJa root) : this._root = root, super._(root);
+
+	@override final _StringsJa _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => '関係性ビュー';
+	@override String get description => '人ややり取り、変化する関係性という視点からメモを捉え直します。';
+}
+
+// Path: strings.aiInsight.cards.actionExtraction
+class _StringsStringsAiInsightCardsActionExtractionJa extends _StringsStringsAiInsightCardsActionExtractionEn {
+	_StringsStringsAiInsightCardsActionExtractionJa._(_StringsJa root) : this._root = root, super._(root);
+
+	@override final _StringsJa _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => '行動の抽出';
+	@override String get description => '振り返りを、試したり確認したりフォローできる具体的な次の行動に変えます。';
+}
+
+// Path: strings.aiInsight.cards.longTermTrajectory
+class _StringsStringsAiInsightCardsLongTermTrajectoryJa extends _StringsStringsAiInsightCardsLongTermTrajectoryEn {
+	_StringsStringsAiInsightCardsLongTermTrajectoryJa._(_StringsJa root) : this._root = root, super._(root);
+
+	@override final _StringsJa _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => '長期的な軌跡';
+	@override String get description => '時間をまたいで記録を見渡し、意味のある変化、繰り返すサイクル、長期的な変容を見つけます。';
 }
 
 // Path: strings.legacy.ai_summary.system
@@ -6816,6 +7669,7 @@ class _StringsStringsLegacyZhHans extends _StringsStringsLegacyEn {
 	@override String get msg_links_label => '链接';
 	@override late final _StringsStringsLegacyAppDrawerZhHans app_drawer = _StringsStringsLegacyAppDrawerZhHans._(_root);
 	@override late final _StringsStringsLegacyAiSummaryZhHans ai_summary = _StringsStringsLegacyAiSummaryZhHans._(_root);
+	@override String get msg_random_review_source_scope => '笔记来源';
 }
 
 // Path: strings.login.mode
@@ -7430,6 +8284,7 @@ class _StringsStringsZhHantTw extends _StringsStringsEn {
 	@override late final _StringsStringsLoginZhHantTw login = _StringsStringsLoginZhHantTw._(_root);
 	@override late final _StringsStringsSettingsZhHantTw settings = _StringsStringsSettingsZhHantTw._(_root);
 	@override late final _StringsStringsLocationPickerZhHantTw locationPicker = _StringsStringsLocationPickerZhHantTw._(_root);
+	@override late final _StringsStringsAiInsightZhHantTw aiInsight = _StringsStringsAiInsightZhHantTw._(_root);
 	@override late final _StringsStringsAiProxyZhHantTw aiProxy = _StringsStringsAiProxyZhHantTw._(_root);
 	@override late final _StringsStringsLegacyZhHantTw legacy = _StringsStringsLegacyZhHantTw._(_root);
 }
@@ -7553,6 +8408,25 @@ class _StringsStringsLocationPickerZhHantTw extends _StringsStringsLocationPicke
 	@override String get providerMissingBaiduKey => '選擇位置前需要先設定百度地圖 AK。';
 	@override String get providerMissingGoogleKey => '選擇位置前需要先設定 Google Maps API Key。';
 	@override String get providerUnsupportedPlatform => '嵌入式地圖選點僅支援 Android 和 Windows。';
+}
+
+// Path: strings.aiInsight
+class _StringsStringsAiInsightZhHantTw extends _StringsStringsAiInsightEn {
+	_StringsStringsAiInsightZhHantTw._(_StringsZhHantTw root) : this._root = root, super._(root);
+
+	@override final _StringsZhHantTw _root; // ignore: unused_field
+
+	// Translations
+	@override late final _StringsStringsAiInsightCardsZhHantTw cards = _StringsStringsAiInsightCardsZhHantTw._(_root);
+	@override late final _StringsStringsAiInsightCommonZhHantTw common = _StringsStringsAiInsightCommonZhHantTw._(_root);
+	@override late final _StringsStringsAiInsightContentPreviewZhHantTw contentPreview = _StringsStringsAiInsightContentPreviewZhHantTw._(_root);
+	@override late final _StringsStringsAiInsightPrivacyScopeZhHantTw privacyScope = _StringsStringsAiInsightPrivacyScopeZhHantTw._(_root);
+	@override late final _StringsStringsAiInsightPromptSettingsZhHantTw promptSettings = _StringsStringsAiInsightPromptSettingsZhHantTw._(_root);
+	@override String get settingsTitle => 'AI 分析設定';
+	@override String get startAnalysis => '開始分析';
+	@override String get subtitle => '讓 AI 幫你從不同角度理解你的記錄';
+	@override late final _StringsStringsAiInsightTimeRangeZhHantTw timeRange = _StringsStringsAiInsightTimeRangeZhHantTw._(_root);
+	@override String get title => 'AI 總結';
 }
 
 // Path: strings.aiProxy
@@ -8823,6 +9697,8 @@ class _StringsStringsLegacyZhHantTw extends _StringsStringsLegacyEn {
 	@override String get msg_links_label => '連結';
 	@override late final _StringsStringsLegacyAppDrawerZhHantTw app_drawer = _StringsStringsLegacyAppDrawerZhHantTw._(_root);
 	@override late final _StringsStringsLegacyAiSummaryZhHantTw ai_summary = _StringsStringsLegacyAiSummaryZhHantTw._(_root);
+	@override String get msg_gallery_mobile_only => '相簿功能僅支援移動端。';
+	@override String get msg_random_review_source_scope => '筆記來源';
 }
 
 // Path: strings.login.mode
@@ -8956,6 +9832,97 @@ class _StringsStringsSettingsPreferencesZhHantTw extends _StringsStringsSettings
 	@override String get cardColor => '卡片色';
 	@override String get border => '邊框';
 	@override String get borderColor => '邊框色';
+}
+
+// Path: strings.aiInsight.cards
+class _StringsStringsAiInsightCardsZhHantTw extends _StringsStringsAiInsightCardsEn {
+	_StringsStringsAiInsightCardsZhHantTw._(_StringsZhHantTw root) : this._root = root, super._(root);
+
+	@override final _StringsZhHantTw _root; // ignore: unused_field
+
+	// Translations
+	@override late final _StringsStringsAiInsightCardsActionExtractionZhHantTw actionExtraction = _StringsStringsAiInsightCardsActionExtractionZhHantTw._(_root);
+	@override late final _StringsStringsAiInsightCardsBlindSpotDiscoveryZhHantTw blindSpotDiscovery = _StringsStringsAiInsightCardsBlindSpotDiscoveryZhHantTw._(_root);
+	@override late final _StringsStringsAiInsightCardsEmotionMapZhHantTw emotionMap = _StringsStringsAiInsightCardsEmotionMapZhHantTw._(_root);
+	@override late final _StringsStringsAiInsightCardsLongTermTrajectoryZhHantTw longTermTrajectory = _StringsStringsAiInsightCardsLongTermTrajectoryZhHantTw._(_root);
+	@override late final _StringsStringsAiInsightCardsRelationshipViewZhHantTw relationshipView = _StringsStringsAiInsightCardsRelationshipViewZhHantTw._(_root);
+	@override late final _StringsStringsAiInsightCardsThemeResonanceZhHantTw themeResonance = _StringsStringsAiInsightCardsThemeResonanceZhHantTw._(_root);
+	@override late final _StringsStringsAiInsightCardsThoughtTraceZhHantTw thoughtTrace = _StringsStringsAiInsightCardsThoughtTraceZhHantTw._(_root);
+	@override late final _StringsStringsAiInsightCardsTodayCluesZhHantTw todayClues = _StringsStringsAiInsightCardsTodayCluesZhHantTw._(_root);
+}
+
+// Path: strings.aiInsight.common
+class _StringsStringsAiInsightCommonZhHantTw extends _StringsStringsAiInsightCommonEn {
+	_StringsStringsAiInsightCommonZhHantTw._(_StringsZhHantTw root) : this._root = root, super._(root);
+
+	@override final _StringsZhHantTw _root; // ignore: unused_field
+
+	// Translations
+	@override String get disabled => '未開啟';
+	@override String get enabled => '已開啟';
+}
+
+// Path: strings.aiInsight.contentPreview
+class _StringsStringsAiInsightContentPreviewZhHantTw extends _StringsStringsAiInsightContentPreviewEn {
+	_StringsStringsAiInsightContentPreviewZhHantTw._(_StringsZhHantTw root) : this._root = root, super._(root);
+
+	@override final _StringsZhHantTw _root; // ignore: unused_field
+
+	// Translations
+	@override String get emptyState => '當前設定下沒有可傳送的記錄，試試調整時間範圍或隱私範圍。';
+	@override String get estimatedTokens => '預計 Token 數';
+	@override String get loading => '正在準備預覽…';
+	@override String noteCount({required Object count}) => '${count} 條記錄';
+	@override String get notesToSend => '傳送記錄數';
+	@override String get previewContent => '預覽內容';
+	@override String get previewLoadFailed => '內容預覽載入失敗。';
+	@override String get sectionTitle => '內容預覽';
+	@override String get timeRange => '時間範圍';
+	@override String get title => '內容預覽';
+	@override String tokenCount({required Object count}) => '${count} 個 Token';
+	@override String get truncatedNotice => '為滿足當前分析長度限制，傳送內容已被截斷。';
+}
+
+// Path: strings.aiInsight.privacyScope
+class _StringsStringsAiInsightPrivacyScopeZhHantTw extends _StringsStringsAiInsightPrivacyScopeEn {
+	_StringsStringsAiInsightPrivacyScopeZhHantTw._(_StringsZhHantTw root) : this._root = root, super._(root);
+
+	@override final _StringsZhHantTw _root; // ignore: unused_field
+
+	// Translations
+	@override String get description => '開啟後，私密記錄也會傳送給 AI 模型進行分析。';
+	@override String get includePrivateNotes => '包含私密記錄';
+	@override String get title => '隱私範圍';
+}
+
+// Path: strings.aiInsight.promptSettings
+class _StringsStringsAiInsightPromptSettingsZhHantTw extends _StringsStringsAiInsightPromptSettingsEn {
+	_StringsStringsAiInsightPromptSettingsZhHantTw._(_StringsZhHantTw root) : this._root = root, super._(root);
+
+	@override final _StringsZhHantTw _root; // ignore: unused_field
+
+	// Translations
+	@override String get clearTemplate => '清空';
+	@override String get description => '允許高階使用者自定義當前洞察卡使用的 AI 提示詞。';
+	@override String get editPromptTemplate => '編輯提示詞模板';
+	@override String editorDescription({required Object insight}) => '這個模板將用於「${insight}」的分析。';
+	@override String get editorPlaceholder => '填寫希望 AI 重點關注、比較、總結或提醒你的內容。';
+	@override String get emptyTemplateHint => '這個洞察卡還沒有可用的提示詞模板，填寫後才能開始分析。';
+	@override String get title => '提示詞設定';
+}
+
+// Path: strings.aiInsight.timeRange
+class _StringsStringsAiInsightTimeRangeZhHantTw extends _StringsStringsAiInsightTimeRangeEn {
+	_StringsStringsAiInsightTimeRangeZhHantTw._(_StringsZhHantTw root) : this._root = root, super._(root);
+
+	@override final _StringsZhHantTw _root; // ignore: unused_field
+
+	// Translations
+	@override String get customRange => '自定義範圍';
+	@override String get last30Days => '最近 30 天';
+	@override String get last3Days => '最近 3 天';
+	@override String get last7Days => '最近 7 天';
+	@override String get title => '時間範圍';
 }
 
 // Path: strings.legacy.app_language
@@ -9157,6 +10124,94 @@ class _StringsStringsSettingsPreferencesEditorToolbarZhHantTw extends _StringsSt
 	@override String get customButtonPreview => '預覽';
 	@override late final _StringsStringsSettingsPreferencesEditorToolbarCustomIconsZhHantTw customIcons = _StringsStringsSettingsPreferencesEditorToolbarCustomIconsZhHantTw._(_root);
 	@override late final _StringsStringsSettingsPreferencesEditorToolbarActionsZhHantTw actions = _StringsStringsSettingsPreferencesEditorToolbarActionsZhHantTw._(_root);
+}
+
+// Path: strings.aiInsight.cards.actionExtraction
+class _StringsStringsAiInsightCardsActionExtractionZhHantTw extends _StringsStringsAiInsightCardsActionExtractionEn {
+	_StringsStringsAiInsightCardsActionExtractionZhHantTw._(_StringsZhHantTw root) : this._root = root, super._(root);
+
+	@override final _StringsZhHantTw _root; // ignore: unused_field
+
+	// Translations
+	@override String get description => '從記錄中提煉出值得嘗試的行動，讓反思更容易落地。';
+	@override String get title => '行動提煉';
+}
+
+// Path: strings.aiInsight.cards.blindSpotDiscovery
+class _StringsStringsAiInsightCardsBlindSpotDiscoveryZhHantTw extends _StringsStringsAiInsightCardsBlindSpotDiscoveryEn {
+	_StringsStringsAiInsightCardsBlindSpotDiscoveryZhHantTw._(_StringsZhHantTw root) : this._root = root, super._(root);
+
+	@override final _StringsZhHantTw _root; // ignore: unused_field
+
+	// Translations
+	@override String get description => '找出記錄裡容易被忽視的訊號、細節或隱藏模式。';
+	@override String get title => '盲點發現';
+}
+
+// Path: strings.aiInsight.cards.emotionMap
+class _StringsStringsAiInsightCardsEmotionMapZhHantTw extends _StringsStringsAiInsightCardsEmotionMapEn {
+	_StringsStringsAiInsightCardsEmotionMapZhHantTw._(_StringsZhHantTw root) : this._root = root, super._(root);
+
+	@override final _StringsZhHantTw _root; // ignore: unused_field
+
+	// Translations
+	@override String get description => '分析記錄中的情緒流動，看看最近什麼在持續影響你的狀態。';
+	@override String get title => '情緒地圖';
+}
+
+// Path: strings.aiInsight.cards.longTermTrajectory
+class _StringsStringsAiInsightCardsLongTermTrajectoryZhHantTw extends _StringsStringsAiInsightCardsLongTermTrajectoryEn {
+	_StringsStringsAiInsightCardsLongTermTrajectoryZhHantTw._(_StringsZhHantTw root) : this._root = root, super._(root);
+
+	@override final _StringsZhHantTw _root; // ignore: unused_field
+
+	// Translations
+	@override String get description => '從更長的時間跨度觀察你的變化，識別階段性趨勢與迴圈。';
+	@override String get title => '長期軌跡';
+}
+
+// Path: strings.aiInsight.cards.relationshipView
+class _StringsStringsAiInsightCardsRelationshipViewZhHantTw extends _StringsStringsAiInsightCardsRelationshipViewEn {
+	_StringsStringsAiInsightCardsRelationshipViewZhHantTw._(_StringsZhHantTw root) : this._root = root, super._(root);
+
+	@override final _StringsZhHantTw _root; // ignore: unused_field
+
+	// Translations
+	@override String get description => '從人與關係的角度重新理解這些記錄，看見互動中的變化。';
+	@override String get title => '關係視角';
+}
+
+// Path: strings.aiInsight.cards.themeResonance
+class _StringsStringsAiInsightCardsThemeResonanceZhHantTw extends _StringsStringsAiInsightCardsThemeResonanceEn {
+	_StringsStringsAiInsightCardsThemeResonanceZhHantTw._(_StringsZhHantTw root) : this._root = root, super._(root);
+
+	@override final _StringsZhHantTw _root; // ignore: unused_field
+
+	// Translations
+	@override String get description => '識別最近反覆出現的主題，幫你看見自己正在持續關注什麼。';
+	@override String get title => '主題諧鳴';
+}
+
+// Path: strings.aiInsight.cards.thoughtTrace
+class _StringsStringsAiInsightCardsThoughtTraceZhHantTw extends _StringsStringsAiInsightCardsThoughtTraceEn {
+	_StringsStringsAiInsightCardsThoughtTraceZhHantTw._(_StringsZhHantTw root) : this._root = root, super._(root);
+
+	@override final _StringsZhHantTw _root; // ignore: unused_field
+
+	// Translations
+	@override String get description => '梳理記錄中的思路、疑問與潛在假設，幫助你繼續往下想。';
+	@override String get title => '思維跡象';
+}
+
+// Path: strings.aiInsight.cards.todayClues
+class _StringsStringsAiInsightCardsTodayCluesZhHantTw extends _StringsStringsAiInsightCardsTodayCluesEn {
+	_StringsStringsAiInsightCardsTodayCluesZhHantTw._(_StringsZhHantTw root) : this._root = root, super._(root);
+
+	@override final _StringsZhHantTw _root; // ignore: unused_field
+
+	// Translations
+	@override String get description => 'AI 找出最近記錄中最值得關注的事件、問題和懸而未決的線索。';
+	@override String get title => '今日線索';
 }
 
 // Path: strings.legacy.ai_summary.system
@@ -10752,6 +11807,7 @@ extension on _StringsDe {
 			case 'strings.common.selectValidServerVersion': return 'Bitte eine gültige Serverversion auswählen';
 			case 'strings.common.serverVersionValue': return ({required Object version}) => 'Serverversion: ${version}';
 			case 'strings.common.selectServerVersionRange021To026': return 'Bitte wählen Sie manuell eine Serverversion zwischen 0.21 und 0.26';
+			case 'strings.common.serverVersionProbeHint': return 'Vor der Anmeldung werden nur die Kern-APIs der ausgewaehlten Serverversion geprueft.';
 			case 'strings.languages.system': return 'System folgen';
 			case 'strings.languages.zhHans': return 'Chinesisch (Vereinfacht)';
 			case 'strings.languages.zhHantTw': return 'Chinesisch (Traditionell, China Taiwan)';
@@ -10887,6 +11943,55 @@ extension on _StringsDe {
 			case 'strings.locationPicker.providerMissingBaiduKey': return 'Vor der Standortauswahl wird der Baidu AK benötigt.';
 			case 'strings.locationPicker.providerMissingGoogleKey': return 'Vor der Standortauswahl wird der Google Maps API Key benötigt.';
 			case 'strings.locationPicker.providerUnsupportedPlatform': return 'Der eingebettete Kartenwähler ist nur auf Android und Windows verfügbar.';
+			case 'strings.aiInsight.cards.actionExtraction.description': return 'Verwandeln Sie Reflexionen in konkrete naechste Schritte, die Sie ausprobieren, testen oder weiterverfolgen koennen.';
+			case 'strings.aiInsight.cards.actionExtraction.title': return 'Handlungsableitung';
+			case 'strings.aiInsight.cards.blindSpotDiscovery.description': return 'Erkennen Sie uebersehene Signale oder subtile Muster, die beim Schreiben leicht untergehen.';
+			case 'strings.aiInsight.cards.blindSpotDiscovery.title': return 'Blinde Flecken';
+			case 'strings.aiInsight.cards.emotionMap.description': return 'Analysieren Sie den emotionalen Verlauf in Ihren Notizen und sehen Sie, was zuletzt Ihren Zustand gepraegt hat.';
+			case 'strings.aiInsight.cards.emotionMap.title': return 'Emotionskarte';
+			case 'strings.aiInsight.cards.longTermTrajectory.description': return 'Betrachten Sie Ihre Notizen ueber laengere Zeitraeume hinweg und erkennen Sie bedeutsame Veraenderungen, wiederkehrende Zyklen und langfristigen Wandel.';
+			case 'strings.aiInsight.cards.longTermTrajectory.title': return 'Langfristige Entwicklung';
+			case 'strings.aiInsight.cards.relationshipView.description': return 'Betrachten Sie Ihre Notizen neu durch die Linse von Menschen, Interaktionen und sich veraendernden Beziehungsdynamiken.';
+			case 'strings.aiInsight.cards.relationshipView.title': return 'Beziehungsansicht';
+			case 'strings.aiInsight.cards.themeResonance.description': return 'Finden Sie wiederkehrende Themen in aktuellen Notizen und machen Sie sichtbar, worauf Sie immer wieder zurueckkommen.';
+			case 'strings.aiInsight.cards.themeResonance.title': return 'Themenresonanz';
+			case 'strings.aiInsight.cards.thoughtTrace.description': return 'Machen Sie verborgene Annahmen, ungeloeste Fragen und Denkrichtungen sichtbar, die es weiterzuverfolgen lohnt.';
+			case 'strings.aiInsight.cards.thoughtTrace.title': return 'Gedankenspur';
+			case 'strings.aiInsight.cards.todayClues.description': return 'Die KI hebt aktuelle Ereignisse, Spannungen und offene Themen hervor, die zuerst Ihre Aufmerksamkeit verdienen.';
+			case 'strings.aiInsight.cards.todayClues.title': return 'Aktuelle Hinweise';
+			case 'strings.aiInsight.common.disabled': return 'Deaktiviert';
+			case 'strings.aiInsight.common.enabled': return 'Aktiviert';
+			case 'strings.aiInsight.contentPreview.emptyState': return 'Keine Notizen entsprechen den aktuellen Einstellungen. Versuchen Sie es mit einem anderen Zeitraum oder Privatsphaere-Bereich.';
+			case 'strings.aiInsight.contentPreview.estimatedTokens': return 'Geschaetzte Token';
+			case 'strings.aiInsight.contentPreview.loading': return 'Vorschau wird vorbereitet...';
+			case 'strings.aiInsight.contentPreview.noteCount': return ({required Object count}) => '${count} Notizen';
+			case 'strings.aiInsight.contentPreview.notesToSend': return 'Zu sendende Notizen';
+			case 'strings.aiInsight.contentPreview.previewContent': return 'Vorschauinhalt';
+			case 'strings.aiInsight.contentPreview.previewLoadFailed': return 'Die Inhaltsvorschau konnte nicht vorbereitet werden.';
+			case 'strings.aiInsight.contentPreview.sectionTitle': return 'Inhaltsvorschau';
+			case 'strings.aiInsight.contentPreview.timeRange': return 'Zeitraum';
+			case 'strings.aiInsight.contentPreview.title': return 'Inhaltsvorschau';
+			case 'strings.aiInsight.contentPreview.tokenCount': return ({required Object count}) => '${count} Token';
+			case 'strings.aiInsight.contentPreview.truncatedNotice': return 'Der Inhalt wurde gekuerzt, um innerhalb des aktuellen Analyselimits zu bleiben.';
+			case 'strings.aiInsight.privacyScope.description': return 'Wenn aktiviert, werden auch private Notizen zur Analyse an das KI-Modell gesendet.';
+			case 'strings.aiInsight.privacyScope.includePrivateNotes': return 'Private Notizen einbeziehen';
+			case 'strings.aiInsight.privacyScope.title': return 'Privatsphaere-Bereich';
+			case 'strings.aiInsight.promptSettings.clearTemplate': return 'Leeren';
+			case 'strings.aiInsight.promptSettings.description': return 'Ermoeglicht fortgeschrittenen Nutzern, den fuer diese Analyse verwendeten KI-Prompt anzupassen.';
+			case 'strings.aiInsight.promptSettings.editPromptTemplate': return 'Prompt-Vorlage bearbeiten';
+			case 'strings.aiInsight.promptSettings.editorDescription': return ({required Object insight}) => 'Diese Vorlage wird fuer die Analyse "${insight}" verwendet.';
+			case 'strings.aiInsight.promptSettings.editorPlaceholder': return 'Beschreiben Sie, worauf sich die KI konzentrieren, was sie vergleichen, zusammenfassen oder hervorheben soll.';
+			case 'strings.aiInsight.promptSettings.emptyTemplateHint': return 'Fuer diese Analyse gibt es noch keine Prompt-Vorlage. Fuegen Sie eine hinzu, bevor Sie die Analyse starten.';
+			case 'strings.aiInsight.promptSettings.title': return 'Prompt-Einstellungen';
+			case 'strings.aiInsight.settingsTitle': return 'KI-Analyseeinstellungen';
+			case 'strings.aiInsight.startAnalysis': return 'Analyse starten';
+			case 'strings.aiInsight.subtitle': return 'Lassen Sie sich von KI dabei helfen, Ihre Notizen aus verschiedenen Blickwinkeln zu verstehen.';
+			case 'strings.aiInsight.timeRange.customRange': return 'Benutzerdefinierter Zeitraum';
+			case 'strings.aiInsight.timeRange.last30Days': return 'Letzte 30 Tage';
+			case 'strings.aiInsight.timeRange.last3Days': return 'Letzte 3 Tage';
+			case 'strings.aiInsight.timeRange.last7Days': return 'Letzte 7 Tage';
+			case 'strings.aiInsight.timeRange.title': return 'Zeitraum';
+			case 'strings.aiInsight.title': return 'KI-Zusammenfassung';
 			case 'strings.aiProxy.title': return 'Proxy Settings';
 			case 'strings.aiProxy.notConfigured': return 'Not configured';
 			case 'strings.aiProxy.statusHttp': return ({required Object host, required Object port}) => 'HTTP · ${host}:${port}';
@@ -11975,6 +13080,232 @@ extension on _StringsDe {
 			case 'strings.legacy.ai_summary.error_empty_response': return 'AI-Antwort ist leer';
 			case 'strings.legacy.ai_summary.error_missing_content': return 'Inhalt der AI-Antwort fehlt';
 			case 'strings.legacy.ai_summary.default_prompt': return 'Du bist ein minimalistischer Notizassistent. Extrahiere die Kernaussagen und formatiere sie elegant. Antworte professionell, freundlich und prägnant. Verwende nach Möglichkeit Listen und kurze Absätze.';
+			case 'strings.legacy.msg_action_shortcut': return 'Aktion – Verknüpfung';
+			case 'strings.legacy.msg_adcode': return 'Verwaltungsvorwahl';
+			case 'strings.legacy.msg_added_attachment_count': return ({required Object count}) => '${count}-Anhang(e) hinzugefügt.';
+			case 'strings.legacy.msg_added_files': return ({required Object count}) => '${count}-Datei(en) hinzugefügt.';
+			case 'strings.legacy.msg_added_files_with_skipped': return ({required Object count, required Object details}) => '${count}-Datei(en) hinzugefügt. ${details} übersprungen.';
+			case 'strings.legacy.msg_added_photo_attachment': return 'Fotoanhang hinzugefügt.';
+			case 'strings.legacy.msg_api_route': return 'API-Route';
+			case 'strings.legacy.msg_attachment': return 'Anhang';
+			case 'strings.legacy.msg_available_variable_docs': return 'Verfügbare Variablendokumente';
+			case 'strings.legacy.msg_available_variable_docs_desc': return 'Tippen Sie, um die Variablentabelle und Bedeutungshinweise im mittleren Dialog anzuzeigen.';
+			case 'strings.legacy.msg_average_daily_characters': return 'Durchschnittliche tägliche Charaktere';
+			case 'strings.legacy.msg_average_value': return ({required Object value}) => 'Durchschnittlicher ${value}';
+			case 'strings.legacy.msg_bold': return 'Deutlich';
+			case 'strings.legacy.msg_camera_failed': return ({required Object error}) => 'Kamera ausgefallen: ${error}';
+			case 'strings.legacy.msg_camera_file_missing': return 'Kameradatei fehlt.';
+			case 'strings.legacy.msg_camera_permission_denied_windows': return 'Kameraberechtigung verweigert. Aktivieren Sie den Kamerazugriff in den Windows-Einstellungen.';
+			case 'strings.legacy.msg_capture_photo': return 'Foto aufnehmen';
+			case 'strings.legacy.msg_check_system_permissions_or_retry_later': return 'Bitte überprüfen Sie die Systemberechtigungen oder versuchen Sie es später erneut.';
+			case 'strings.legacy.msg_checkbox': return 'Kontrollkästchen';
+			case 'strings.legacy.msg_city_plus_weather_plus_temperature': return 'Stadt + Wetter + Temperatur';
+			case 'strings.legacy.msg_close_window_minimize_to_tray': return 'Beim Schließen des Fensters auf die Taskleiste minimieren';
+			case 'strings.legacy.msg_close_window_minimize_to_tray_desc': return 'Wenn diese Option aktiviert ist, wird die App durch Klicken auf die Schaltfläche zum Schließen oben rechts nicht beendet. Sie können das Fenster über die Taskleiste wiederherstellen.';
+			case 'strings.legacy.msg_code_block': return 'Codeblock';
+			case 'strings.legacy.msg_common_writing_time': return 'Gemeinsame Schreibzeit';
+			case 'strings.legacy.msg_configure_windows_desktop_shortcuts': return 'Konfigurieren Sie Windows-Desktop-Verknüpfungen';
+			case 'strings.legacy.msg_copy_diagnostics': return 'Diagnose kopieren';
+			case 'strings.legacy.msg_copy_last_lines': return ({required Object lines}) => 'Kopieren Sie die letzten ${lines}-Zeilen';
+			case 'strings.legacy.msg_current_date': return 'Aktuelles Datum';
+			case 'strings.legacy.msg_current_datetime': return 'Aktuelles Datum und Uhrzeit';
+			case 'strings.legacy.msg_current_shortcut': return ({required Object binding}) => 'Aktuell: ${binding}';
+			case 'strings.legacy.msg_current_streak_days': return 'Aktueller Streak (Tage)';
+			case 'strings.legacy.msg_current_time': return 'Aktuelle Uhrzeit';
+			case 'strings.legacy.msg_current_window_pin_not_supported': return 'Das Anheften wird im aktuellen Fenster nicht unterstützt.';
+			case 'strings.legacy.msg_currently_using_api': return ({required Object version}) => 'Derzeit wird die API ${version} verwendet.';
+			case 'strings.legacy.msg_cut': return 'Schneiden';
+			case 'strings.legacy.msg_daily_memo_trend': return 'Täglicher Memo-Trend';
+			case 'strings.legacy.msg_date_format_variable': return 'Datumsformat ({{date}})';
+			case 'strings.legacy.msg_date_memo_count_tooltip': return ({required Object date, required Object count}) => '${date}\n${count} Memos';
+			case 'strings.legacy.msg_date_time_weather_variable_desc': return 'Date/time variables follow the formats in Variable settings; Wettervariablen hängen von der AMap-Wetterkonfiguration ab.';
+			case 'strings.legacy.msg_datetime_format_variable': return 'Datum/Uhrzeit-Format ({{datetime}})';
+			case 'strings.legacy.msg_default_shortcuts_restored': return 'Standardverknüpfungen wiederhergestellt.';
+			case 'strings.legacy.msg_delete_template': return 'Vorlage löschen';
+			case 'strings.legacy.msg_delete_template_confirm_with_name': return ({required Object name}) => '„${name}“ löschen?';
+			case 'strings.legacy.msg_diagnostics_copied': return 'Diagnose kopiert';
+			case 'strings.legacy.msg_edit_template': return 'Vorlage bearbeiten';
+			case 'strings.legacy.msg_editor': return 'Editor';
+			case 'strings.legacy.msg_enable_sync_bridge_first': return 'Bitte aktivieren Sie zuerst die Synchronisierungsbrücke.';
+			case 'strings.legacy.msg_enable_weather_variables': return 'Wettervariablen aktivieren';
+			case 'strings.legacy.msg_encrypt_save_placeholder': return 'Verschlüsselte Speicherung (Platzhalter)';
+			case 'strings.legacy.msg_encryption_feature_placeholder': return 'Die Verschlüsselung ist derzeit ein Platzhalter und wird noch nicht erzwungen.';
+			case 'strings.legacy.msg_enter_and_confirm_password': return 'Bitte geben Sie das Passwort ein und bestätigen Sie es.';
+			case 'strings.legacy.msg_enter_content_before_creating_link': return 'Bitte geben Sie Inhalte ein, bevor Sie einen Link erstellen.';
+			case 'strings.legacy.msg_enter_repository_name_hint': return 'Geben Sie den Repository-Namen ein';
+			case 'strings.legacy.msg_enter_repository_name_prompt': return 'Bitte geben Sie einen Repository-Namen ein.';
+			case 'strings.legacy.msg_error': return 'Fehler';
+			case 'strings.legacy.msg_example': return 'Beispiel';
+			case 'strings.legacy.msg_example_beijing': return 'Peking';
+			case 'strings.legacy.msg_example_beijing_city': return 'Gemeinde Peking';
+			case 'strings.legacy.msg_example_beijing_sunny_25c': return 'Peking Sonnig 25°C';
+			case 'strings.legacy.msg_example_northeast': return 'Nordost';
+			case 'strings.legacy.msg_example_saturday': return 'Samstag';
+			case 'strings.legacy.msg_example_sunny': return 'Sonnig';
+			case 'strings.legacy.msg_example_sunny_25c': return 'Sonnige 25°C';
+			case 'strings.legacy.msg_export_logs_bundle': return 'Protokollpaket exportieren';
+			case 'strings.legacy.msg_failed_export_logs': return ({required Object error}) => 'Protokolle konnten nicht exportiert werden: ${error}';
+			case 'strings.legacy.msg_feature': return 'Besonderheit';
+			case 'strings.legacy.msg_feature_not_implemented_placeholder_with_label': return ({required Object label}) => '„${label}“ ist noch nicht implementiert (Platzhalter).';
+			case 'strings.legacy.msg_file_save_location': return 'Speicherort der Datei';
+			case 'strings.legacy.msg_file_selection_failed': return ({required Object error}) => 'Dateiauswahl fehlgeschlagen: ${error}';
+			case 'strings.legacy.msg_files_unavailable_from_picker': return 'Dateien sind im Picker nicht verfügbar.';
+			case 'strings.legacy.msg_focus_input_area': return 'Fokuseingabebereich';
+			case 'strings.legacy.msg_gallery_original_selection_summary': return ({required Object selectedCount, required Object originalCount}) => 'Ausgewähltes ${selectedCount} · Original ${originalCount}';
+			case 'strings.legacy.msg_global': return 'Global';
+			case 'strings.legacy.msg_got_it': return 'Habe es';
+			case 'strings.legacy.msg_highlight': return 'Hervorheben';
+			case 'strings.legacy.msg_humidity_without_percent': return 'Luftfeuchtigkeit (ohne %-Symbol)';
+			case 'strings.legacy.msg_image': return 'Bild';
+			case 'strings.legacy.msg_keep_unknown_variables_raw': return 'Behalten Sie unbekannte Variablen unverändert bei';
+			case 'strings.legacy.msg_keep_unknown_variables_raw_desc': return 'Wenn diese Option deaktiviert ist, werden unbekannte Variablen durch eine leere Zeichenfolge ersetzt.';
+			case 'strings.legacy.msg_link': return 'Link';
+			case 'strings.legacy.msg_links_label': return 'Links';
+			case 'strings.legacy.msg_loading_memos': return 'Memos werden geladen...';
+			case 'strings.legacy.msg_local_storage_unavailable': return 'Der lokale Speicher ist nicht verfügbar';
+			case 'strings.legacy.msg_log_bundle_created': return ({required Object path, required Object exportId}) => 'Protokollpaket erstellt: ${path} (ExportId: ${exportId})';
+			case 'strings.legacy.msg_longest_streak_days': return 'Längster Streak (Tage)';
+			case 'strings.legacy.msg_many_templates_support_scroll': return 'Wenn viele Vorlagen vorhanden sind, unterstützt dieser Bereich vertikales Scrollen.';
+			case 'strings.legacy.msg_max_characters_single_day': return 'Max. Zeichen pro Tag';
+			case 'strings.legacy.msg_maximize': return 'Maximieren';
+			case 'strings.legacy.msg_meaning': return 'Bedeutung';
+			case 'strings.legacy.msg_memo_count': return 'Anzahl der Memos';
+			case 'strings.legacy.msg_minimize': return 'Minimieren';
+			case 'strings.legacy.msg_month_characters_tooltip': return ({required Object month, required Object chars}) => '${month}\n${chars} Zeichen';
+			case 'strings.legacy.msg_monthly_overview': return ({required Object month}) => '${month} Monatsübersicht';
+			case 'strings.legacy.msg_most_active_day': return 'Aktivster Tag';
+			case 'strings.legacy.msg_need_at_least_five_tags': return 'Es sind weniger als 5 Tags vorhanden. Bitte fügen Sie weitere Tags hinzu und versuchen Sie es erneut.';
+			case 'strings.legacy.msg_new_template': return 'Vorlage hinzufügen';
+			case 'strings.legacy.msg_next_page': return 'Nächste Seite';
+			case 'strings.legacy.msg_no_active_session_after_sign_in': return 'Keine aktive Sitzung nach der Anmeldung';
+			case 'strings.legacy.msg_no_camera_detected': return 'Keine Kamera erkannt.';
+			case 'strings.legacy.msg_no_data': return 'Keine Daten';
+			case 'strings.legacy.msg_no_files_selected': return 'Keine Dateien ausgewählt.';
+			case 'strings.legacy.msg_no_recording_input_device_found': return 'Kein Aufnahme-Eingabegerät gefunden.';
+			case 'strings.legacy.msg_no_system_logs_yet': return 'Noch keine Systemprotokolle';
+			case 'strings.legacy.msg_no_templates_click_add': return 'Noch keine Vorlagen. Klicken Sie auf „Vorlage hinzufügen“, um eine zu erstellen.';
+			case 'strings.legacy.msg_no_templates_yet': return 'Noch keine Vorlagen';
+			case 'strings.legacy.msg_no_valid_files_selected': return 'Keine gültigen Dateien ausgewählt.';
+			case 'strings.legacy.msg_not_selected': return 'Nicht ausgewählt';
+			case 'strings.legacy.msg_on_this_day': return 'An diesem Tag';
+			case 'strings.legacy.msg_only_windows_desktop_supports_this_setting': return 'Nur der Windows-Desktop unterstützt diese Einstellung.';
+			case 'strings.legacy.msg_open_camera_settings': return 'Öffnen Sie die Kameraeinstellungen';
+			case 'strings.legacy.msg_open_settings': return 'Einstellungen öffnen';
+			case 'strings.legacy.msg_ordered_list': return 'Geordnete Liste';
+			case 'strings.legacy.msg_original_image': return 'Original';
+			case 'strings.legacy.msg_password_feature_placeholder': return 'Die Passwortunterstützung ist derzeit ein Platzhalter und noch nicht durchgesetzt.';
+			case 'strings.legacy.msg_paste': return 'Paste';
+			case 'strings.legacy.msg_press_new_shortcut': return 'Drücken Sie die neue Verknüpfung...';
+			case 'strings.legacy.msg_previous_page': return 'Vorherige Seite';
+			case 'strings.legacy.msg_probe_failed': return ({required Object error}) => 'Probe fehlgeschlagen: ${error}';
+			case 'strings.legacy.msg_publish_memo': return 'Memo veröffentlichen';
+			case 'strings.legacy.msg_qr_scan_not_supported_pair_manually': return 'QR-Scan wird auf dieser Plattform nicht unterstützt. Bitte koppeln Sie manuell mit Host, Port und Pair-Code.';
+			case 'strings.legacy.msg_qr_scan_not_supported_use_manual_pairing': return 'QR-Scan wird auf dieser Plattform nicht unterstützt.\nVerwenden Sie stattdessen die manuelle Kopplung.';
+			case 'strings.legacy.msg_quick_input_channel_not_ready_retry': return 'Der Schnelleingabekanal ist nicht bereit. Bitte öffnen Sie das Hauptfenster erneut und versuchen Sie es erneut.';
+			case 'strings.legacy.msg_quick_input_failed_with_error': return ({required Object error}) => 'Schnelleingabe fehlgeschlagen: ${error}';
+			case 'strings.legacy.msg_quick_input_save_failed_with_error': return ({required Object error}) => 'Schnelles Speichern der Eingabe fehlgeschlagen: ${error}';
+			case 'strings.legacy.msg_quick_record': return 'Schnelle Aufnahme';
+			case 'strings.legacy.msg_quick_search': return 'Schnellsuche...';
+			case 'strings.legacy.msg_redo': return 'Wiederholen';
+			case 'strings.legacy.msg_repository_name': return 'Repository-Name';
+			case 'strings.legacy.msg_request_body': return 'Anforderungstext';
+			case 'strings.legacy.msg_request_headers': return 'Header anfordern';
+			case 'strings.legacy.msg_response_body': return 'Antwortgremium';
+			case 'strings.legacy.msg_response_headers': return 'Antwortheader';
+			case 'strings.legacy.msg_restore_defaults': return 'Standardeinstellungen wiederherstellen';
+			case 'strings.legacy.msg_restore_window': return 'Wiederherstellen';
+			case 'strings.legacy.msg_save_failed_check_content_retry': return 'Speichern fehlgeschlagen. Bitte überprüfen Sie den Inhalt und versuchen Sie es erneut.';
+			case 'strings.legacy.msg_saved_to_memoflow': return 'In MemoFlow gespeichert';
+			case 'strings.legacy.msg_screenshot_mode': return 'Screenshot-Modus';
+			case 'strings.legacy.msg_screenshot_mode_detail': return 'Blenden Sie Status-/Navigationsleisten für saubere Aufnahmen aus';
+			case 'strings.legacy.msg_select_file_save_location': return 'Bitte wählen Sie einen Speicherort für die Datei aus.';
+			case 'strings.legacy.msg_select_location': return 'Standort auswählen';
+			case 'strings.legacy.msg_shift_enter_supported': return 'Unterstützt auch Umschalt + Eingabetaste';
+			case 'strings.legacy.msg_shortcut_binding_in_use': return ({required Object binding, required Object action}) => '${binding} wird bereits von „${action}“ verwendet.';
+			case 'strings.legacy.msg_shortcut_requires_modifier': return 'Fügen Sie mindestens eine Zusatztaste ein (Strg/Befehl/Umschalt/Alt).';
+			case 'strings.legacy.msg_shortcut_settings': return 'Verknüpfungseinstellungen';
+			case 'strings.legacy.msg_shortcuts_overview': return 'Übersicht über die Verknüpfungen';
+			case 'strings.legacy.msg_shortcuts_overview_opened': return 'Geöffnete Verknüpfungsübersicht.';
+			case 'strings.legacy.msg_shortcuts_supported_windows_macos': return 'Nur Windows und macOS unterstützen Verknüpfungseinstellungen.';
+			case 'strings.legacy.msg_show_hide_memoflow': return 'MemoFlow ein-/ausblenden';
+			case 'strings.legacy.msg_showing_last_lines': return ({required Object lines}) => 'Zeigt die letzten ${lines}-Zeilen';
+			case 'strings.legacy.msg_source_value': return ({required Object source}) => 'Quelle: ${source}';
+			case 'strings.legacy.msg_startup_slogan': return 'Lassen Sie die Aufzeichnungen natürlich fließen';
+			case 'strings.legacy.msg_storage_read_failed_some_features_limited': return 'Das Lesen des Speichers ist fehlgeschlagen. Einige Funktionen sind eingeschränkt.';
+			case 'strings.legacy.msg_sync_completed_summary': return ({required Object succeeded, required Object total, required Object failed}) => 'Synchronisierung abgeschlossen: ${succeeded}/${total} erfolgreich, ${failed} fehlgeschlagen.';
+			case 'strings.legacy.msg_sync_failed_with_error': return ({required Object error}) => 'Synchronisierung fehlgeschlagen: ${error}';
+			case 'strings.legacy.msg_sync_to_obsidian': return 'Mit Obsidian synchronisieren';
+			case 'strings.legacy.msg_sync_to_obsidian_confirm': return 'Synchronisieren Sie alle Memos in der aktuellen lokalen Bibliothek, einschließlich Anhänge, auf einmal mit dem gekoppelten Obsidian. Weitermachen?';
+			case 'strings.legacy.msg_sync_to_obsidian_in_progress': return 'Synchronisierung mit Obsidian...';
+			case 'strings.legacy.msg_system_edit_shortcuts_note': return 'Zum Kopieren/Einfügen/Ausschneiden verwenden Sie die Standardverknüpfungen des Systems.';
+			case 'strings.legacy.msg_system_logs': return 'Systemprotokolle';
+			case 'strings.legacy.msg_system_logs_copied': return ({required Object lines}) => 'Systemprotokolle kopiert (${lines}-Zeilen)';
+			case 'strings.legacy.msg_tag': return 'Etikett';
+			case 'strings.legacy.msg_tag_cloud_tooltip': return ({required Object count, required Object percent, required Object latest}) => '${count} Memos\n${percent}%\nNeueste: ${latest}';
+			case 'strings.legacy.msg_temperature_without_unit': return 'Temperatur (ohne Einheit)';
+			case 'strings.legacy.msg_template': return 'Vorlage';
+			case 'strings.legacy.msg_template_content': return 'Vorlageninhalt';
+			case 'strings.legacy.msg_template_content_example': return 'Sie können Variablen verwenden, zum Beispiel: {{date}} {{weather}}';
+			case 'strings.legacy.msg_template_feature_desc': return 'Nach der Aktivierung können Sie Vorlagen aus der Editor-Symbolleiste auswählen. Wenn Sie eines auswählen, wird der Inhalt des Editors ersetzt.';
+			case 'strings.legacy.msg_template_feature_manage_desc': return 'Aktivieren Sie Vorlagen, um Vorlagennamen, Inhalte und Variablen zu verwalten.';
+			case 'strings.legacy.msg_template_feature_title': return 'Aktivieren Sie Vorlagen';
+			case 'strings.legacy.msg_template_list': return 'Vorlagenliste';
+			case 'strings.legacy.msg_template_name': return 'Vorlagenname';
+			case 'strings.legacy.msg_template_name_example': return 'Beispiel: Morgenrückblick';
+			case 'strings.legacy.msg_template_variable_settings': return 'Einstellungen für Vorlagenvariablen';
+			case 'strings.legacy.msg_template_variables': return 'Vorlagenvariablen';
+			case 'strings.legacy.msg_time_format_variable': return 'Zeitformat ({{time}})';
+			case 'strings.legacy.msg_todo': return 'Todo';
+			case 'strings.legacy.msg_toggle_memoflow_failed_with_error': return ({required Object error}) => 'Ein-/Ausblenden von MemoFlow fehlgeschlagen: ${error}';
+			case 'strings.legacy.msg_toggle_sidebar': return 'Seitenleiste umschalten';
+			case 'strings.legacy.msg_total_characters_metric': return 'Gesamtzahl der Zeichen';
+			case 'strings.legacy.msg_total_characters_short': return 'Gesamtzahl der Zeichen';
+			case 'strings.legacy.msg_total_count_times': return ({required Object count}) => '${count}-Zeiten insgesamt';
+			case 'strings.legacy.msg_total_days': return 'Gesamtzahl der Tage';
+			case 'strings.legacy.msg_total_memos_metric': return 'Gesamtnotizen';
+			case 'strings.legacy.msg_unable_open_windows_camera_settings': return 'Die Windows-Kameraeinstellungen können nicht geöffnet werden.';
+			case 'strings.legacy.msg_unavailable_file_count': return ({required Object count}) => '${count} nicht verfügbar';
+			case 'strings.legacy.msg_underline': return 'Unterstreichen';
+			case 'strings.legacy.msg_undo': return 'Rückgängig machen';
+			case 'strings.legacy.msg_unnamed_tag': return 'Unbenanntes Tag';
+			case 'strings.legacy.msg_unordered_list': return 'Ungeordnete Liste';
+			case 'strings.legacy.msg_unsupported_version_value': return ({required Object version}) => 'Nicht unterstützte Version: ${version}';
+			case 'strings.legacy.msg_variable': return 'Variable';
+			case 'strings.legacy.msg_variable_settings': return 'Variable Einstellungen';
+			case 'strings.legacy.msg_version_probe_complete': return 'Versionsprüfung abgeschlossen';
+			case 'strings.legacy.msg_version_probe_failed': return 'Die Versionsprüfung ist fehlgeschlagen';
+			case 'strings.legacy.msg_version_probe_passed_with_version': return ({required Object version}) => 'v${version}-Probe bestanden';
+			case 'strings.legacy.msg_visibility_value': return ({required Object value}) => 'Sichtbarkeit: ${value}';
+			case 'strings.legacy.msg_vs_last_month_decrease_memo_count': return 'Weniger Memos als im letzten Monat';
+			case 'strings.legacy.msg_vs_last_month_increase_memo_count': return 'Mehr Memos als letzten Monat';
+			case 'strings.legacy.msg_vs_last_month_same_memo_count': return 'Gleiche Memoanzahl wie im letzten Monat';
+			case 'strings.legacy.msg_weather_city_adcode_or_name': return 'Wetterstadt (Adcode oder Stadtname)';
+			case 'strings.legacy.msg_weather_city_example': return 'Beispiel: 110000';
+			case 'strings.legacy.msg_weather_city_label': return 'Wetterstadt';
+			case 'strings.legacy.msg_weather_condition': return 'Wetterlage';
+			case 'strings.legacy.msg_weather_fallback_text': return 'Wetter-Fallback-Text';
+			case 'strings.legacy.msg_weather_plus_temperature_without_city': return 'Wetter + Temperatur (ohne Stadt)';
+			case 'strings.legacy.msg_weather_province': return 'Wetterprovinz';
+			case 'strings.legacy.msg_weather_report_time': return 'Uhrzeit des Wetterberichts';
+			case 'strings.legacy.msg_weather_variable_tokens': return 'Variablen: {{weather}} / {{weather.*}}';
+			case 'strings.legacy.msg_weather_variables_city': return ({required Object city}) => 'Wettervariablen: ${city}';
+			case 'strings.legacy.msg_weather_variables_disabled': return 'Wettervariablen deaktiviert';
+			case 'strings.legacy.msg_weather_variables_enabled_city_not_set': return 'Wettervariablen aktiviert (Stadt nicht festgelegt)';
+			case 'strings.legacy.msg_weekday_friday': return 'Fr';
+			case 'strings.legacy.msg_weekday_monday': return 'Mo';
+			case 'strings.legacy.msg_weekday_name': return 'Name des Wochentags';
+			case 'strings.legacy.msg_weekday_saturday': return 'Sa';
+			case 'strings.legacy.msg_weekday_sunday': return 'Sonne';
+			case 'strings.legacy.msg_weekday_thursday': return 'Do';
+			case 'strings.legacy.msg_weekday_tuesday': return 'Di';
+			case 'strings.legacy.msg_weekday_wednesday': return 'Heiraten';
+			case 'strings.legacy.msg_wind_direction': return 'Windrichtung';
+			case 'strings.legacy.msg_wind_power': return 'Windstärke';
+			case 'strings.legacy.msg_windows_enable_location_access': return ({required Object message}) => '${message}. Aktivieren Sie den Standortzugriff in den Windows-Einstellungen.';
+			case 'strings.legacy.msg_windows_paging_note': return 'Windows-Paging: PageUp vorherige Seite, PageDown nächste Seite.';
+			case 'strings.legacy.msg_windows_related_settings': return 'Windows-bezogene Einstellungen';
+			case 'strings.legacy.msg_write_current_thought': return 'Schreiben Sie auf, was Sie denken ...';
+			case 'strings.legacy.msg_yearly_character_trend': return 'Jährlicher Charaktertrend';
 			default: return null;
 		}
 	}
@@ -11995,6 +13326,7 @@ extension on _StringsJa {
 			case 'strings.common.selectValidServerVersion': return '有効なサーバーバージョンを選択してください';
 			case 'strings.common.serverVersionValue': return ({required Object version}) => 'サーバーバージョン: ${version}';
 			case 'strings.common.selectServerVersionRange021To026': return '0.21〜0.26 のサーバーバージョンを手動で選択してください';
+			case 'strings.common.serverVersionProbeHint': return 'サインインする前に、選択したサーバー バージョンのコア API のみがプローブされます。';
 			case 'strings.languages.system': return 'システムに従う';
 			case 'strings.languages.zhHans': return '中国語（簡体字）';
 			case 'strings.languages.zhHantTw': return '中国語（繁体字・中国台湾）';
@@ -12130,6 +13462,55 @@ extension on _StringsJa {
 			case 'strings.locationPicker.providerMissingBaiduKey': return '位置を選択する前に、Baidu AK の設定が必要です。';
 			case 'strings.locationPicker.providerMissingGoogleKey': return '位置を選択する前に、Google Maps API Key の設定が必要です。';
 			case 'strings.locationPicker.providerUnsupportedPlatform': return '埋め込み地図ピッカーは Android と Windows でのみ利用できます。';
+			case 'strings.aiInsight.title': return 'AI要約';
+			case 'strings.aiInsight.subtitle': return 'AI があなたの記録をさまざまな角度から読み解くのを手伝います';
+			case 'strings.aiInsight.settingsTitle': return 'AI分析設定';
+			case 'strings.aiInsight.startAnalysis': return '分析を開始';
+			case 'strings.aiInsight.common.enabled': return '有効';
+			case 'strings.aiInsight.common.disabled': return '無効';
+			case 'strings.aiInsight.timeRange.title': return '期間';
+			case 'strings.aiInsight.timeRange.last3Days': return '直近3日';
+			case 'strings.aiInsight.timeRange.last7Days': return '直近7日';
+			case 'strings.aiInsight.timeRange.last30Days': return '直近30日';
+			case 'strings.aiInsight.timeRange.customRange': return 'カスタム範囲';
+			case 'strings.aiInsight.privacyScope.title': return 'プライバシー範囲';
+			case 'strings.aiInsight.privacyScope.includePrivateNotes': return '非公開メモを含める';
+			case 'strings.aiInsight.privacyScope.description': return '有効にすると、非公開メモも AI モデルに送信して分析します。';
+			case 'strings.aiInsight.promptSettings.title': return 'プロンプト設定';
+			case 'strings.aiInsight.promptSettings.editPromptTemplate': return 'プロンプトテンプレートを編集';
+			case 'strings.aiInsight.promptSettings.description': return '上級ユーザー向けに、このインサイトで使う AI プロンプトをカスタマイズできます。';
+			case 'strings.aiInsight.promptSettings.emptyTemplateHint': return 'このインサイトにはまだプロンプトテンプレートがありません。分析を始める前に追加してください。';
+			case 'strings.aiInsight.promptSettings.editorDescription': return ({required Object insight}) => 'このテンプレートは「${insight}」の分析に使用されます。';
+			case 'strings.aiInsight.promptSettings.editorPlaceholder': return 'AI に重点的に見てほしいこと、比較したいこと、要約したいこと、強調したいことを入力してください。';
+			case 'strings.aiInsight.promptSettings.clearTemplate': return 'クリア';
+			case 'strings.aiInsight.contentPreview.title': return '内容プレビュー';
+			case 'strings.aiInsight.contentPreview.sectionTitle': return '内容プレビュー';
+			case 'strings.aiInsight.contentPreview.notesToSend': return '送信するメモ数';
+			case 'strings.aiInsight.contentPreview.estimatedTokens': return '推定トークン数';
+			case 'strings.aiInsight.contentPreview.previewContent': return 'プレビュー内容';
+			case 'strings.aiInsight.contentPreview.timeRange': return '期間';
+			case 'strings.aiInsight.contentPreview.loading': return 'プレビューを準備中…';
+			case 'strings.aiInsight.contentPreview.previewLoadFailed': return '内容プレビューの準備に失敗しました。';
+			case 'strings.aiInsight.contentPreview.truncatedNotice': return '現在の分析上限に収めるため、内容を一部省略しました。';
+			case 'strings.aiInsight.contentPreview.emptyState': return '現在の設定に一致するメモがありません。期間やプライバシー範囲を変更してみてください。';
+			case 'strings.aiInsight.contentPreview.noteCount': return ({required Object count}) => '${count} 件のメモ';
+			case 'strings.aiInsight.contentPreview.tokenCount': return ({required Object count}) => '${count} トークン';
+			case 'strings.aiInsight.cards.todayClues.title': return '今日の手がかり';
+			case 'strings.aiInsight.cards.todayClues.description': return '最近の記録から、まず注目すべき出来事、緊張、未解決の流れを AI が抽出します。';
+			case 'strings.aiInsight.cards.emotionMap.title': return '感情マップ';
+			case 'strings.aiInsight.cards.emotionMap.description': return '記録に流れる感情の動きを読み取り、最近の状態に影響しているものを見つけます。';
+			case 'strings.aiInsight.cards.themeResonance.title': return 'テーマの反響';
+			case 'strings.aiInsight.cards.themeResonance.description': return '最近の記録に繰り返し現れるテーマを見つけ、何に立ち返っているのかを浮かび上がらせます。';
+			case 'strings.aiInsight.cards.thoughtTrace.title': return '思考の軌跡';
+			case 'strings.aiInsight.cards.thoughtTrace.description': return '隠れた前提、未解決の問い、さらに掘り下げる価値のある思考の流れを明らかにします。';
+			case 'strings.aiInsight.cards.blindSpotDiscovery.title': return '盲点の発見';
+			case 'strings.aiInsight.cards.blindSpotDiscovery.description': return '書いている最中には見落としやすいサインや微細なパターンを見つけます。';
+			case 'strings.aiInsight.cards.relationshipView.title': return '関係性ビュー';
+			case 'strings.aiInsight.cards.relationshipView.description': return '人ややり取り、変化する関係性という視点からメモを捉え直します。';
+			case 'strings.aiInsight.cards.actionExtraction.title': return '行動の抽出';
+			case 'strings.aiInsight.cards.actionExtraction.description': return '振り返りを、試したり確認したりフォローできる具体的な次の行動に変えます。';
+			case 'strings.aiInsight.cards.longTermTrajectory.title': return '長期的な軌跡';
+			case 'strings.aiInsight.cards.longTermTrajectory.description': return '時間をまたいで記録を見渡し、意味のある変化、繰り返すサイクル、長期的な変容を見つけます。';
 			case 'strings.aiProxy.title': return 'Proxy Settings';
 			case 'strings.aiProxy.notConfigured': return 'Not configured';
 			case 'strings.aiProxy.statusHttp': return ({required Object host, required Object port}) => 'HTTP · ${host}:${port}';
@@ -13217,6 +14598,233 @@ extension on _StringsJa {
 			case 'strings.legacy.ai_summary.error_empty_response': return 'AIの応答が空です';
 			case 'strings.legacy.ai_summary.error_missing_content': return 'AIの応答内容が欠落しています';
 			case 'strings.legacy.ai_summary.default_prompt': return 'あなたはミニマリストなノートアシスタントです。核心的なポイントを抽出し、上品な形式で整理してください。返信はプロフェッショナルで穏やか、簡潔な語調を保ち、できるだけ箇条書きと短い段落を使ってください。';
+			case 'strings.legacy.msg_action_shortcut': return 'アクション - ショートカット';
+			case 'strings.legacy.msg_adcode': return '行政上の市外局番';
+			case 'strings.legacy.msg_added_attachment_count': return ({required Object count}) => '${count} アタッチメントを追加しました。';
+			case 'strings.legacy.msg_added_files': return ({required Object count}) => '${count} ファイルを追加しました。';
+			case 'strings.legacy.msg_added_files_with_skipped': return ({required Object count, required Object details}) => '${count} ファイルを追加しました。${details}をスキップしました。';
+			case 'strings.legacy.msg_added_photo_attachment': return '写真添付ファイルを追加しました。';
+			case 'strings.legacy.msg_api_route': return 'APIルート';
+			case 'strings.legacy.msg_attachment': return 'アタッチメント';
+			case 'strings.legacy.msg_available_variable_docs': return '利用可能な変数ドキュメント';
+			case 'strings.legacy.msg_available_variable_docs_desc': return 'タップすると、中央のダイアログに変数テーブルと意味メモが表示されます。';
+			case 'strings.legacy.msg_average_daily_characters': return '1 日の平均文字数';
+			case 'strings.legacy.msg_average_value': return ({required Object value}) => '平均${value}';
+			case 'strings.legacy.msg_bold': return '大胆な';
+			case 'strings.legacy.msg_camera_failed': return ({required Object error}) => 'カメラの故障:${error}';
+			case 'strings.legacy.msg_camera_file_missing': return 'カメラファイルがありません。';
+			case 'strings.legacy.msg_camera_permission_denied_windows': return 'カメラの許可が拒否されました。 Windows 設定でカメラ アクセスを有効にします。';
+			case 'strings.legacy.msg_capture_photo': return '写真をキャプチャする';
+			case 'strings.legacy.msg_check_system_permissions_or_retry_later': return 'システム権限を確認するか、後でもう一度試してください。';
+			case 'strings.legacy.msg_checkbox': return 'チェックボックス';
+			case 'strings.legacy.msg_city_plus_weather_plus_temperature': return '都市 + 天気 + 気温';
+			case 'strings.legacy.msg_close_window_minimize_to_tray': return 'ウィンドウを閉じるときにトレイを最小化する';
+			case 'strings.legacy.msg_close_window_minimize_to_tray_desc': return '有効にすると、右上の閉じるボタンをクリックしてもアプリは終了しません。システム トレイからウィンドウを復元できます。';
+			case 'strings.legacy.msg_code_block': return 'コードブロック';
+			case 'strings.legacy.msg_common_writing_time': return '一般的な執筆時間';
+			case 'strings.legacy.msg_configure_windows_desktop_shortcuts': return 'Windows デスクトップのショートカットを構成する';
+			case 'strings.legacy.msg_copy_diagnostics': return 'コピー診断';
+			case 'strings.legacy.msg_copy_last_lines': return ({required Object lines}) => '最後の${lines}行をコピー';
+			case 'strings.legacy.msg_current_date': return '現在の日付';
+			case 'strings.legacy.msg_current_datetime': return '現在の日付と時刻';
+			case 'strings.legacy.msg_current_shortcut': return ({required Object binding}) => '現在:${binding}';
+			case 'strings.legacy.msg_current_streak_days': return '現在の連続日数 (日)';
+			case 'strings.legacy.msg_current_time': return '現在時刻';
+			case 'strings.legacy.msg_current_window_pin_not_supported': return '現在のウィンドウでは固定はサポートされていません。';
+			case 'strings.legacy.msg_currently_using_api': return ({required Object version}) => '現在 API${version} を使用しています。';
+			case 'strings.legacy.msg_cut': return 'カット';
+			case 'strings.legacy.msg_daily_memo_trend': return '日々のメモの傾向';
+			case 'strings.legacy.msg_date_format_variable': return '日付形式 ({{date}})';
+			case 'strings.legacy.msg_date_memo_count_tooltip': return ({required Object date, required Object count}) => '${date}\n${count}メモ';
+			case 'strings.legacy.msg_date_time_weather_variable_desc': return '日付/時刻変数は変数設定の形式に従います。気象変数は AMap 気象設定に依存します。';
+			case 'strings.legacy.msg_datetime_format_variable': return '日時形式 ({{datetime}})';
+			case 'strings.legacy.msg_default_shortcuts_restored': return 'デフォルトのショートカットが復元されました。';
+			case 'strings.legacy.msg_delete_template': return 'テンプレートの削除';
+			case 'strings.legacy.msg_delete_template_confirm_with_name': return ({required Object name}) => '「${name}」を削除しますか？';
+			case 'strings.legacy.msg_diagnostics_copied': return '診断がコピーされました';
+			case 'strings.legacy.msg_edit_template': return 'テンプレートの編集';
+			case 'strings.legacy.msg_editor': return 'エディタ';
+			case 'strings.legacy.msg_enable_sync_bridge_first': return 'まず同期ブリッジを有効にしてください。';
+			case 'strings.legacy.msg_enable_weather_variables': return '気象変数を有効にする';
+			case 'strings.legacy.msg_encrypt_save_placeholder': return '暗号化保存 (プレースホルダー)';
+			case 'strings.legacy.msg_encryption_feature_placeholder': return '暗号化は現在プレースホルダーであり、まだ強制されていません。';
+			case 'strings.legacy.msg_enter_and_confirm_password': return 'パスワードを入力して確認してください。';
+			case 'strings.legacy.msg_enter_content_before_creating_link': return 'リンクを作成する前にコンテンツを入力してください。';
+			case 'strings.legacy.msg_enter_repository_name_hint': return 'リポジトリ名を入力してください';
+			case 'strings.legacy.msg_enter_repository_name_prompt': return 'リポジトリ名を入力してください。';
+			case 'strings.legacy.msg_error': return 'エラー';
+			case 'strings.legacy.msg_example': return '例';
+			case 'strings.legacy.msg_example_beijing': return '北京';
+			case 'strings.legacy.msg_example_beijing_city': return '北京市';
+			case 'strings.legacy.msg_example_beijing_sunny_25c': return '北京 晴れ 25℃';
+			case 'strings.legacy.msg_example_northeast': return '北東';
+			case 'strings.legacy.msg_example_saturday': return '土曜日';
+			case 'strings.legacy.msg_example_sunny': return '晴れ';
+			case 'strings.legacy.msg_example_sunny_25c': return '晴れ 25℃';
+			case 'strings.legacy.msg_export_logs_bundle': return 'ログバンドルのエクスポート';
+			case 'strings.legacy.msg_failed_export_logs': return ({required Object error}) => 'ログのエクスポートに失敗しました:${error}';
+			case 'strings.legacy.msg_feature': return '特徴';
+			case 'strings.legacy.msg_feature_not_implemented_placeholder_with_label': return ({required Object label}) => '「${label}」はまだ実装されていません (プレースホルダー)。';
+			case 'strings.legacy.msg_file_save_location': return 'ファイルの保存場所';
+			case 'strings.legacy.msg_file_selection_failed': return ({required Object error}) => 'ファイルの選択に失敗しました:${error}';
+			case 'strings.legacy.msg_files_unavailable_from_picker': return 'ピッカーからファイルを利用できません。';
+			case 'strings.legacy.msg_focus_input_area': return 'フォーカス入力エリア';
+			case 'strings.legacy.msg_gallery_mobile_only': return 'ギャラリーはモバイルでのみ利用できます。';
+			case 'strings.legacy.msg_gallery_original_selection_summary': return ({required Object selectedCount, required Object originalCount}) => '選択された${selectedCount} · オリジナル${originalCount}';
+			case 'strings.legacy.msg_global': return 'グローバル';
+			case 'strings.legacy.msg_got_it': return 'わかった';
+			case 'strings.legacy.msg_highlight': return 'ハイライト';
+			case 'strings.legacy.msg_humidity_without_percent': return '湿度 (%記号なし)';
+			case 'strings.legacy.msg_image': return '画像';
+			case 'strings.legacy.msg_keep_unknown_variables_raw': return '未知の変数をそのまま保持する';
+			case 'strings.legacy.msg_keep_unknown_variables_raw_desc': return '無効にすると、不明な変数は空の文字列に置き換えられます。';
+			case 'strings.legacy.msg_link': return 'リンク';
+			case 'strings.legacy.msg_links_label': return 'リンク';
+			case 'strings.legacy.msg_loading_memos': return 'メモを読み込んでいます...';
+			case 'strings.legacy.msg_local_storage_unavailable': return 'ローカルストレージが利用できない';
+			case 'strings.legacy.msg_log_bundle_created': return ({required Object path, required Object exportId}) => '作成されたログ バンドル:${path} (エクスポート ID:${exportId})';
+			case 'strings.legacy.msg_longest_streak_days': return '最長連続記録 (日)';
+			case 'strings.legacy.msg_many_templates_support_scroll': return 'テンプレートが多い場合、この領域は垂直スクロールをサポートします。';
+			case 'strings.legacy.msg_max_characters_single_day': return '1日の最大文字数';
+			case 'strings.legacy.msg_maximize': return '最大化する';
+			case 'strings.legacy.msg_meaning': return '意味';
+			case 'strings.legacy.msg_memo_count': return 'メモ数';
+			case 'strings.legacy.msg_minimize': return '最小化する';
+			case 'strings.legacy.msg_month_characters_tooltip': return ({required Object month, required Object chars}) => '${month}\n${chars} 文字';
+			case 'strings.legacy.msg_monthly_overview': return ({required Object month}) => '${month} 月次概要';
+			case 'strings.legacy.msg_most_active_day': return '最も活動的な日';
+			case 'strings.legacy.msg_need_at_least_five_tags': return 'タグが 5 つ未満です。さらにタグを追加して再試行してください。';
+			case 'strings.legacy.msg_new_template': return 'テンプレートの追加';
+			case 'strings.legacy.msg_next_page': return '次のページ';
+			case 'strings.legacy.msg_no_active_session_after_sign_in': return 'サインイン後にアクティブなセッションがありません';
+			case 'strings.legacy.msg_no_camera_detected': return 'カメラが検出されませんでした。';
+			case 'strings.legacy.msg_no_data': return 'データなし';
+			case 'strings.legacy.msg_no_files_selected': return 'ファイルが選択されていません。';
+			case 'strings.legacy.msg_no_recording_input_device_found': return '録音入力デバイスが見つかりません。';
+			case 'strings.legacy.msg_no_system_logs_yet': return 'システムログはまだありません';
+			case 'strings.legacy.msg_no_templates_click_add': return 'テンプレートはまだありません。 「テンプレートを追加」をクリックしてテンプレートを作成します。';
+			case 'strings.legacy.msg_no_templates_yet': return 'まだテンプレートがありません';
+			case 'strings.legacy.msg_no_valid_files_selected': return '有効なファイルが選択されていません。';
+			case 'strings.legacy.msg_not_selected': return '未選択';
+			case 'strings.legacy.msg_on_this_day': return 'この日には';
+			case 'strings.legacy.msg_only_windows_desktop_supports_this_setting': return 'この設定をサポートしているのは Windows デスクトップのみです。';
+			case 'strings.legacy.msg_open_camera_settings': return 'カメラ設定を開く';
+			case 'strings.legacy.msg_open_settings': return '設定を開く';
+			case 'strings.legacy.msg_ordered_list': return '順序付きリスト';
+			case 'strings.legacy.msg_original_image': return 'オリジナル';
+			case 'strings.legacy.msg_password_feature_placeholder': return 'パスワードのサポートは現在プレースホルダーであり、まだ強制されていません。';
+			case 'strings.legacy.msg_paste': return 'ペースト';
+			case 'strings.legacy.msg_press_new_shortcut': return '新しいショートカットを押します...';
+			case 'strings.legacy.msg_previous_page': return '前のページへ';
+			case 'strings.legacy.msg_probe_failed': return ({required Object error}) => 'プローブが失敗しました:${error}';
+			case 'strings.legacy.msg_publish_memo': return 'メモを公開する';
+			case 'strings.legacy.msg_qr_scan_not_supported_pair_manually': return 'QR スキャンはこのプラットフォームではサポートされていません。ホスト、ポート、ペアコードを使用して手動でペアリングしてください。';
+			case 'strings.legacy.msg_qr_scan_not_supported_use_manual_pairing': return 'QR スキャンはこのプラットフォームではサポートされていません。\n代わりに手動ペアリングを使用してください。';
+			case 'strings.legacy.msg_quick_input_channel_not_ready_retry': return 'クイック入力チャンネルの準備ができていません。メイン ウィンドウを再度開いて、再試行してください。';
+			case 'strings.legacy.msg_quick_input_failed_with_error': return ({required Object error}) => 'クイック入力に失敗しました:${error}';
+			case 'strings.legacy.msg_quick_input_save_failed_with_error': return ({required Object error}) => 'クイック入力の保存に失敗しました:${error}';
+			case 'strings.legacy.msg_quick_record': return 'クイックレコード';
+			case 'strings.legacy.msg_quick_search': return 'クイック検索...';
+			case 'strings.legacy.msg_redo': return 'やり直し';
+			case 'strings.legacy.msg_repository_name': return 'リポジトリ名';
+			case 'strings.legacy.msg_request_body': return 'リクエストボディ';
+			case 'strings.legacy.msg_request_headers': return 'リクエストヘッダー';
+			case 'strings.legacy.msg_response_body': return '応答本文';
+			case 'strings.legacy.msg_response_headers': return '応答ヘッダー';
+			case 'strings.legacy.msg_restore_defaults': return 'デフォルトに戻す';
+			case 'strings.legacy.msg_restore_window': return '復元する';
+			case 'strings.legacy.msg_save_failed_check_content_retry': return '保存に失敗しました。内容を確認して再度お試しください。';
+			case 'strings.legacy.msg_saved_to_memoflow': return 'メモフローに保存されました';
+			case 'strings.legacy.msg_screenshot_mode': return 'スクリーンショットモード';
+			case 'strings.legacy.msg_screenshot_mode_detail': return 'クリーンなキャプチャのためにステータス/ナビゲーション バーを非表示にする';
+			case 'strings.legacy.msg_select_file_save_location': return 'ファイルの保存場所を選択してください。';
+			case 'strings.legacy.msg_select_location': return '場所を選択してください';
+			case 'strings.legacy.msg_shift_enter_supported': return 'Shift + Enterもサポート';
+			case 'strings.legacy.msg_shortcut_binding_in_use': return ({required Object binding, required Object action}) => '${binding} はすでに「${action}」によって使用されています。';
+			case 'strings.legacy.msg_shortcut_requires_modifier': return '少なくとも 1 つの修飾キー (Ctrl/Cmd/Shift/Alt) を含めます。';
+			case 'strings.legacy.msg_shortcut_settings': return 'ショートカット設定';
+			case 'strings.legacy.msg_shortcuts_overview': return 'ショートカットの概要';
+			case 'strings.legacy.msg_shortcuts_overview_opened': return '開いたショートカットの概要。';
+			case 'strings.legacy.msg_shortcuts_supported_windows_macos': return 'ショートカット設定をサポートしているのは Windows と macOS のみです。';
+			case 'strings.legacy.msg_show_hide_memoflow': return 'メモフローの表示/非表示';
+			case 'strings.legacy.msg_showing_last_lines': return ({required Object lines}) => '最後の${lines} 行を表示しています';
+			case 'strings.legacy.msg_source_value': return ({required Object source}) => '出典:${source}';
+			case 'strings.legacy.msg_startup_slogan': return 'レコードが自然に流れるようにする';
+			case 'strings.legacy.msg_storage_read_failed_some_features_limited': return 'ストレージの読み取りに失敗しました。一部の機能は制限されています。';
+			case 'strings.legacy.msg_sync_completed_summary': return ({required Object succeeded, required Object total, required Object failed}) => '同期完了:${succeeded}/${total} は成功、${failed} は失敗しました。';
+			case 'strings.legacy.msg_sync_failed_with_error': return ({required Object error}) => '同期に失敗しました:${error}';
+			case 'strings.legacy.msg_sync_to_obsidian': return '黒曜石と同期する';
+			case 'strings.legacy.msg_sync_to_obsidian_confirm': return '現在のローカル ライブラリ内のすべてのメモ (添付ファイルを含む) を、ペアリングされた Obsidian に一度に同期します。続く？';
+			case 'strings.legacy.msg_sync_to_obsidian_in_progress': return 'Obsidian と同期しています...';
+			case 'strings.legacy.msg_system_edit_shortcuts_note': return 'コピー/貼り付け/切り取りには、システムのデフォルトのショートカットを使用します。';
+			case 'strings.legacy.msg_system_logs': return 'システムログ';
+			case 'strings.legacy.msg_system_logs_copied': return ({required Object lines}) => 'コピーされたシステム ログ (${lines} 行)';
+			case 'strings.legacy.msg_tag': return 'タグ';
+			case 'strings.legacy.msg_tag_cloud_tooltip': return ({required Object count, required Object percent, required Object latest}) => '${count} メモ\n${percent}%\n最新:${latest}';
+			case 'strings.legacy.msg_temperature_without_unit': return '温度（単位なし）';
+			case 'strings.legacy.msg_template': return 'テンプレート';
+			case 'strings.legacy.msg_template_content': return 'テンプレートの内容';
+			case 'strings.legacy.msg_template_content_example': return '変数を使用できます。例: {{date}} {{weather}}';
+			case 'strings.legacy.msg_template_feature_desc': return '有効にすると、エディターのツールバーからテンプレートを選択できるようになります。いずれかを選択すると、エディターのコンテンツが置き換えられます。';
+			case 'strings.legacy.msg_template_feature_manage_desc': return 'テンプレートを有効にして、テンプレート名、コンテンツ、変数を管理します。';
+			case 'strings.legacy.msg_template_feature_title': return 'テンプレートを有効にする';
+			case 'strings.legacy.msg_template_list': return 'テンプレート一覧';
+			case 'strings.legacy.msg_template_name': return 'テンプレート名';
+			case 'strings.legacy.msg_template_name_example': return '例：朝の振り返り';
+			case 'strings.legacy.msg_template_variable_settings': return 'テンプレート変数の設定';
+			case 'strings.legacy.msg_template_variables': return 'テンプレート変数';
+			case 'strings.legacy.msg_time_format_variable': return '時刻形式 ({{time}})';
+			case 'strings.legacy.msg_todo': return '藤堂';
+			case 'strings.legacy.msg_toggle_memoflow_failed_with_error': return ({required Object error}) => 'MemoFlow の表示/非表示に失敗しました:${error}';
+			case 'strings.legacy.msg_toggle_sidebar': return 'サイドバーの切り替え';
+			case 'strings.legacy.msg_total_characters_metric': return '総文字数';
+			case 'strings.legacy.msg_total_characters_short': return '総文字数';
+			case 'strings.legacy.msg_total_count_times': return ({required Object count}) => '合計${count} 回';
+			case 'strings.legacy.msg_total_days': return '合計日数';
+			case 'strings.legacy.msg_total_memos_metric': return '合計メモ';
+			case 'strings.legacy.msg_unable_open_windows_camera_settings': return 'Windows のカメラ設定を開けません。';
+			case 'strings.legacy.msg_unavailable_file_count': return ({required Object count}) => '${count} は利用できません';
+			case 'strings.legacy.msg_underline': return '下線';
+			case 'strings.legacy.msg_undo': return '元に戻す';
+			case 'strings.legacy.msg_unnamed_tag': return '名前のないタグ';
+			case 'strings.legacy.msg_unordered_list': return '順序なしリスト';
+			case 'strings.legacy.msg_unsupported_version_value': return ({required Object version}) => 'サポートされていないバージョン:${version}';
+			case 'strings.legacy.msg_variable': return '変数';
+			case 'strings.legacy.msg_variable_settings': return '変数設定';
+			case 'strings.legacy.msg_version_probe_complete': return 'バージョン調査が完了しました';
+			case 'strings.legacy.msg_version_probe_failed': return 'バージョン調査に失敗しました';
+			case 'strings.legacy.msg_version_probe_passed_with_version': return ({required Object version}) => 'v${version} プローブが渡されました';
+			case 'strings.legacy.msg_visibility_value': return ({required Object value}) => '可視性:${value}';
+			case 'strings.legacy.msg_vs_last_month_decrease_memo_count': return '先月よりもメモが減りました';
+			case 'strings.legacy.msg_vs_last_month_increase_memo_count': return '先月よりメモが増えた';
+			case 'strings.legacy.msg_vs_last_month_same_memo_count': return '先月と同じメモ数';
+			case 'strings.legacy.msg_weather_city_adcode_or_name': return '気象都市 (コードまたは都市名)';
+			case 'strings.legacy.msg_weather_city_example': return '例: 110000';
+			case 'strings.legacy.msg_weather_city_label': return '気象都市';
+			case 'strings.legacy.msg_weather_condition': return '気象条件';
+			case 'strings.legacy.msg_weather_fallback_text': return '天気フォールバックテキスト';
+			case 'strings.legacy.msg_weather_plus_temperature_without_city': return '天気 + 気温 (都市なし)';
+			case 'strings.legacy.msg_weather_province': return '気象省';
+			case 'strings.legacy.msg_weather_report_time': return '天気予報の時間';
+			case 'strings.legacy.msg_weather_variable_tokens': return '変数: {{weather}} / {{weather.*}}';
+			case 'strings.legacy.msg_weather_variables_city': return ({required Object city}) => '気象変数:${city}';
+			case 'strings.legacy.msg_weather_variables_disabled': return '天気変数は無効です';
+			case 'strings.legacy.msg_weather_variables_enabled_city_not_set': return '気象変数が有効 (都市は設定されていません)';
+			case 'strings.legacy.msg_weekday_friday': return '金';
+			case 'strings.legacy.msg_weekday_monday': return '月';
+			case 'strings.legacy.msg_weekday_name': return '曜日名';
+			case 'strings.legacy.msg_weekday_saturday': return '土';
+			case 'strings.legacy.msg_weekday_sunday': return '太陽';
+			case 'strings.legacy.msg_weekday_thursday': return '木';
+			case 'strings.legacy.msg_weekday_tuesday': return '火';
+			case 'strings.legacy.msg_weekday_wednesday': return '水';
+			case 'strings.legacy.msg_wind_direction': return '風向き';
+			case 'strings.legacy.msg_wind_power': return '風力';
+			case 'strings.legacy.msg_windows_enable_location_access': return ({required Object message}) => '${message}。 Windows 設定で位置情報アクセスを有効にします。';
+			case 'strings.legacy.msg_windows_paging_note': return 'Windows ページング: PageUp 前のページ、PageDown 次のページ。';
+			case 'strings.legacy.msg_windows_related_settings': return 'Windows関連の設定';
+			case 'strings.legacy.msg_write_current_thought': return '考えていることを書き留めてください...';
+			case 'strings.legacy.msg_yearly_character_trend': return '年間キャラクタートレンド';
 			default: return null;
 		}
 	}
@@ -14735,6 +16343,7 @@ extension on _StringsZhHans {
 			case 'strings.legacy.ai_summary.error_empty_response': return 'AI 响应为空';
 			case 'strings.legacy.ai_summary.error_missing_content': return 'AI 响应内容缺失';
 			case 'strings.legacy.ai_summary.default_prompt': return '你是一位极简主义的笔记助手，擅长提炼核心观点并以优雅的格式排版。在回复时，请保持专业、温和且简洁的语气。尽量使用列表和简短的段落。';
+			case 'strings.legacy.msg_random_review_source_scope': return '笔记来源';
 			default: return null;
 		}
 	}
@@ -14891,6 +16500,55 @@ extension on _StringsZhHantTw {
 			case 'strings.locationPicker.providerMissingBaiduKey': return '選擇位置前需要先設定百度地圖 AK。';
 			case 'strings.locationPicker.providerMissingGoogleKey': return '選擇位置前需要先設定 Google Maps API Key。';
 			case 'strings.locationPicker.providerUnsupportedPlatform': return '嵌入式地圖選點僅支援 Android 和 Windows。';
+			case 'strings.aiInsight.cards.actionExtraction.description': return '從記錄中提煉出值得嘗試的行動，讓反思更容易落地。';
+			case 'strings.aiInsight.cards.actionExtraction.title': return '行動提煉';
+			case 'strings.aiInsight.cards.blindSpotDiscovery.description': return '找出記錄裡容易被忽視的訊號、細節或隱藏模式。';
+			case 'strings.aiInsight.cards.blindSpotDiscovery.title': return '盲點發現';
+			case 'strings.aiInsight.cards.emotionMap.description': return '分析記錄中的情緒流動，看看最近什麼在持續影響你的狀態。';
+			case 'strings.aiInsight.cards.emotionMap.title': return '情緒地圖';
+			case 'strings.aiInsight.cards.longTermTrajectory.description': return '從更長的時間跨度觀察你的變化，識別階段性趨勢與迴圈。';
+			case 'strings.aiInsight.cards.longTermTrajectory.title': return '長期軌跡';
+			case 'strings.aiInsight.cards.relationshipView.description': return '從人與關係的角度重新理解這些記錄，看見互動中的變化。';
+			case 'strings.aiInsight.cards.relationshipView.title': return '關係視角';
+			case 'strings.aiInsight.cards.themeResonance.description': return '識別最近反覆出現的主題，幫你看見自己正在持續關注什麼。';
+			case 'strings.aiInsight.cards.themeResonance.title': return '主題諧鳴';
+			case 'strings.aiInsight.cards.thoughtTrace.description': return '梳理記錄中的思路、疑問與潛在假設，幫助你繼續往下想。';
+			case 'strings.aiInsight.cards.thoughtTrace.title': return '思維跡象';
+			case 'strings.aiInsight.cards.todayClues.description': return 'AI 找出最近記錄中最值得關注的事件、問題和懸而未決的線索。';
+			case 'strings.aiInsight.cards.todayClues.title': return '今日線索';
+			case 'strings.aiInsight.common.disabled': return '未開啟';
+			case 'strings.aiInsight.common.enabled': return '已開啟';
+			case 'strings.aiInsight.contentPreview.emptyState': return '當前設定下沒有可傳送的記錄，試試調整時間範圍或隱私範圍。';
+			case 'strings.aiInsight.contentPreview.estimatedTokens': return '預計 Token 數';
+			case 'strings.aiInsight.contentPreview.loading': return '正在準備預覽…';
+			case 'strings.aiInsight.contentPreview.noteCount': return ({required Object count}) => '${count} 條記錄';
+			case 'strings.aiInsight.contentPreview.notesToSend': return '傳送記錄數';
+			case 'strings.aiInsight.contentPreview.previewContent': return '預覽內容';
+			case 'strings.aiInsight.contentPreview.previewLoadFailed': return '內容預覽載入失敗。';
+			case 'strings.aiInsight.contentPreview.sectionTitle': return '內容預覽';
+			case 'strings.aiInsight.contentPreview.timeRange': return '時間範圍';
+			case 'strings.aiInsight.contentPreview.title': return '內容預覽';
+			case 'strings.aiInsight.contentPreview.tokenCount': return ({required Object count}) => '${count} 個 Token';
+			case 'strings.aiInsight.contentPreview.truncatedNotice': return '為滿足當前分析長度限制，傳送內容已被截斷。';
+			case 'strings.aiInsight.privacyScope.description': return '開啟後，私密記錄也會傳送給 AI 模型進行分析。';
+			case 'strings.aiInsight.privacyScope.includePrivateNotes': return '包含私密記錄';
+			case 'strings.aiInsight.privacyScope.title': return '隱私範圍';
+			case 'strings.aiInsight.promptSettings.clearTemplate': return '清空';
+			case 'strings.aiInsight.promptSettings.description': return '允許高階使用者自定義當前洞察卡使用的 AI 提示詞。';
+			case 'strings.aiInsight.promptSettings.editPromptTemplate': return '編輯提示詞模板';
+			case 'strings.aiInsight.promptSettings.editorDescription': return ({required Object insight}) => '這個模板將用於「${insight}」的分析。';
+			case 'strings.aiInsight.promptSettings.editorPlaceholder': return '填寫希望 AI 重點關注、比較、總結或提醒你的內容。';
+			case 'strings.aiInsight.promptSettings.emptyTemplateHint': return '這個洞察卡還沒有可用的提示詞模板，填寫後才能開始分析。';
+			case 'strings.aiInsight.promptSettings.title': return '提示詞設定';
+			case 'strings.aiInsight.settingsTitle': return 'AI 分析設定';
+			case 'strings.aiInsight.startAnalysis': return '開始分析';
+			case 'strings.aiInsight.subtitle': return '讓 AI 幫你從不同角度理解你的記錄';
+			case 'strings.aiInsight.timeRange.customRange': return '自定義範圍';
+			case 'strings.aiInsight.timeRange.last30Days': return '最近 30 天';
+			case 'strings.aiInsight.timeRange.last3Days': return '最近 3 天';
+			case 'strings.aiInsight.timeRange.last7Days': return '最近 7 天';
+			case 'strings.aiInsight.timeRange.title': return '時間範圍';
+			case 'strings.aiInsight.title': return 'AI 總結';
 			case 'strings.aiProxy.title': return '代理設定';
 			case 'strings.aiProxy.notConfigured': return '未設定';
 			case 'strings.aiProxy.statusHttp': return ({required Object host, required Object port}) => 'HTTP · ${host}:${port}';
@@ -16203,6 +17861,8 @@ extension on _StringsZhHantTw {
 			case 'strings.legacy.ai_summary.error_empty_response': return 'AI 回應為空';
 			case 'strings.legacy.ai_summary.error_missing_content': return 'AI 回應內容缺失';
 			case 'strings.legacy.ai_summary.default_prompt': return '你是一位極簡主義的筆記助手，擅長提煉核心觀點並以優雅的格式排版。在回覆時，請保持專業、溫和且簡潔的語氣。盡量使用列表和簡短的段落。';
+			case 'strings.legacy.msg_gallery_mobile_only': return '相簿功能僅支援移動端。';
+			case 'strings.legacy.msg_random_review_source_scope': return '筆記來源';
 			default: return null;
 		}
 	}

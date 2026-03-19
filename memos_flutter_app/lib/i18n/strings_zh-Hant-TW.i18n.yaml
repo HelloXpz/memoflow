@@ -166,6 +166,70 @@ locationPicker:
   providerMissingGoogleKey: "選擇位置前需要先設定 Google Maps API Key。"
   providerUnsupportedPlatform: "嵌入式地圖選點僅支援 Android 和 Windows。"
 
+aiInsight:
+  cards:
+    actionExtraction:
+      description: 從記錄中提煉出值得嘗試的行動，讓反思更容易落地。
+      title: 行動提煉
+    blindSpotDiscovery:
+      description: 找出記錄裡容易被忽視的訊號、細節或隱藏模式。
+      title: 盲點發現
+    emotionMap:
+      description: 分析記錄中的情緒流動，看看最近什麼在持續影響你的狀態。
+      title: 情緒地圖
+    longTermTrajectory:
+      description: 從更長的時間跨度觀察你的變化，識別階段性趨勢與迴圈。
+      title: 長期軌跡
+    relationshipView:
+      description: 從人與關係的角度重新理解這些記錄，看見互動中的變化。
+      title: 關係視角
+    themeResonance:
+      description: 識別最近反覆出現的主題，幫你看見自己正在持續關注什麼。
+      title: 主題諧鳴
+    thoughtTrace:
+      description: 梳理記錄中的思路、疑問與潛在假設，幫助你繼續往下想。
+      title: 思維跡象
+    todayClues:
+      description: AI 找出最近記錄中最值得關注的事件、問題和懸而未決的線索。
+      title: 今日線索
+  common:
+    disabled: 未開啟
+    enabled: 已開啟
+  contentPreview:
+    emptyState: 當前設定下沒有可傳送的記錄，試試調整時間範圍或隱私範圍。
+    estimatedTokens: 預計 Token 數
+    loading: 正在準備預覽…
+    noteCount: $count 條記錄
+    notesToSend: 傳送記錄數
+    previewContent: 預覽內容
+    previewLoadFailed: 內容預覽載入失敗。
+    sectionTitle: 內容預覽
+    timeRange: 時間範圍
+    title: 內容預覽
+    tokenCount: $count 個 Token
+    truncatedNotice: 為滿足當前分析長度限制，傳送內容已被截斷。
+  privacyScope:
+    description: 開啟後，私密記錄也會傳送給 AI 模型進行分析。
+    includePrivateNotes: 包含私密記錄
+    title: 隱私範圍
+  promptSettings:
+    clearTemplate: 清空
+    description: 允許高階使用者自定義當前洞察卡使用的 AI 提示詞。
+    editPromptTemplate: 編輯提示詞模板
+    editorDescription: 這個模板將用於「$insight」的分析。
+    editorPlaceholder: 填寫希望 AI 重點關注、比較、總結或提醒你的內容。
+    emptyTemplateHint: 這個洞察卡還沒有可用的提示詞模板，填寫後才能開始分析。
+    title: 提示詞設定
+  settingsTitle: AI 分析設定
+  startAnalysis: 開始分析
+  subtitle: 讓 AI 幫你從不同角度理解你的記錄
+  timeRange:
+    customRange: 自定義範圍
+    last30Days: 最近 30 天
+    last3Days: 最近 3 天
+    last7Days: 最近 7 天
+    title: 時間範圍
+  title: AI 總結
 aiProxy:
   title: "\u4ee3\u7406\u8a2d\u5b9a"
   notConfigured: "\u672a\u8a2d\u5b9a"
@@ -1495,3 +1559,5 @@ legacy:
     error_empty_response: "AI 回應為空"
     error_missing_content: "AI 回應內容缺失"
     default_prompt: "你是一位極簡主義的筆記助手，擅長提煉核心觀點並以優雅的格式排版。在回覆時，請保持專業、溫和且簡潔的語氣。盡量使用列表和簡短的段落。"
+  msg_gallery_mobile_only: 相簿功能僅支援移動端。
+  msg_random_review_source_scope: "筆記來源"
