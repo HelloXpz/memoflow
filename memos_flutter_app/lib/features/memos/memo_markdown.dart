@@ -8,7 +8,6 @@ import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import 'package:highlight/highlight.dart' as hi;
 import 'package:html/dom.dart' as dom;
 import 'package:html/parser.dart' as html_parser;
-import 'package:markdown/markdown.dart' as md;
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/image_error_logger.dart';
@@ -16,42 +15,14 @@ import '../../core/log_sanitizer.dart';
 import '../../core/tags.dart';
 import '../../i18n/strings.g.dart';
 import '../../state/tags/tag_color_lookup.dart';
+import 'memo_image_src_normalizer.dart';
+import 'memo_render_pipeline.dart';
 
-final RegExp _tagTokenPattern = RegExp(
-  r'^#(?!#|\s)[\p{L}\p{N}\p{S}_/\-]{1,100}$',
-  unicode: true,
-);
-final RegExp _tagInlinePattern = RegExp(
-  r'#(?!#|\s)([\p{L}\p{N}\p{S}_/\-]{1,100})',
-  unicode: true,
-);
-final RegExp _markdownImagePattern = RegExp(
-  r'!\[[^\]]*]\(([^)\s]+)(?:\s+"[^"]*")?\)',
-);
-final RegExp _codeFencePattern = RegExp(r'^\s*(```|~~~)');
+export 'memo_image_src_normalizer.dart';
+export 'memo_task_list_service.dart';
+
 final RegExp _codeLanguagePattern = RegExp(
   r'language-([\w]+)',
-  caseSensitive: false,
-);
-final RegExp _unorderedListMarkerPattern = RegExp(r'^[-*+]\s');
-final RegExp _orderedListMarkerPattern = RegExp(r'^\d+[.)]\s');
-final RegExp _horizontalRuleLinePattern = RegExp(
-  r'^(?:-{3,}|\*{3,}|_{3,})\s*$',
-);
-final RegExp _setextHeadingUnderlinePattern = RegExp(r'^(?:=+|-+)\s*$');
-final RegExp _codeBlockHtmlPattern = RegExp(
-  r'<pre><code([^>]*)>([\s\S]*?)</code></pre>',
-);
-final RegExp _fullHtmlDoctypeLinePattern = RegExp(
-  r'^\s*<!doctype\s+html(?:\s[^>]*)?>\s*$',
-  caseSensitive: false,
-);
-final RegExp _fullHtmlOpenTagLinePattern = RegExp(
-  r'^\s*<html(?:\s|>)',
-  caseSensitive: false,
-);
-final RegExp _fullHtmlCloseTagPattern = RegExp(
-  r'</html\s*>',
   caseSensitive: false,
 );
 final RegExp _longWordPattern = RegExp(r'[^\s]{30,}', unicode: true);
@@ -81,100 +52,8 @@ const Set<String> _htmlBlockTags = {
   _mathBlockTag,
 };
 
-const Set<String> _blockedHtmlTags = {'script', 'style'};
-
-const Set<String> _allowedHtmlTags = {
-  'a',
-  'blockquote',
-  'br',
-  'code',
-  'del',
-  'details',
-  'em',
-  'h1',
-  'h2',
-  'h3',
-  'h4',
-  'h5',
-  'h6',
-  'hr',
-  'img',
-  'input',
-  'li',
-  'ol',
-  'p',
-  'pre',
-  'summary',
-  'span',
-  'strong',
-  'sub',
-  'sup',
-  'table',
-  'tbody',
-  'td',
-  'th',
-  'thead',
-  'tr',
-  'ul',
-  _mathInlineTag,
-  _mathBlockTag,
-};
-
-const Map<String, Set<String>> _allowedHtmlAttributes = {
-  'a': {'href', 'title'},
-  'img': {'src', 'alt', 'title', 'width', 'height'},
-  'code': {'class'},
-  'pre': {'class'},
-  'span': {'class', 'data-tag'},
-  'li': {'class'},
-  'ul': {'class'},
-  'ol': {'class'},
-  'p': {'class'},
-  'details': {'open'},
-  'input': {'type', 'checked', 'disabled'},
-};
-
-final List<RegExp> _allowedClassPatterns = [
-  RegExp(r'^memotag$'),
-  RegExp(r'^memohighlight$'),
-  RegExp(r'^task-list-item$'),
-  RegExp(r'^contains-task-list$'),
-  RegExp(r'^language-[\w-]+$'),
-];
-
 const double _defaultLineHeight = 1.4;
-
-class _LruCache<K, V> {
-  _LruCache({required int capacity}) : _capacity = capacity;
-
-  final int _capacity;
-  final _map = <K, V>{};
-
-  V? get(K key) {
-    final value = _map.remove(key);
-    if (value == null) return null;
-    _map[key] = value;
-    return value;
-  }
-
-  void set(K key, V value) {
-    if (_capacity <= 0) return;
-    _map.remove(key);
-    _map[key] = value;
-    if (_map.length > _capacity) {
-      _map.remove(_map.keys.first);
-    }
-  }
-
-  void removeWhere(bool Function(K key) test) {
-    final keys = _map.keys.where(test).toList(growable: false);
-    for (final key in keys) {
-      _map.remove(key);
-    }
-  }
-}
-
-final _markdownHtmlCache = _LruCache<String, String>(capacity: 80);
+final MemoRenderPipeline _memoRenderPipeline = MemoRenderPipeline();
 
 const int _markdownImageMaxDecodePx = 2048;
 
@@ -216,60 +95,7 @@ class _MemoMarkdownWidgetFactory extends WidgetFactory {
 }
 
 void invalidateMemoMarkdownCacheForUid(String memoUid) {
-  final trimmed = memoUid.trim();
-  if (trimmed.isEmpty) return;
-  _markdownHtmlCache.removeWhere((key) => key.startsWith('$trimmed|'));
-}
-
-String normalizeMarkdownImageSrc(String value) => _normalizeImageSrc(value);
-
-List<String> extractMarkdownImageUrls(String text) {
-  if (text.trim().isEmpty) return const [];
-  final urls = <String>[];
-  var inFence = false;
-  for (final line in text.split('\n')) {
-    if (_codeFencePattern.hasMatch(line.trimLeft())) {
-      inFence = !inFence;
-      continue;
-    }
-    if (inFence) continue;
-    for (final match in _markdownImagePattern.allMatches(line)) {
-      var url = (match.group(1) ?? '').trim();
-      if (url.startsWith('<') && url.endsWith('>') && url.length > 2) {
-        url = url.substring(1, url.length - 1).trim();
-      }
-      url = normalizeMarkdownImageSrc(url);
-      if (url.isEmpty) continue;
-      urls.add(url);
-    }
-  }
-  return urls;
-}
-
-String stripMarkdownImages(String text) {
-  if (text.trim().isEmpty) return text;
-  final lines = text.split('\n');
-  final out = <String>[];
-  var inFence = false;
-  for (final line in lines) {
-    if (_codeFencePattern.hasMatch(line.trimLeft())) {
-      inFence = !inFence;
-      out.add(line);
-      continue;
-    }
-    if (inFence) {
-      out.add(line);
-      continue;
-    }
-    if (line.trim().isEmpty) {
-      out.add('');
-      continue;
-    }
-    final cleaned = line.replaceAll(_markdownImagePattern, '').trimRight();
-    if (cleaned.trim().isEmpty) continue;
-    out.add(cleaned);
-  }
-  return out.join('\n');
+  _memoRenderPipeline.invalidateByMemoUid(memoUid);
 }
 
 typedef TaskToggleHandler = void Function(TaskToggleRequest request);
@@ -313,14 +139,14 @@ class MemoMarkdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final filteredData = stripTaskListToggleHint(data);
-    final rawTrimmed = filteredData.trim();
-    if (rawTrimmed.isEmpty) return const SizedBox.shrink();
-    // IMPORTANT:
-    // Keep full HTML documents on the dedicated code-block path below.
-    // Routing them through markdown/html rendering will mutate structure
-    // (for example dropping <head>/<body>) and break the expected output.
-    final fullHtmlDocument = _looksLikeFullHtmlDocument(rawTrimmed);
+    final artifact = _memoRenderPipeline.build(
+      data: data,
+      renderImages: renderImages,
+      highlightQuery: highlightQuery,
+      cacheKey: cacheKey,
+    );
+    final contentText = artifact.content;
+    if (contentText.trim().isEmpty) return const SizedBox.shrink();
 
     final theme = Theme.of(context);
     final baseStyle =
@@ -362,11 +188,9 @@ class MemoMarkdown extends StatelessWidget {
     final maxImageHeight = _resolveImageMaxHeight(context);
     final maxImageHeightPx = _formatCssPx(maxImageHeight);
 
-    if (fullHtmlDocument) {
-      // Intentionally render as source code (not live HTML).
-      // This preserves the original document text and matches expected UX.
+    if (artifact.mode == MemoRenderMode.codeBlock) {
       Widget content = _buildHtmlCodeBlock(
-        code: rawTrimmed.replaceAll('\r\n', '\n'),
+        code: contentText,
         language: 'html',
         baseStyle: codeStyle,
         isDark: theme.brightness == Brightness.dark,
@@ -401,15 +225,6 @@ class MemoMarkdown extends StatelessWidget {
       return SelectionArea(child: content);
     }
 
-    final normalized = _normalizeTagSpacing(filteredData);
-    var sanitized = _sanitizeMarkdown(normalized);
-    if (!renderImages) {
-      sanitized = stripMarkdownImages(sanitized);
-    }
-    final trimmed = sanitized.trim();
-    if (trimmed.isEmpty) return const SizedBox.shrink();
-    final tagged = _decorateTagsForHtml(trimmed);
-
     Widget imagePlaceholder() {
       return Container(
         color: imagePlaceholderBg,
@@ -441,7 +256,7 @@ class MemoMarkdown extends StatelessWidget {
         stackTrace: stackTrace,
         extraContext: <String, Object?>{
           'renderImages': renderImages,
-          'cacheKey': this.cacheKey,
+          'cacheKey': cacheKey,
         },
       );
       assert(() {
@@ -452,18 +267,9 @@ class MemoMarkdown extends StatelessWidget {
       }());
     }
 
-    final cacheKey = this.cacheKey;
-    final cachedHtml = cacheKey == null
-        ? null
-        : _markdownHtmlCache.get(cacheKey);
-    final html =
-        cachedHtml ?? _buildMemoHtml(tagged, highlightQuery: highlightQuery);
-    if (cacheKey != null && cachedHtml == null) {
-      _markdownHtmlCache.set(cacheKey, html);
-    }
     final renderedHtml = tagColorLookup == null
-        ? html
-        : _rewriteMemoTagLabels(html, tagColorLookup);
+        ? contentText
+        : _rewriteMemoTagLabels(contentText, tagColorLookup);
 
     var taskIndex = 0;
     Widget? buildTableWidget(dom.Element element) {
@@ -611,7 +417,7 @@ class MemoMarkdown extends StatelessWidget {
       if (localName == 'img') {
         final rawSrc = element.attributes['src'];
         if (rawSrc == null) return null;
-        final src = _normalizeImageSrc(rawSrc);
+        final src = normalizeMarkdownImageSrc(rawSrc);
         if (src.isEmpty) return null;
 
         final uri = Uri.tryParse(src);
@@ -883,269 +689,6 @@ class MemoMarkdown extends StatelessWidget {
   }
 }
 
-String _sanitizeMarkdown(String text) {
-  // Avoid empty markdown links that can leave the inline stack open.
-  final emptyLink = RegExp(r'\[\s*\]\(([^)]*)\)');
-  final stripped = text.replaceAllMapped(emptyLink, (match) {
-    final start = match.start;
-    if (start > 0 && text.codeUnitAt(start - 1) == 0x21) {
-      return match.group(0) ?? '';
-    }
-    final url = match.group(1)?.trim();
-    return url?.isNotEmpty == true ? url! : '';
-  });
-  final protectedHtml = _protectEmbeddedFullHtmlDocuments(stripped);
-  final escapedTaskHeadings = _escapeEmptyTaskHeadings(protectedHtml);
-  final preservedBlankLines = _preserveParagraphBlankLines(escapedTaskHeadings);
-  return _normalizeFencedCodeBlocks(preservedBlankLines);
-}
-
-String _preserveParagraphBlankLines(String text) {
-  final lines = text.split('\n');
-  if (lines.length < 3) return text;
-
-  var inFence = false;
-  for (var i = 0; i < lines.length; i++) {
-    final line = lines[i];
-    if (_codeFencePattern.hasMatch(line.trimLeft())) {
-      inFence = !inFence;
-      continue;
-    }
-    if (inFence || line.trim().isNotEmpty) continue;
-
-    var prev = i - 1;
-    while (prev >= 0 && lines[prev].trim().isEmpty) {
-      prev--;
-    }
-    if (prev < 0) continue;
-
-    var next = i + 1;
-    while (next < lines.length && lines[next].trim().isEmpty) {
-      next++;
-    }
-    if (next >= lines.length) continue;
-
-    if (!_isParagraphLikeTextLine(lines[prev])) continue;
-    if (!_isParagraphLikeTextLine(lines[next])) continue;
-
-    lines[i] = _zeroWidthSpace;
-  }
-
-  return lines.join('\n');
-}
-
-bool _isParagraphLikeTextLine(String line) {
-  final trimmed = line.trimLeft();
-  if (trimmed.isEmpty) return false;
-  if (trimmed.startsWith('<')) return false;
-  if (trimmed.startsWith('#')) return false;
-  if (trimmed.startsWith('>')) return false;
-  if (trimmed.startsWith('```') || trimmed.startsWith('~~~')) return false;
-  if (trimmed.startsWith('|')) return false;
-  if (_unorderedListMarkerPattern.hasMatch(trimmed)) return false;
-  if (_orderedListMarkerPattern.hasMatch(trimmed)) return false;
-  if (_horizontalRuleLinePattern.hasMatch(trimmed)) return false;
-  if (_setextHeadingUnderlinePattern.hasMatch(trimmed)) return false;
-  return true;
-}
-
-String _protectEmbeddedFullHtmlDocuments(String text) {
-  final lines = text.split('\n');
-  if (lines.isEmpty) return text;
-
-  final output = <String>[];
-  var index = 0;
-  var inFence = false;
-
-  while (index < lines.length) {
-    final line = lines[index];
-    if (_codeFencePattern.hasMatch(line.trimLeft())) {
-      inFence = !inFence;
-      output.add(line);
-      index++;
-      continue;
-    }
-
-    if (!inFence && _isEmbeddedFullHtmlDocumentStart(lines, index)) {
-      final end = _findEmbeddedFullHtmlDocumentEnd(lines, index);
-      if (end >= index) {
-        if (output.isNotEmpty && output.last.trim().isNotEmpty) {
-          output.add('');
-        }
-        output.add('```html');
-        output.addAll(lines.getRange(index, end + 1));
-        output.add('```');
-        if (end + 1 < lines.length && lines[end + 1].trim().isNotEmpty) {
-          output.add('');
-        }
-        index = end + 1;
-        continue;
-      }
-    }
-
-    output.add(line);
-    index++;
-  }
-
-  return output.join('\n');
-}
-
-bool _isEmbeddedFullHtmlDocumentStart(List<String> lines, int index) {
-  final line = lines[index].trimLeft();
-  if (_fullHtmlOpenTagLinePattern.hasMatch(line)) {
-    return true;
-  }
-  if (!_fullHtmlDoctypeLinePattern.hasMatch(line)) {
-    return false;
-  }
-  for (var i = index + 1; i < lines.length; i++) {
-    final next = lines[i].trimLeft();
-    if (next.isEmpty) {
-      continue;
-    }
-    return _fullHtmlOpenTagLinePattern.hasMatch(next);
-  }
-  return false;
-}
-
-int _findEmbeddedFullHtmlDocumentEnd(List<String> lines, int start) {
-  for (var i = start; i < lines.length; i++) {
-    final line = lines[i];
-    if (_fullHtmlCloseTagPattern.hasMatch(line)) {
-      return i;
-    }
-    if (_codeFencePattern.hasMatch(line.trimLeft())) {
-      return -1;
-    }
-  }
-  return -1;
-}
-
-String _escapeEmptyTaskHeadings(String text) {
-  final lines = text.split('\n');
-  for (var i = 0; i < lines.length; i++) {
-    final match = RegExp(
-      r'^(\s*[-*+]\s+\[(?: |x|X)\]\s*)(#{1,6})\s*$',
-    ).firstMatch(lines[i]);
-    if (match == null) continue;
-    final prefix = match.group(1) ?? '';
-    final hashes = match.group(2) ?? '';
-    final escaped = List.filled(hashes.length, r'\#').join();
-    lines[i] = '$prefix$escaped';
-  }
-  return lines.join('\n');
-}
-
-String _normalizeFencedCodeBlocks(String text) {
-  final lines = text.split('\n');
-  for (var i = 0; i < lines.length; i++) {
-    final line = lines[i];
-    if (line.isEmpty) continue;
-    var index = 0;
-    while (index < line.length) {
-      final codeUnit = line.codeUnitAt(index);
-      if (codeUnit == 0x20 || codeUnit == 0x09 || codeUnit == 0x3000) {
-        index++;
-        continue;
-      }
-      break;
-    }
-    if (index == 0) continue;
-    final trimmed = line.substring(index);
-    if (trimmed.startsWith('```') || trimmed.startsWith('~~~')) {
-      final indent = index > 3 ? 3 : index;
-      lines[i] = '${''.padLeft(indent)}$trimmed';
-    }
-  }
-  return lines.join('\n');
-}
-
-String _normalizeTagSpacing(String text) {
-  final lines = text.split('\n');
-  var idx = 0;
-  while (idx < lines.length && lines[idx].trim().isEmpty) {
-    idx++;
-  }
-
-  var tagEnd = idx;
-  while (tagEnd < lines.length && _isTagOnlyLine(lines[tagEnd])) {
-    tagEnd++;
-  }
-
-  if (tagEnd == idx) return text;
-
-  var blankEnd = tagEnd;
-  while (blankEnd < lines.length && lines[blankEnd].trim().isEmpty) {
-    blankEnd++;
-  }
-  if (blankEnd == tagEnd || blankEnd >= lines.length) return text;
-
-  final normalized = <String>[
-    ...lines.take(tagEnd),
-    '',
-    ...lines.skip(blankEnd),
-  ];
-  return normalized.join('\n');
-}
-
-bool _isTagOnlyLine(String line) {
-  final trimmed = line.trim();
-  if (trimmed.isEmpty) return false;
-  final parts = trimmed.split(RegExp(r'\s+'));
-  for (final part in parts) {
-    if (!_tagTokenPattern.hasMatch(part)) return false;
-  }
-  return true;
-}
-
-String _decorateTagsForHtml(String text) {
-  final lines = text.split('\n');
-  int? firstLine;
-  int? lastLine;
-  for (var i = 0; i < lines.length; i++) {
-    if (lines[i].trim().isEmpty) continue;
-    firstLine ??= i;
-    lastLine = i;
-  }
-  if (firstLine == null || lastLine == null) return text;
-
-  lines[firstLine] = _replaceTagsInLine(lines[firstLine]);
-  if (lastLine != firstLine) {
-    lines[lastLine] = _replaceTagsInLine(lines[lastLine]);
-  }
-
-  return lines.join('\n');
-}
-
-String _replaceTagsInLine(String line) {
-  final matches = _tagInlinePattern.allMatches(line);
-  if (matches.isEmpty) return line;
-
-  final buffer = StringBuffer();
-  var last = 0;
-  for (final match in matches) {
-    buffer.write(line.substring(last, match.start));
-    final tag = match.group(1);
-    if (tag == null || tag.isEmpty) {
-      buffer.write(match.group(0));
-    } else {
-      final escaped = _escapeHtmlAttribute(tag);
-      buffer.write('<span class="memotag" data-tag="$escaped">#$tag</span>');
-    }
-    last = match.end;
-  }
-  buffer.write(line.substring(last));
-  return buffer.toString();
-}
-
-String _escapeHtmlAttribute(String value) {
-  return value
-      .replaceAll('&', '&amp;')
-      .replaceAll('"', '&quot;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;');
-}
-
 String _rewriteMemoTagLabels(String html, TagColorLookup lookup) {
   final fragment = html_parser.parseFragment(html);
   var changed = false;
@@ -1164,281 +707,6 @@ String _rewriteMemoTagLabels(String html, TagColorLookup lookup) {
     }
   }
   return changed ? fragment.outerHtml : html;
-}
-
-String _buildMemoHtml(String text, {String? highlightQuery}) {
-  final rawHtml = _renderMarkdownToHtml(text);
-  final escapedCodeBlocks = _escapeCodeBlocks(rawHtml);
-  final sanitized = _sanitizeHtml(escapedCodeBlocks);
-  return _applySearchHighlights(sanitized, highlightQuery: highlightQuery);
-}
-
-bool _looksLikeFullHtmlDocument(String text) {
-  // Heuristic gate for the protected full-document code path in build().
-  // Do not broaden this casually; keep behavior stable across versions.
-  final trimmed = text.trimLeft();
-  return RegExp(
-    r'^(?:<!doctype\s+html(?:\s[^>]*)?>\s*)?<html(?:\s|>)',
-    caseSensitive: false,
-  ).hasMatch(trimmed);
-}
-
-String _sanitizeHtml(String html) {
-  final fragment = html_parser.parseFragment(html);
-  _sanitizeDomNode(fragment);
-  return fragment.outerHtml;
-}
-
-String _applySearchHighlights(String html, {String? highlightQuery}) {
-  final terms = _extractHighlightTerms(highlightQuery);
-  if (terms.isEmpty) return html;
-  final pattern = terms.map(RegExp.escape).join('|');
-  final matcher = RegExp(pattern, caseSensitive: false, unicode: true);
-  final fragment = html_parser.parseFragment(html);
-  _decorateTextHighlights(fragment, matcher, inIgnoredSubtree: false);
-  return fragment.outerHtml;
-}
-
-List<String> _extractHighlightTerms(String? query) {
-  if (query == null) return const [];
-  final parts = query
-      .trim()
-      .split(RegExp(r'\s+'))
-      .where((part) => part.isNotEmpty)
-      .toList(growable: false);
-  if (parts.isEmpty) return const [];
-  final normalizedSeen = <String>{};
-  final unique = <String>[];
-  for (final part in parts) {
-    final normalized = part.toLowerCase();
-    if (!normalizedSeen.add(normalized)) continue;
-    unique.add(part);
-  }
-  unique.sort((a, b) => b.runes.length.compareTo(a.runes.length));
-  return unique;
-}
-
-void _decorateTextHighlights(
-  dom.Node node,
-  RegExp matcher, {
-  required bool inIgnoredSubtree,
-}) {
-  if (node is dom.Text) {
-    if (inIgnoredSubtree) return;
-    final parent = node.parent;
-    if (parent == null) return;
-    final text = node.text;
-    if (text.trim().isEmpty) return;
-    final matches = matcher.allMatches(text).toList(growable: false);
-    if (matches.isEmpty) return;
-
-    final replacements = <dom.Node>[];
-    var cursor = 0;
-    for (final match in matches) {
-      if (match.end <= cursor) continue;
-      if (match.start > cursor) {
-        replacements.add(dom.Text(text.substring(cursor, match.start)));
-      }
-      final span = dom.Element.tag('span')
-        ..attributes['class'] = 'memohighlight'
-        ..append(dom.Text(text.substring(match.start, match.end)));
-      replacements.add(span);
-      cursor = match.end;
-    }
-    if (cursor < text.length) {
-      replacements.add(dom.Text(text.substring(cursor)));
-    }
-    if (replacements.isEmpty) return;
-
-    for (final replacement in replacements) {
-      parent.insertBefore(replacement, node);
-    }
-    node.remove();
-    return;
-  }
-
-  var ignore = inIgnoredSubtree;
-  if (node is dom.Element) {
-    final localName = node.localName ?? '';
-    final classList = (node.attributes['class'] ?? '')
-        .split(RegExp(r'\s+'))
-        .where((item) => item.isNotEmpty)
-        .toSet();
-    ignore =
-        ignore ||
-        localName == 'pre' ||
-        localName == 'code' ||
-        classList.contains('memotag') ||
-        classList.contains('memohighlight');
-  }
-  if (ignore) return;
-
-  final children = node.nodes.toList(growable: false);
-  for (final child in children) {
-    _decorateTextHighlights(child, matcher, inIgnoredSubtree: ignore);
-  }
-}
-
-void _sanitizeDomNode(dom.Node node) {
-  final children = node.nodes.toList(growable: false);
-  for (final child in children) {
-    if (child is dom.Element) {
-      _sanitizeElement(child);
-      continue;
-    }
-    if (child.nodeType == dom.Node.COMMENT_NODE) {
-      child.remove();
-    }
-  }
-}
-
-void _sanitizeElement(dom.Element element) {
-  final tag = element.localName;
-  if (tag == null) {
-    element.remove();
-    return;
-  }
-  if (_blockedHtmlTags.contains(tag)) {
-    element.remove();
-    return;
-  }
-  if (!_allowedHtmlTags.contains(tag)) {
-    _unwrapElement(element);
-    return;
-  }
-  if (!_sanitizeAttributes(element, tag)) {
-    return;
-  }
-  if (tag == 'pre' || tag == 'code') {
-    return;
-  }
-  _sanitizeDomNode(element);
-}
-
-bool _sanitizeAttributes(dom.Element element, String tag) {
-  final allowedAttrs = _allowedHtmlAttributes[tag] ?? const <String>{};
-  final attributes = Map<String, String>.from(element.attributes);
-  element.attributes.clear();
-  for (final entry in attributes.entries) {
-    if (!allowedAttrs.contains(entry.key)) continue;
-    element.attributes[entry.key] = entry.value;
-  }
-
-  if (element.attributes.containsKey('class')) {
-    final filtered = _filterClasses(element.attributes['class']);
-    if (filtered == null) {
-      element.attributes.remove('class');
-    } else {
-      element.attributes['class'] = filtered;
-    }
-  }
-
-  if (tag == 'a') {
-    final href = _sanitizeUrl(
-      element.attributes['href'],
-      allowRelative: true,
-      allowMailto: true,
-    );
-    if (href == null) {
-      _unwrapElement(element);
-      return false;
-    }
-    element.attributes['href'] = href;
-  }
-
-  if (tag == 'img') {
-    final src = _sanitizeUrl(
-      element.attributes['src'],
-      allowRelative: true,
-      allowMailto: false,
-    );
-    if (src == null) {
-      element.remove();
-      return false;
-    }
-    element.attributes['src'] = src;
-  }
-
-  if (tag == 'input') {
-    final type = element.attributes['type']?.toLowerCase();
-    if (type != 'checkbox') {
-      element.remove();
-      return false;
-    }
-  }
-
-  return true;
-}
-
-String? _filterClasses(String? value) {
-  if (value == null) return null;
-  final classes = value
-      .split(RegExp(r'\s+'))
-      .where((c) => c.isNotEmpty && _isAllowedClass(c))
-      .toList(growable: false);
-  if (classes.isEmpty) return null;
-  return classes.join(' ');
-}
-
-bool _isAllowedClass(String value) {
-  for (final pattern in _allowedClassPatterns) {
-    if (pattern.hasMatch(value)) return true;
-  }
-  return false;
-}
-
-String? _sanitizeUrl(
-  String? url, {
-  required bool allowRelative,
-  required bool allowMailto,
-}) {
-  if (url == null) return null;
-  final trimmed = url.trim();
-  if (trimmed.isEmpty) return null;
-  final uri = Uri.tryParse(trimmed);
-  if (uri == null) return null;
-  if (uri.hasScheme) {
-    final scheme = uri.scheme.toLowerCase();
-    if (scheme == 'http' || scheme == 'https') return trimmed;
-    if (allowMailto && scheme == 'mailto') return trimmed;
-    return null;
-  }
-  if (!allowRelative) return null;
-  return trimmed;
-}
-
-void _unwrapElement(dom.Element element) {
-  final parent = element.parent;
-  if (parent == null) {
-    element.remove();
-    return;
-  }
-  final index = parent.nodes.indexOf(element);
-  final children = element.nodes.toList(growable: false);
-  element.remove();
-  if (children.isNotEmpty) {
-    parent.nodes.insertAll(index, children);
-    for (final child in children) {
-      _sanitizeDomNode(child);
-    }
-  }
-}
-
-String _renderMarkdownToHtml(String text) {
-  final inlineSyntaxes = <md.InlineSyntax>[
-    _MathInlineSyntax(),
-    _MathParenInlineSyntax(),
-    _HtmlSoftLineBreakSyntax(),
-    _HtmlHighlightInlineSyntax(),
-  ];
-
-  return md.markdownToHtml(
-    text,
-    extensionSet: md.ExtensionSet.gitHubFlavored,
-    blockSyntaxes: const [_MathBlockSyntax(), _MathBracketBlockSyntax()],
-    inlineSyntaxes: inlineSyntaxes,
-    encodeHtml: false,
-  );
 }
 
 Widget _buildHtmlCodeBlock({
@@ -1493,21 +761,6 @@ String _trimTrailingNewline(String value) {
   return value;
 }
 
-String _escapeHtmlText(String value) {
-  return value
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;');
-}
-
-String _escapeCodeBlocks(String html) {
-  return html.replaceAllMapped(_codeBlockHtmlPattern, (match) {
-    final attrs = match.group(1) ?? '';
-    final content = match.group(2) ?? '';
-    return '<pre><code$attrs>${_escapeHtmlText(content)}</code></pre>';
-  });
-}
-
 String? _extractCodeLanguage(dom.Element? codeElement) {
   if (codeElement == null) return null;
   final classAttr = codeElement.attributes['class'] ?? '';
@@ -1515,103 +768,6 @@ String? _extractCodeLanguage(dom.Element? codeElement) {
   final language = match?.group(1);
   if (language == null || language.isEmpty) return null;
   return language;
-}
-
-String _normalizeImageSrc(String value) {
-  final trimmed = value.trim();
-  String normalized;
-  if (trimmed.startsWith('//')) {
-    normalized = 'https:$trimmed';
-  } else {
-    normalized = trimmed;
-  }
-  normalized = _normalizeGithubBlobImageUrl(normalized);
-  normalized = _normalizeGitlabBlobImageUrl(normalized);
-  normalized = _normalizeGiteeBlobImageUrl(normalized);
-  return normalized;
-}
-
-String _normalizeGithubBlobImageUrl(String value) {
-  final uri = Uri.tryParse(value);
-  if (uri == null || !uri.hasScheme) return value;
-  final host = uri.host.toLowerCase();
-  if (host != 'github.com' && host != 'www.github.com') {
-    return value;
-  }
-
-  final segments = uri.pathSegments;
-  if (segments.length < 5 || segments[2] != 'blob') {
-    return value;
-  }
-
-  final owner = segments[0];
-  final repo = segments[1];
-  final ref = segments[3];
-  if (owner.isEmpty || repo.isEmpty || ref.isEmpty) {
-    return _appendGithubRawQuery(uri);
-  }
-
-  final pathSegments = segments.skip(4).toList(growable: false);
-  if (pathSegments.isEmpty) {
-    return _appendGithubRawQuery(uri);
-  }
-
-  return Uri(
-    scheme: 'https',
-    host: 'raw.githubusercontent.com',
-    pathSegments: <String>[owner, repo, ref, ...pathSegments],
-    queryParameters: uri.queryParameters.isEmpty ? null : uri.queryParameters,
-    fragment: uri.fragment.isEmpty ? null : uri.fragment,
-  ).toString();
-}
-
-String _normalizeGitlabBlobImageUrl(String value) {
-  final uri = Uri.tryParse(value);
-  if (uri == null || !uri.hasScheme) return value;
-  final host = uri.host.toLowerCase();
-  if (host != 'gitlab.com' && host != 'www.gitlab.com') {
-    return value;
-  }
-
-  final marker = '/-/blob/';
-  final path = uri.path;
-  final idx = path.indexOf(marker);
-  if (idx <= 0) {
-    return value;
-  }
-
-  final convertedPath =
-      '${path.substring(0, idx)}/-/raw/${path.substring(idx + marker.length)}';
-  return uri.replace(path: convertedPath).toString();
-}
-
-String _normalizeGiteeBlobImageUrl(String value) {
-  final uri = Uri.tryParse(value);
-  if (uri == null || !uri.hasScheme) return value;
-  final host = uri.host.toLowerCase();
-  if (host != 'gitee.com' && host != 'www.gitee.com') {
-    return value;
-  }
-
-  final marker = '/blob/';
-  final path = uri.path;
-  final idx = path.indexOf(marker);
-  if (idx <= 0) {
-    return value;
-  }
-
-  final convertedPath =
-      '${path.substring(0, idx)}/raw/${path.substring(idx + marker.length)}';
-  return uri.replace(path: convertedPath).toString();
-}
-
-String _appendGithubRawQuery(Uri uri) {
-  final params = Map<String, String>.from(uri.queryParameters);
-  final raw = (params['raw'] ?? '').trim().toLowerCase();
-  if (raw != '1' && raw != 'true') {
-    params['raw'] = '1';
-  }
-  return uri.replace(queryParameters: params).toString();
 }
 
 class _HtmlLength {
@@ -1668,141 +824,10 @@ double _resolveImageMaxHeight(BuildContext context) {
   return suggested > maxAllowed ? maxAllowed : suggested;
 }
 
-final RegExp _taskListToggleHintPattern = RegExp(
-  r'^(\s*)任务列表\s*[（(]\s*可点击切换\s*[）)]\s*$',
-);
-
-String stripTaskListToggleHint(String content) {
-  if (content.isEmpty) return content;
-
-  final lines = content.split('\n');
-  final filtered = lines
-      .map((line) {
-        final match = _taskListToggleHintPattern.firstMatch(line);
-        if (match == null) return line;
-        final leadingWhitespace = match.group(1) ?? '';
-        return '$leadingWhitespace任务列表';
-      })
-      .toList(growable: false);
-
-  return filtered.join('\n');
-}
-
-class TaskStats {
-  const TaskStats({required this.total, required this.checked});
-
-  final int total;
-  final int checked;
-}
-
-TaskStats countTaskStats(String content, {bool skipQuotedLines = false}) {
-  final fenceRegex = RegExp(r'^\s*(```|~~~)');
-  final taskRegex = RegExp(r'^\s*[-*+]\s+\[( |x|X)\]');
-
-  var inFence = false;
-  var total = 0;
-  var checked = 0;
-
-  for (final line in content.split('\n')) {
-    if (fenceRegex.hasMatch(line)) {
-      inFence = !inFence;
-      continue;
-    }
-    // Ignore task markers inside fenced code blocks or filtered quote lines.
-    if (inFence) continue;
-    if (skipQuotedLines && line.trimLeft().startsWith('>')) continue;
-
-    final match = taskRegex.firstMatch(line);
-    if (match == null) continue;
-    total++;
-    final mark = match.group(1) ?? '';
-    if (mark.toLowerCase() == 'x') {
-      checked++;
-    }
-  }
-
-  return TaskStats(total: total, checked: checked);
-}
-
-double calculateProgress(String content, {bool skipQuotedLines = false}) {
-  final stats = countTaskStats(content, skipQuotedLines: skipQuotedLines);
-  if (stats.total == 0) return 0.0;
-  return stats.checked / stats.total;
-}
-
-String toggleCheckbox(
-  String rawContent,
-  int checkboxIndex, {
-  bool skipQuotedLines = false,
-}) {
-  final fenceRegex = RegExp(r'^\s*(```|~~~)');
-  final taskRegex = RegExp(r'^(\s*[-*+]\s+)\[( |x|X)\]');
-
-  var inFence = false;
-  var index = 0;
-  var offset = 0;
-  final lines = rawContent.split('\n');
-
-  for (var i = 0; i < lines.length; i++) {
-    final line = lines[i];
-    if (fenceRegex.hasMatch(line)) {
-      inFence = !inFence;
-      offset += line.length + (i == lines.length - 1 ? 0 : 1);
-      continue;
-    }
-
-    final skipLine =
-        inFence || (skipQuotedLines && line.trimLeft().startsWith('>'));
-    if (!skipLine) {
-      final match = taskRegex.firstMatch(line);
-      if (match != null) {
-        // Count only task markers in visible, non-code lines to match UI order.
-        if (index == checkboxIndex) {
-          final leading = match.group(1)!;
-          final mark = match.group(2) ?? ' ';
-          final newMark = mark.toLowerCase() == 'x' ? ' ' : 'x';
-          // Mark position: offset + leading + '['.
-          final markOffset = offset + match.start + leading.length + 1;
-          return rawContent.replaceRange(markOffset, markOffset + 1, newMark);
-        }
-        index++;
-      }
-    }
-
-    offset += line.length + (i == lines.length - 1 ? 0 : 1);
-  }
-
-  return rawContent;
-}
-
 bool _isHeadingTag(String tag) {
   if (tag.length != 2 || tag[0] != 'h') return false;
   final unit = tag.codeUnitAt(1);
   return unit >= 0x31 && unit <= 0x36;
-}
-
-class _HtmlSoftLineBreakSyntax extends md.InlineSyntax {
-  _HtmlSoftLineBreakSyntax() : super(r'\n', startCharacter: 0x0A);
-
-  @override
-  bool onMatch(md.InlineParser parser, Match match) {
-    parser.addNode(md.Element.empty('br'));
-    return true;
-  }
-}
-
-class _HtmlHighlightInlineSyntax extends md.InlineSyntax {
-  _HtmlHighlightInlineSyntax() : super(r'==([^\n]+?)==', startCharacter: 0x3D);
-
-  @override
-  bool onMatch(md.InlineParser parser, Match match) {
-    final text = match.group(1);
-    if (text == null || text.trim().isEmpty) return false;
-    final element = md.Element('span', [md.Text(text)]);
-    element.attributes['class'] = 'memohighlight';
-    parser.addNode(element);
-    return true;
-  }
 }
 
 class _MemoTagStyle {
@@ -2051,109 +1076,6 @@ class _MemoCodeBlockState extends State<_MemoCodeBlock> {
         ),
       ),
     );
-  }
-}
-
-class _MathInlineSyntax extends md.InlineSyntax {
-  _MathInlineSyntax()
-    : super(r'\$(?!\s)([^\n\$]+?)\$(?!\s)', startCharacter: 0x24);
-
-  @override
-  bool onMatch(md.InlineParser parser, Match match) {
-    final start = match.start;
-    if (start > 0 && parser.source.codeUnitAt(start - 1) == 0x5C) {
-      return false;
-    }
-    final content = match.group(1);
-    if (content == null || content.trim().isEmpty) return false;
-    parser.addNode(md.Element(_mathInlineTag, [md.Text(content)]));
-    return true;
-  }
-}
-
-class _MathParenInlineSyntax extends md.InlineSyntax {
-  _MathParenInlineSyntax() : super(r'\\\((.+?)\\\)', startCharacter: 0x5C);
-
-  @override
-  bool onMatch(md.InlineParser parser, Match match) {
-    final content = match.group(1);
-    if (content == null || content.trim().isEmpty) return false;
-    parser.addNode(md.Element(_mathInlineTag, [md.Text(content)]));
-    return true;
-  }
-}
-
-class _MathBlockSyntax extends md.BlockSyntax {
-  const _MathBlockSyntax();
-
-  static final RegExp _singleLine = RegExp(r'^\s*\$\$(.+?)\$\$\s*$');
-  static final RegExp _open = RegExp(r'^\s*\$\$');
-  static final RegExp _close = RegExp(r'^\s*\$\$\s*$');
-
-  @override
-  RegExp get pattern => _open;
-
-  @override
-  md.Node? parse(md.BlockParser parser) {
-    final line = parser.current.content;
-    final singleMatch = _singleLine.firstMatch(line);
-    if (singleMatch != null) {
-      parser.advance();
-      final content = singleMatch.group(1)?.trim() ?? '';
-      return md.Element(_mathBlockTag, [md.Text(content)]);
-    }
-
-    parser.advance();
-    final buffer = StringBuffer();
-    while (!parser.isDone) {
-      final current = parser.current.content;
-      if (_close.hasMatch(current)) {
-        parser.advance();
-        break;
-      }
-      if (buffer.isNotEmpty) buffer.writeln();
-      buffer.write(current);
-      parser.advance();
-    }
-    final content = buffer.toString().trim();
-    return md.Element(_mathBlockTag, [md.Text(content)]);
-  }
-}
-
-class _MathBracketBlockSyntax extends md.BlockSyntax {
-  const _MathBracketBlockSyntax();
-
-  static final RegExp _singleLine = RegExp(r'^\s*\\\[(.+?)\\\]\s*$');
-  static final RegExp _open = RegExp(r'^\s*\\\[');
-  static final RegExp _close = RegExp(r'^\s*\\\]\s*$');
-
-  @override
-  RegExp get pattern => _open;
-
-  @override
-  md.Node? parse(md.BlockParser parser) {
-    final line = parser.current.content;
-    final singleMatch = _singleLine.firstMatch(line);
-    if (singleMatch != null) {
-      parser.advance();
-      final content = singleMatch.group(1)?.trim() ?? '';
-      return md.Element(_mathBlockTag, [md.Text(content)]);
-    }
-
-    parser.advance();
-    final buffer = StringBuffer();
-    while (!parser.isDone) {
-      final current = parser.current.content;
-      if (_close.hasMatch(current)) {
-        parser.advance();
-        break;
-      }
-      if (buffer.isNotEmpty) buffer.writeln();
-      buffer.write(current);
-      parser.advance();
-    }
-    final content = buffer.toString().trim();
-    return md.Element(_mathBlockTag, [md.Text(content)]);
   }
 }
 

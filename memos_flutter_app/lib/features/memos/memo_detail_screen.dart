@@ -391,11 +391,6 @@ class _MemoDetailScreenState extends ConsumerState<MemoDetailScreen> {
     );
   }
 
-  static final RegExp _taskLinePattern = RegExp(
-    r'^\s*(?:>\s*)?(?:[-*+]|\d+[.)])\s+\[( |x|X)\]',
-  );
-  static final RegExp _codeFencePattern = RegExp(r'^\s*```');
-
   Future<void> _toggleTask(
     TaskToggleRequest request, {
     required bool skipReferenceLines,
@@ -403,13 +398,15 @@ class _MemoDetailScreenState extends ConsumerState<MemoDetailScreen> {
     final memo = _memo;
     if (memo == null) return;
     if (_isArchivedMemo()) return;
-    final updated = _applyTaskToggle(
+    final updated = const MemoTaskListService().toggle(
       memo.content,
       request.taskIndex,
-      checked: request.checked,
-      skipReferenceLines: skipReferenceLines,
+      options: TaskListOptions(
+        skipQuotedLines: skipReferenceLines,
+        includeOrderedMarkers: true,
+      ),
     );
-    if (updated == null || updated == memo.content) return;
+    if (updated == memo.content) return;
 
     final updateTime = memo.updateTime;
     final tags = extractTags(updated);
@@ -453,49 +450,6 @@ class _MemoDetailScreenState extends ConsumerState<MemoDetailScreen> {
         ),
       );
     }
-  }
-
-  String? _applyTaskToggle(
-    String content,
-    int taskIndex, {
-    required bool checked,
-    required bool skipReferenceLines,
-  }) {
-    final lines = content.split('\n');
-    var currentIndex = 0;
-    var inCodeBlock = false;
-
-    for (var i = 0; i < lines.length; i++) {
-      final trimmed = lines[i].trimLeft();
-      if (_codeFencePattern.hasMatch(trimmed)) {
-        inCodeBlock = !inCodeBlock;
-        continue;
-      }
-      if (inCodeBlock) continue;
-      if (skipReferenceLines && trimmed.startsWith('>')) continue;
-
-      final match = _taskLinePattern.firstMatch(lines[i]);
-      if (match == null) continue;
-      if (currentIndex == taskIndex) {
-        lines[i] = _toggleTaskLine(lines[i], checked);
-        return lines.join('\n');
-      }
-      currentIndex++;
-    }
-
-    return null;
-  }
-
-  String _toggleTaskLine(String line, bool checked) {
-    final match = _taskLinePattern.firstMatch(line);
-    if (match == null) return line;
-    final fullMatch = match.group(0);
-    if (fullMatch == null) return line;
-    final bracketIndex = fullMatch.indexOf('[');
-    if (bracketIndex < 0) return line;
-    final start = match.start + bracketIndex + 1;
-    final replacement = checked ? ' ' : 'x';
-    return line.replaceRange(start, start + 1, replacement);
   }
 
   String _attachmentUrl(Uri baseUrl, Attachment a, {required bool thumbnail}) {

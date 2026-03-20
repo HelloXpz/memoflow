@@ -13,7 +13,6 @@ import '../../state/sync/sync_coordinator_provider.dart';
 import '../../application/sync/sync_request.dart';
 import '../../core/app_localization.dart';
 import '../../core/desktop/shortcuts.dart';
-import '../../core/markdown_editing.dart';
 import '../../core/memo_template_renderer.dart';
 import '../../core/memoflow_palette.dart';
 import '../../core/tags.dart';
@@ -25,6 +24,8 @@ import '../../data/models/memo_location.dart';
 import '../../data/models/memo_template_settings.dart';
 import '../../data/models/user_setting.dart';
 import '../../state/settings/location_settings_provider.dart';
+import '../../state/memos/memo_composer_controller.dart';
+import '../../state/memos/memo_composer_state.dart';
 import '../../state/memos/memos_providers.dart';
 import '../../state/settings/image_compression_settings_provider.dart';
 import '../../state/settings/memo_template_settings_provider.dart';
@@ -43,6 +44,9 @@ import 'windows_camera_capture_screen.dart';
 import '../voice/voice_record_screen.dart';
 import '../location_picker/show_location_picker.dart';
 import '../../i18n/strings.g.dart';
+
+typedef _PendingAttachment = MemoComposerPendingAttachment;
+typedef _LinkedMemo = MemoComposerLinkedMemo;
 
 class NoteInputSheet extends ConsumerStatefulWidget {
   const NoteInputSheet({
@@ -90,9 +94,9 @@ class NoteInputSheet extends ConsumerStatefulWidget {
 }
 
 class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
-  late final TextEditingController _controller;
+  late final MemoComposerController _composer;
   late final FocusNode _editorFocusNode;
-  late final SmartEnterController _smartEnterController;
+  TextEditingController get _controller => _composer.textController;
   final _editorFieldKey = GlobalKey();
   var _busy = false;
   Timer? _draftTimer;
@@ -101,51 +105,39 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
   var _didSeedInitialAttachments = false;
   List<TagStat> _tagStatsCache = const [];
   late final NoteDraftController _noteDraftController;
-  final _linkedMemos = <_LinkedMemo>[];
-  final _pendingAttachments = <_PendingAttachment>[];
+  List<_LinkedMemo> get _linkedMemos => _composer.linkedMemos;
+  List<_PendingAttachment> get _pendingAttachments =>
+      _composer.pendingAttachments;
   final _tagMenuKey = GlobalKey();
   final _templateMenuKey = GlobalKey();
   final _todoMenuKey = GlobalKey();
   final _visibilityMenuKey = GlobalKey();
-  final _undoStack = <TextEditingValue>[];
-  final _redoStack = <TextEditingValue>[];
   final _imagePicker = ImagePicker();
   final _templateRenderer = MemoTemplateRenderer();
   final _pickedImages = <XFile>[];
-  TextEditingValue _lastValue = const TextEditingValue();
-  var _isApplyingHistory = false;
-  static const _maxHistory = 100;
   String _visibility = 'PRIVATE';
   bool _visibilityTouched = false;
   MemoLocation? _location;
   final _locating = false;
-  int _tagAutocompleteIndex = 0;
-  String? _tagAutocompleteToken;
+  int get _tagAutocompleteIndex => _composer.tagAutocompleteIndex;
   ProviderSubscription<AsyncValue<UserGeneralSetting>>? _settingsSubscription;
 
   @override
   void initState() {
     super.initState();
     _noteDraftController = ref.read(noteDraftProvider.notifier);
-    _controller = TextEditingController(text: widget.initialText ?? '');
+    _composer = MemoComposerController(
+      initialText: widget.initialText ?? '',
+      initialSelection: widget.initialSelection,
+    );
     _editorFocusNode = FocusNode();
-    final selection = widget.initialSelection;
-    if (selection != null) {
-      _controller.selection = _normalizeSelection(
-        selection,
-        _controller.text.length,
-      );
-    }
     if (widget.ignoreDraft ||
         _controller.text.trim().isNotEmpty ||
         widget.initialAttachmentPaths.isNotEmpty) {
       _didApplyDraft = true;
     }
-    _lastValue = _controller.value;
-    _smartEnterController = SmartEnterController(_controller);
     _controller.addListener(_handleContentChanged);
     _controller.addListener(_scheduleDraftSave);
-    _controller.addListener(_trackHistory);
     _applyDraft(ref.read(noteDraftProvider));
     _applyDefaultVisibility(ref.read(userGeneralSettingProvider));
     _loadTagStats();
@@ -177,8 +169,6 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
     _settingsSubscription?.close();
     _controller.removeListener(_handleContentChanged);
     _controller.removeListener(_scheduleDraftSave);
-    _controller.removeListener(_trackHistory);
-    _smartEnterController.dispose();
     final draftText = _controller.text;
     // Defer provider mutation to avoid updating Riverpod state during unmount.
     unawaited(
@@ -186,7 +176,7 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
         () => _noteDraftController.setDraft(draftText, triggerSync: false),
       ),
     );
-    _controller.dispose();
+    _composer.dispose();
     _editorFocusNode.dispose();
     super.dispose();
   }
@@ -200,17 +190,6 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
       _controller.selection = TextSelection.collapsed(offset: draft.length);
     }
     _didApplyDraft = true;
-  }
-
-  TextSelection _normalizeSelection(TextSelection selection, int length) {
-    if (!selection.isValid) {
-      return TextSelection.collapsed(offset: length);
-    }
-    int clampOffset(int offset) => offset.clamp(0, length).toInt();
-    return selection.copyWith(
-      baseOffset: clampOffset(selection.baseOffset),
-      extentOffset: clampOffset(selection.extentOffset),
-    );
   }
 
   void _applyDefaultVisibility(AsyncValue<UserGeneralSetting> value) {
@@ -254,7 +233,7 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
 
     if (!mounted || added.isEmpty) return;
     setState(() {
-      _pendingAttachments.addAll(added);
+      _composer.addPendingAttachments(added);
     });
   }
 
@@ -274,41 +253,16 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
     } catch (_) {}
   }
 
-  void _trackHistory() {
-    if (_isApplyingHistory) return;
-    final value = _controller.value;
-    if (value.text == _lastValue.text &&
-        value.selection == _lastValue.selection) {
-      return;
-    }
-    _undoStack.add(_lastValue);
-    if (_undoStack.length > _maxHistory) {
-      _undoStack.removeAt(0);
-    }
-    _redoStack.clear();
-    _lastValue = value;
-  }
-
   void _undo() {
-    if (_undoStack.isEmpty) return;
-    _isApplyingHistory = true;
-    final current = _controller.value;
-    final previous = _undoStack.removeLast();
-    _redoStack.add(current);
-    _controller.value = previous;
-    _lastValue = previous;
-    _isApplyingHistory = false;
+    if (!_composer.canUndo) return;
+    _composer.undo();
+    setState(() {});
   }
 
   void _redo() {
-    if (_redoStack.isEmpty) return;
-    _isApplyingHistory = true;
-    final current = _controller.value;
-    final next = _redoStack.removeLast();
-    _undoStack.add(current);
-    _controller.value = next;
-    _lastValue = next;
-    _isApplyingHistory = false;
+    if (!_composer.canRedo) return;
+    _composer.redo();
+    setState(() {});
   }
 
   Future<void> _openVisibilityMenuFromKey(GlobalKey key) async {
@@ -419,92 +373,19 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
   }
 
   void _insertText(String text, {int? caretOffset}) {
-    final value = _controller.value;
-    final selection = value.selection;
-    final start = selection.start < 0 ? value.text.length : selection.start;
-    final end = selection.end < 0 ? value.text.length : selection.end;
-    final newText = value.text.replaceRange(start, end, text);
-    final caret = start + (caretOffset ?? text.length);
-    _controller.value = value.copyWith(
-      text: newText,
-      selection: TextSelection.collapsed(offset: caret),
-      composing: TextRange.empty,
-    );
-  }
-
-  void _replaceText(String text) {
-    _controller.value = _controller.value.copyWith(
-      text: text,
-      selection: TextSelection.collapsed(offset: text.length),
-      composing: TextRange.empty,
-    );
+    _composer.insertText(text, caretOffset: caretOffset);
   }
 
   void _toggleBold() {
-    final value = _controller.value;
-    final sel = value.selection;
-    if (!sel.isValid) {
-      _insertText('****');
-      _controller.selection = const TextSelection.collapsed(offset: 2);
-      return;
-    }
-    if (sel.isCollapsed) {
-      _insertText('****');
-      _controller.selection = TextSelection.collapsed(offset: sel.start + 2);
-      return;
-    }
-    final selected = value.text.substring(sel.start, sel.end);
-    final wrapped = '**$selected**';
-    _controller.value = value.copyWith(
-      text: value.text.replaceRange(sel.start, sel.end, wrapped),
-      selection: TextSelection(
-        baseOffset: sel.start,
-        extentOffset: sel.start + wrapped.length,
-      ),
-      composing: TextRange.empty,
-    );
+    _composer.toggleBold();
   }
 
   void _toggleUnderline() {
-    final value = _controller.value;
-    final sel = value.selection;
-    const prefix = '<u>';
-    const suffix = '</u>';
-    if (!sel.isValid || sel.isCollapsed) {
-      _insertText('$prefix$suffix', caretOffset: prefix.length);
-      return;
-    }
-    final selected = value.text.substring(sel.start, sel.end);
-    final wrapped = '$prefix$selected$suffix';
-    _controller.value = value.copyWith(
-      text: value.text.replaceRange(sel.start, sel.end, wrapped),
-      selection: TextSelection(
-        baseOffset: sel.start,
-        extentOffset: sel.start + wrapped.length,
-      ),
-      composing: TextRange.empty,
-    );
+    _composer.toggleUnderline();
   }
 
   void _toggleHighlight() {
-    final value = _controller.value;
-    final sel = value.selection;
-    const prefix = '==';
-    const suffix = '==';
-    if (!sel.isValid || sel.isCollapsed) {
-      _insertText('$prefix$suffix', caretOffset: prefix.length);
-      return;
-    }
-    final selected = value.text.substring(sel.start, sel.end);
-    final wrapped = '$prefix$selected$suffix';
-    _controller.value = value.copyWith(
-      text: value.text.replaceRange(sel.start, sel.end, wrapped),
-      selection: TextSelection(
-        baseOffset: sel.start,
-        extentOffset: sel.start + wrapped.length,
-      ),
-      composing: TextRange.empty,
-    );
+    _composer.toggleHighlight();
   }
 
   bool _handleDesktopEditorShortcuts(KeyEvent event) {
@@ -552,11 +433,11 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
       return true;
     }
     if (matches(DesktopShortcutAction.unorderedList)) {
-      _insertText('- ');
+      _composer.insertUnorderedListMarker();
       return true;
     }
     if (matches(DesktopShortcutAction.orderedList)) {
-      _insertText('1. ');
+      _composer.insertOrderedListMarker();
       return true;
     }
     if (matches(DesktopShortcutAction.undo)) {
@@ -577,111 +458,45 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
   }
 
   void _syncTagAutocompleteState() {
-    final activeQuery = detectActiveTagQuery(_controller.value);
-    final token = activeQuery == null
-        ? null
-        : '${activeQuery.start}:${activeQuery.query.toLowerCase()}';
-    if (_tagAutocompleteToken != token) {
-      _tagAutocompleteToken = token;
-      _tagAutocompleteIndex = 0;
-    }
-
-    final suggestions = _currentTagSuggestions();
-    if (suggestions.isEmpty) {
-      _tagAutocompleteIndex = 0;
-      return;
-    }
-
-    _tagAutocompleteIndex = _tagAutocompleteIndex
-        .clamp(0, suggestions.length - 1)
-        .toInt();
+    _composer.syncTagAutocompleteState(
+      tagStats: _currentTagStats(),
+      hasFocus: _editorFocusNode.hasFocus,
+    );
   }
 
   List<TagStat> _currentTagStats() {
     return ref.read(tagStatsProvider).valueOrNull ?? _tagStatsCache;
   }
 
-  List<TagStat> _currentTagSuggestions() {
-    if (!_editorFocusNode.hasFocus) return const <TagStat>[];
-    final activeQuery = detectActiveTagQuery(_controller.value);
-    if (activeQuery == null) return const <TagStat>[];
-    return buildTagSuggestions(_currentTagStats(), query: activeQuery.query);
-  }
-
   KeyEventResult _handleTagAutocompleteKeyEvent(
     FocusNode node,
     KeyEvent event,
   ) {
-    if (event is! KeyDownEvent) {
-      return KeyEventResult.ignored;
+    final result = _composer.handleTagAutocompleteKeyEvent(
+      event,
+      tagStats: _currentTagStats(),
+      hasFocus: _editorFocusNode.hasFocus,
+      requestFocus: _editorFocusNode.requestFocus,
+    );
+    if (result == KeyEventResult.handled) {
+      setState(() {});
     }
-
-    final activeQuery = detectActiveTagQuery(_controller.value);
-    final suggestions = _currentTagSuggestions();
-    if (activeQuery == null || suggestions.isEmpty) {
-      return KeyEventResult.ignored;
-    }
-
-    final key = event.logicalKey;
-    if (key == LogicalKeyboardKey.arrowDown) {
-      setState(() {
-        _tagAutocompleteIndex =
-            (_tagAutocompleteIndex + 1) % suggestions.length;
-      });
-      return KeyEventResult.handled;
-    }
-    if (key == LogicalKeyboardKey.arrowUp) {
-      setState(() {
-        _tagAutocompleteIndex =
-            (_tagAutocompleteIndex - 1 + suggestions.length) %
-            suggestions.length;
-      });
-      return KeyEventResult.handled;
-    }
-    if (key == LogicalKeyboardKey.enter ||
-        key == LogicalKeyboardKey.numpadEnter) {
-      final selectedIndex = _tagAutocompleteIndex
-          .clamp(0, suggestions.length - 1)
-          .toInt();
-      _applyTagSuggestion(activeQuery, suggestions[selectedIndex]);
-      return KeyEventResult.handled;
-    }
-
-    return KeyEventResult.ignored;
+    return result;
   }
 
   void _startTagAutocomplete() {
     if (_busy) return;
-    final activeQuery = detectActiveTagQuery(_controller.value);
-    if (activeQuery == null) {
-      _insertText('#');
-    }
-    _tagAutocompleteIndex = 0;
-    _editorFocusNode.requestFocus();
+    _composer.startTagAutocomplete(requestFocus: _editorFocusNode.requestFocus);
     setState(() {});
   }
 
   void _applyTagSuggestion(ActiveTagQuery query, TagStat tag) {
-    final value = _controller.value;
-    final selection = value.selection;
-    final end = selection.isValid && selection.isCollapsed
-        ? selection.extentOffset.clamp(query.start, value.text.length).toInt()
-        : query.end;
-    var suffix = value.text.substring(end);
-    if (suffix.startsWith(' ')) {
-      suffix = suffix.substring(1);
-    }
-    final replacement = '#${tag.path} ';
-    final nextText = value.text.replaceRange(query.start, end, replacement);
-    final caret = query.start + replacement.length;
-    _controller.value = value.copyWith(
-      text: nextText,
-      selection: TextSelection.collapsed(offset: caret),
-      composing: TextRange.empty,
+    _composer.applyTagSuggestion(
+      query,
+      tag,
+      requestFocus: _editorFocusNode.requestFocus,
     );
-    _tagAutocompleteIndex = 0;
-    _tagAutocompleteToken = null;
-    _editorFocusNode.requestFocus();
+    setState(() {});
   }
 
   Future<void> _openTemplateMenuFromKey(
@@ -752,7 +567,7 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
       locationSettings: locationSettings,
     );
     if (!mounted) return;
-    _replaceText(rendered);
+    _composer.applyTemplateContent(rendered);
   }
 
   Future<void> _openTodoShortcutMenu(RelativeRect position) async {
@@ -789,10 +604,10 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
 
     switch (action) {
       case MemoComposeTodoShortcutAction.checkbox:
-        _insertText('- [ ] ');
+        _composer.insertTaskCheckbox();
         break;
       case MemoComposeTodoShortcutAction.codeBlock:
-        _insertText('```\n\n```', caretOffset: 4);
+        _composer.insertCodeBlock();
         break;
     }
   }
@@ -885,7 +700,7 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
       MemoComposeToolbarActionSpec.builtin(
         id: MemoToolbarActionId.list,
         enabled: !_busy,
-        onPressed: () => _insertText('- '),
+        onPressed: _composer.insertUnorderedListMarker,
       ),
       MemoComposeToolbarActionSpec.builtin(
         id: MemoToolbarActionId.underline,
@@ -894,12 +709,12 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
       ),
       MemoComposeToolbarActionSpec.builtin(
         id: MemoToolbarActionId.undo,
-        enabled: !_busy && _undoStack.isNotEmpty,
+        enabled: !_busy && _composer.canUndo,
         onPressed: _undo,
       ),
       MemoComposeToolbarActionSpec.builtin(
         id: MemoToolbarActionId.redo,
-        enabled: !_busy && _redoStack.isNotEmpty,
+        enabled: !_busy && _composer.canRedo,
         onPressed: _redo,
       ),
       MemoComposeToolbarActionSpec.builtin(
@@ -1049,7 +864,7 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
       }
 
       setState(() {
-        _pendingAttachments.addAll(
+        _composer.addPendingAttachments(
           result.attachments
               .map(
                 (attachment) => _PendingAttachment(
@@ -1168,7 +983,7 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
       }
 
       setState(() {
-        _pendingAttachments.addAll(added);
+        _composer.addPendingAttachments(added);
       });
       final skipped = [
         if (missingPathCount > 0)
@@ -1227,7 +1042,7 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
     final mimeType = _guessMimeType(filename);
     if (!mounted) return;
     setState(() {
-      _pendingAttachments.add(
+      _composer.addPendingAttachments([
         _PendingAttachment(
           uid: generateUid(),
           filePath: path,
@@ -1235,7 +1050,7 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
           mimeType: mimeType,
           size: size,
         ),
-      );
+      ]);
     });
     showTopToast(context, context.t.strings.legacy.msg_added_voice_attachment);
   }
@@ -1277,7 +1092,7 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
       final mimeType = _guessMimeType(filename);
       if (!mounted) return;
       setState(() {
-        _pendingAttachments.add(
+        _composer.addPendingAttachments([
           _PendingAttachment(
             uid: generateUid(),
             filePath: path,
@@ -1285,7 +1100,7 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
             mimeType: mimeType,
             size: size,
           ),
-        );
+        ]);
         _pickedImages.add(photo);
       });
       showTopToast(
@@ -1331,7 +1146,7 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
     if (index < 0) return;
     final removed = _pendingAttachments[index];
     setState(() {
-      _pendingAttachments.removeAt(index);
+      _composer.removePendingAttachment(uid);
       _pickedImages.removeWhere((x) => x.path == removed.filePath);
     });
   }
@@ -1412,13 +1227,16 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
     if (index < 0) return;
     final existing = _pendingAttachments[index];
     setState(() {
-      _pendingAttachments[index] = _PendingAttachment(
-        uid: uid,
-        filePath: result.filePath,
-        filename: result.filename,
-        mimeType: result.mimeType,
-        size: result.size,
-        skipCompression: existing.skipCompression,
+      _composer.replacePendingAttachment(
+        uid,
+        _PendingAttachment(
+          uid: uid,
+          filePath: result.filePath,
+          filename: result.filename,
+          mimeType: result.mimeType,
+          size: result.size,
+          skipCompression: existing.skipCompression,
+        ),
       );
     });
   }
@@ -1617,16 +1435,22 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
     if (name.isEmpty) return;
     if (_linkedMemos.any((m) => m.name == name)) return;
     final label = _linkedMemoLabel(memo);
-    setState(() => _linkedMemos.add(_LinkedMemo(name: name, label: label)));
+    setState(() {
+      _composer.addLinkedMemo(_LinkedMemo(name: name, label: label));
+    });
   }
 
   void _removeLinkedMemo(String name) {
-    setState(() => _linkedMemos.removeWhere((m) => m.name == name));
+    setState(() {
+      _composer.removeLinkedMemo(name);
+    });
   }
 
   void _clearLinkedMemos() {
     if (_linkedMemos.isEmpty) return;
-    setState(() => _linkedMemos.clear());
+    setState(() {
+      _composer.clearLinkedMemos();
+    });
   }
 
   String _linkedMemoLabel(Memo memo) {
@@ -1742,9 +1566,9 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
             ),
       );
       _draftTimer?.cancel();
-      _controller.clear();
+      _composer.replaceText('', clearHistory: true);
       _clearLinkedMemos();
-      _pendingAttachments.clear();
+      _composer.clearPendingAttachments();
       _pickedImages.clear();
       await ref.read(noteDraftProvider.notifier).clear();
 
@@ -1937,8 +1761,10 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
                                                     return;
                                                   }
                                                   setState(() {
-                                                    _tagAutocompleteIndex =
-                                                        index;
+                                                    _composer
+                                                        .setTagAutocompleteIndex(
+                                                          index,
+                                                        );
                                                   });
                                                 },
                                                 onSelect: (tag) =>
@@ -2152,37 +1978,5 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
         ),
       ),
     );
-  }
-}
-
-class _PendingAttachment {
-  const _PendingAttachment({
-    required this.uid,
-    required this.filePath,
-    required this.filename,
-    required this.mimeType,
-    required this.size,
-    this.skipCompression = false,
-  });
-
-  final String uid;
-  final String filePath;
-  final String filename;
-  final String mimeType;
-  final int size;
-  final bool skipCompression;
-}
-
-class _LinkedMemo {
-  const _LinkedMemo({required this.name, required this.label});
-
-  final String name;
-  final String label;
-
-  Map<String, dynamic> toRelationJson() {
-    return {
-      'relatedMemo': {'name': name},
-      'type': 'REFERENCE',
-    };
   }
 }
