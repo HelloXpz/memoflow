@@ -478,8 +478,9 @@ class MainActivity : FlutterActivity() {
 
         val text = intent.getStringExtra(Intent.EXTRA_TEXT)?.trim()
         val urlInText = if (!text.isNullOrEmpty()) extractFirstUrl(text) else null
+        val title = extractShareTitle(intent, text, urlInText)
         if (!urlInText.isNullOrEmpty()) {
-            dispatchShare(SharePayload(type = "text", text = text))
+            dispatchShare(SharePayload(type = "text", text = text, title = title))
             clearShareIntent(intent)
             return
         }
@@ -495,9 +496,31 @@ class MainActivity : FlutterActivity() {
         }
 
         if (!text.isNullOrEmpty()) {
-            dispatchShare(SharePayload(type = "text", text = text))
+            dispatchShare(SharePayload(type = "text", text = text, title = title))
             clearShareIntent(intent)
         }
+    }
+
+    private fun extractShareTitle(intent: Intent, text: String?, sharedUrl: String?): String? {
+        val explicitTitle = sequenceOf(
+            intent.getStringExtra(Intent.EXTRA_SUBJECT),
+            intent.getStringExtra(Intent.EXTRA_TITLE),
+            intent.extras?.getCharSequence(Intent.EXTRA_SUBJECT)?.toString(),
+            intent.extras?.getCharSequence(Intent.EXTRA_TITLE)?.toString(),
+        )
+            .mapNotNull { normalizeShareTitle(it) }
+            .firstOrNull()
+        if (!explicitTitle.isNullOrEmpty()) {
+            return explicitTitle
+        }
+
+        if (text.isNullOrBlank()) return null
+        val derivedTitle = if (sharedUrl.isNullOrEmpty()) {
+            text
+        } else {
+            text.replaceFirst(sharedUrl, " ")
+        }
+        return normalizeShareTitle(derivedTitle)
     }
 
     private fun extractShareUris(intent: Intent): List<Uri> {
@@ -594,6 +617,8 @@ class MainActivity : FlutterActivity() {
 
     private fun clearShareIntent(intent: Intent) {
         intent.removeExtra(Intent.EXTRA_TEXT)
+        intent.removeExtra(Intent.EXTRA_SUBJECT)
+        intent.removeExtra(Intent.EXTRA_TITLE)
         intent.removeExtra(Intent.EXTRA_STREAM)
         intent.clipData = null
     }
@@ -692,15 +717,27 @@ class MainActivity : FlutterActivity() {
         return match.value
     }
 
+    private fun normalizeShareTitle(value: String?): String? {
+        if (value.isNullOrBlank()) return null
+        val normalized = value.replace(Regex("\\s+"), " ").trim()
+        if (normalized.isBlank()) return null
+        if (Regex("^https?://\\S+$", RegexOption.IGNORE_CASE).matches(normalized)) {
+            return null
+        }
+        return normalized
+    }
+
     private data class SharePayload(
         val type: String,
         val text: String? = null,
+        val title: String? = null,
         val paths: List<String> = emptyList(),
     ) {
         fun toMap(): Map<String, Any?> {
             return mapOf(
                 "type" to type,
                 "text" to text,
+                "title" to title,
                 "paths" to paths,
             )
         }

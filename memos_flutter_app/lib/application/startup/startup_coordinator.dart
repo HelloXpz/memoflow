@@ -837,26 +837,13 @@ class StartupCoordinator {
       return;
     }
 
-    final rawText = (payload.text ?? '').trim();
-    final url = _extractShareUrl(rawText);
-    final text = url == null ? rawText : '[]($url)';
-    final selectionOffset = url == null ? text.length : 1;
+    final draft = buildShareTextDraft(payload);
     NoteInputSheet.show(
       context,
-      initialText: text,
-      initialSelection: TextSelection.collapsed(offset: selectionOffset),
+      initialText: draft.text,
+      initialSelection: TextSelection.collapsed(offset: draft.selectionOffset),
       ignoreDraft: true,
     );
-  }
-
-  String? _extractShareUrl(String raw) {
-    final match = RegExp(r'https?://[^\s]+').firstMatch(raw);
-    final url = match?.group(0);
-    if (url == null || url.isEmpty) return null;
-    final uri = Uri.tryParse(url);
-    if (uri == null) return null;
-    if (uri.scheme != 'http' && uri.scheme != 'https') return null;
-    return url;
   }
 
   void _notifyShareDisabled() {

@@ -5,10 +5,16 @@ import 'package:flutter/services.dart';
 enum SharePayloadType { text, images }
 
 class SharePayload {
-  const SharePayload({required this.type, this.text, this.paths = const []});
+  const SharePayload({
+    required this.type,
+    this.text,
+    this.title,
+    this.paths = const [],
+  });
 
   final SharePayloadType type;
   final String? text;
+  final String? title;
   final List<String> paths;
 
   static SharePayload? fromArgs(Object? args) {
@@ -17,6 +23,7 @@ class SharePayload {
     final type = _parseType(rawType);
     if (type == null) return null;
     final text = args['text'] as String?;
+    final title = _normalizeTitle(args['title'] as String?);
     final rawPaths = args['paths'];
     final paths = <String>[];
     if (rawPaths is List) {
@@ -26,7 +33,7 @@ class SharePayload {
         }
       }
     }
-    return SharePayload(type: type, text: text, paths: paths);
+    return SharePayload(type: type, text: text, title: title, paths: paths);
   }
 
   static SharePayloadType? _parseType(Object? raw) {
@@ -40,6 +47,75 @@ class SharePayload {
     }
     return null;
   }
+
+  static String? _normalizeTitle(String? value) {
+    if (value == null) return null;
+    final normalized = value.replaceAll(RegExp(r'\s+'), ' ').trim();
+    if (normalized.isEmpty || _looksLikeUrl(normalized)) {
+      return null;
+    }
+    return normalized;
+  }
+}
+
+class ShareTextDraft {
+  const ShareTextDraft({required this.text, required this.selectionOffset});
+
+  final String text;
+  final int selectionOffset;
+}
+
+ShareTextDraft buildShareTextDraft(SharePayload payload) {
+  final rawText = (payload.text ?? '').trim();
+  final url = extractShareUrl(rawText);
+  if (url == null) {
+    return ShareTextDraft(text: rawText, selectionOffset: rawText.length);
+  }
+
+  final title = _extractShareTitle(
+    payload: payload,
+    rawText: rawText,
+    url: url,
+  );
+  if (title == null) {
+    return ShareTextDraft(text: '[]($url)', selectionOffset: 1);
+  }
+
+  final text = '[${_escapeMarkdownLinkText(title)}]($url)';
+  return ShareTextDraft(text: text, selectionOffset: text.length);
+}
+
+String? extractShareUrl(String raw) {
+  final match = RegExp(r'https?://[^\s]+').firstMatch(raw);
+  final url = match?.group(0);
+  if (url == null || url.isEmpty) return null;
+  final uri = Uri.tryParse(url);
+  if (uri == null) return null;
+  if (uri.scheme != 'http' && uri.scheme != 'https') return null;
+  return url;
+}
+
+String? _extractShareTitle({
+  required SharePayload payload,
+  required String rawText,
+  required String url,
+}) {
+  final explicitTitle = SharePayload._normalizeTitle(payload.title);
+  if (explicitTitle != null) return explicitTitle;
+
+  final derivedText = rawText.replaceFirst(url, ' ');
+  return SharePayload._normalizeTitle(derivedText);
+}
+
+String _escapeMarkdownLinkText(String value) {
+  return value
+      .replaceAll(r'\', r'\\')
+      .replaceAll('[', r'\[')
+      .replaceAll(']', r'\]');
+}
+
+bool _looksLikeUrl(String value) {
+  return RegExp(r'^https?://\S+$', caseSensitive: false).hasMatch(value);
 }
 
 class ShareHandlerService {
