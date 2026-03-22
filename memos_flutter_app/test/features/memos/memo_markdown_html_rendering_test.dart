@@ -31,6 +31,27 @@ void main() {
     expect(rendered, contains('<p>Hello, World!</p>'));
     expect(rendered, isNot(contains('Hello, World!\n')));
   });
+
+  testWidgets('renders clipped article html fragment inline', (
+    WidgetTester tester,
+  ) async {
+    const content = '# Example\n\n[Example](https://example.com)\n\n> Summary\n\n<h2>Body</h2><p>Hello <strong>world</strong>.</p><ul><li>One</li><li>Two</li></ul>';
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(body: MemoMarkdown(data: content)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final rendered = _collectRenderedText(tester);
+
+    expect(rendered, contains('Example'));
+    expect(rendered, contains('Summary'));
+    expect(rendered, contains('Hello world.'));
+    expect(rendered, contains('One'));
+    expect(rendered, contains('Two'));
+  });
 }
 
 String _collectRenderedText(WidgetTester tester) {

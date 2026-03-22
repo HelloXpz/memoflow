@@ -63,4 +63,12 @@ void main() {
     expect(payload, isNotNull);
     expect(payload!.title, 'Example Article');
   });
+
+  test('extractShareUrl returns the first url when multiple urls are shared', () {
+    const raw = 'Read this https://example.com/one and also https://example.com/two';
+
+    final url = extractShareUrl(raw);
+
+    expect(url, 'https://example.com/one');
+  });
 }

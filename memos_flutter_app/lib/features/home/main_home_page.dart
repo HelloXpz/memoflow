@@ -9,6 +9,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/app_localization.dart';
 import '../../core/splash_tokens.g.dart';
 import '../../core/startup_timing.dart';
+import '../../application/startup/startup_coordinator.dart';
+import '../share/share_clip_models.dart';
 import '../startup/startup_screen.dart';
 import '../startup/storage_error_screen.dart';
 import '../startup/storage_error_banner.dart';
@@ -23,7 +25,9 @@ import '../../state/system/storage_error_provider.dart';
 import '../../application/desktop/desktop_exit_coordinator.dart';
 
 class MainHomePage extends ConsumerStatefulWidget {
-  const MainHomePage({super.key});
+  const MainHomePage({super.key, this.startupCoordinator});
+
+  final StartupCoordinator? startupCoordinator;
 
   @override
   ConsumerState<MainHomePage> createState() => _MainHomePageState();
@@ -31,6 +35,11 @@ class MainHomePage extends ConsumerStatefulWidget {
 
 class _MainHomePageState extends ConsumerState<MainHomePage> {
   String? _lastRouteDecisionKey;
+
+  void _handleStartupCoordinatorChanged() {
+    if (!mounted) return;
+    setState(() {});
+  }
   Timer? _startupMinTimer;
   bool _startupMinElapsed = false;
   bool _startupMinTimerStarted = false;
@@ -57,6 +66,7 @@ class _MainHomePageState extends ConsumerState<MainHomePage> {
   @override
   void initState() {
     super.initState();
+    widget.startupCoordinator?.addListener(_handleStartupCoordinatorChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _firstFrameRendered = true;
@@ -66,7 +76,16 @@ class _MainHomePageState extends ConsumerState<MainHomePage> {
   }
 
   @override
+  void didUpdateWidget(covariant MainHomePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.startupCoordinator == widget.startupCoordinator) return;
+    oldWidget.startupCoordinator?.removeListener(_handleStartupCoordinatorChanged);
+    widget.startupCoordinator?.addListener(_handleStartupCoordinatorChanged);
+  }
+
+  @override
   void dispose() {
+    widget.startupCoordinator?.removeListener(_handleStartupCoordinatorChanged);
     _startupMinTimer?.cancel();
     super.dispose();
   }
@@ -379,6 +398,13 @@ class _MainHomePageState extends ConsumerState<MainHomePage> {
       }
     }
 
+    final startupShareRequest = (() {
+      final payload = widget.startupCoordinator?.startupSharePreviewPayload;
+      if (payload == null) return null;
+      return buildShareCaptureRequest(payload);
+    })();
+    final showStartupShare = startupShareRequest != null;
+
     var showStartup = !_startupMinElapsed || waitingForReady;
     if (hasStorageError) {
       showStartup = false;
@@ -411,9 +437,11 @@ class _MainHomePageState extends ConsumerState<MainHomePage> {
       }
       _scheduleContentFirstFrameLog();
     }
-    final child = showStartup
-        ? StartupScreen(showSlogan: showStartupSlogan)
-        : content;
+    final child = showStartupShare
+        ? _ShareStartupPlaceholder(request: startupShareRequest)
+        : (showStartup
+              ? StartupScreen(showSlogan: showStartupSlogan)
+              : content);
 
     return finalize(
       AnimatedSwitcher(
@@ -421,8 +449,112 @@ class _MainHomePageState extends ConsumerState<MainHomePage> {
         switchInCurve: Curves.easeOut,
         switchOutCurve: Curves.easeIn,
         child: KeyedSubtree(
-          key: ValueKey(showStartup ? 'startup' : 'content'),
+          key: ValueKey(
+            showStartupShare
+                ? 'share_startup'
+                : (showStartup ? 'startup' : 'content'),
+          ),
           child: child,
+        ),
+      ),
+    );
+  }
+}
+
+class _ShareStartupPlaceholder extends StatelessWidget {
+  const _ShareStartupPlaceholder({required this.request});
+
+  final ShareCaptureRequest? request;
+
+  @override
+  Widget build(BuildContext context) {
+    final target = request?.sharedTitle?.trim();
+    final domain = request?.url.host ?? '';
+    final headline =
+        (target != null && target.isNotEmpty) ? target : (domain.isNotEmpty ? domain : 'Shared page');
+    final theme = Theme.of(context);
+
+    return ColoredBox(
+      color: SplashTokens.backgroundColor,
+      child: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surface,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 24,
+                      offset: const Offset(0, 12),
+                    ),
+                  ],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Icon(
+                              Icons.auto_stories_outlined,
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Preparing clip',
+                                  style: theme.textTheme.titleMedium,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  domain.isEmpty ? 'Opening shared page' : domain,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.7),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        headline,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.headlineSmall,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Loading the real page and generating a readable preview.',
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                      const SizedBox(height: 20),
+                      const LinearProgressIndicator(),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );

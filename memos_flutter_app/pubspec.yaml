@@ -81,6 +81,7 @@ dependencies:
   archive: ^4.0.4
   flutter_animate: ^4.5.2
   url_launcher: ^6.3.0
+  flutter_inappwebview: ^6.1.5
   webview_flutter: ^4.10.0
   webview_windows: ^0.4.0
   flutter_widget_from_html: ^0.17.1
@@ -152,6 +153,8 @@ flutter:
     - assets/splash/splash_logo_native.png
     - assets/ai_providers/
     - assets/location_picker/
+    - assets/share/
+    - third_party/readability/
     - assets/images/streamline--wind-flow-1-remix.png
     - assets/images/donation_qr.png
     - assets/images/default_avatar.webp

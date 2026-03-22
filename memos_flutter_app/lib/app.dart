@@ -70,6 +70,8 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
   bool _loggedAppInitState = false;
   bool _loggedAppBuildStart = false;
   bool _loggedAppBuildEnd = false;
+  bool _deferredWidgetRefresh = false;
+  bool _deferredResumeSync = false;
 
   Future<void> _ensureFontLoaded(AppPreferences prefs) async {
     await _fontLoader.ensureLoaded(
@@ -93,6 +95,39 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
         await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
       }
     } catch (_) {}
+  }
+
+  void _scheduleHomeWidgetRefresh({bool force = false}) {
+    if (_startupCoordinator.shouldDeferHeavyStartupWork) {
+      _deferredWidgetRefresh = _deferredWidgetRefresh || force;
+      return;
+    }
+    _homeWidgetsUpdater.scheduleUpdate(ref, force: force);
+  }
+
+  void _triggerLifecycleSync({required bool isResume}) {
+    if (isResume && _startupCoordinator.shouldDeferHeavyStartupWork) {
+      _deferredResumeSync = true;
+      return;
+    }
+    _syncOrchestrator.triggerLifecycleSync(isResume: isResume);
+  }
+
+  void _handleStartupCoordinatorChanged() {
+    if (!mounted) return;
+    if (!_startupCoordinator.shouldDeferHeavyStartupWork) {
+      final shouldFlushWidgets = _deferredWidgetRefresh;
+      final shouldFlushSync = _deferredResumeSync;
+      _deferredWidgetRefresh = false;
+      _deferredResumeSync = false;
+      if (shouldFlushWidgets) {
+        _scheduleHomeWidgetRefresh(force: true);
+      }
+      if (shouldFlushSync) {
+        _syncOrchestrator.triggerLifecycleSync(isResume: true);
+      }
+    }
+    setState(() {});
   }
 
   @override
@@ -131,6 +166,7 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
       ref: ref,
       isMounted: () => mounted,
     );
+    _startupCoordinator.addListener(_handleStartupCoordinatorChanged);
     final quickInputService = QuickInputService(
       bootstrapAdapter: _bootstrapAdapter,
     );
@@ -202,7 +238,7 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
     _bootstrapController.bind(
       ref: ref,
       syncOrchestrator: _syncOrchestrator,
-      scheduleStatsWidgetUpdate: () => _homeWidgetsUpdater.scheduleUpdate(ref),
+      scheduleStatsWidgetUpdate: () => _scheduleHomeWidgetRefresh(force: true),
       scheduleShareHandling: _startupCoordinator.scheduleShareHandling,
       ensureFontLoaded: _ensureFontLoaded,
       registerDesktopQuickInputHotKey:
@@ -218,7 +254,7 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
     _sessionSub = _bootstrapAdapter.listenSession(ref, (previous, nextValue) {
       if (!mounted) return;
       _homeWidgetsUpdater.bindDatabaseChanges(ref);
-      _homeWidgetsUpdater.scheduleUpdate(ref, force: true);
+      _scheduleHomeWidgetRefresh(force: true);
       _startupCoordinator.onSessionChanged(source: 'session');
     });
     _localLibrarySub = ref.listenManual<LocalLibrary?>(
@@ -226,11 +262,11 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
       (previous, nextValue) {
         if (!mounted) return;
         _homeWidgetsUpdater.bindDatabaseChanges(ref);
-        _homeWidgetsUpdater.scheduleUpdate(ref, force: true);
+        _scheduleHomeWidgetRefresh(force: true);
         _startupCoordinator.onLocalLibraryChanged(source: 'local_library');
       },
     );
-    _homeWidgetsUpdater.scheduleUpdate(ref, force: true);
+    _scheduleHomeWidgetRefresh(force: true);
   }
 
   @override
@@ -240,7 +276,7 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
       case AppLifecycleState.resumed:
         _bootstrapAdapter.resumeWebDavBackupProgress(ref);
         _desktopWindowManager.bindMethodHandler();
-        _syncOrchestrator.triggerLifecycleSync(isResume: true);
+        _triggerLifecycleSync(isResume: true);
         _bootstrapController.rescheduleRemindersIfNeeded(ref: ref);
         break;
       case AppLifecycleState.paused:
@@ -389,7 +425,10 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
           }
           return windowContent;
         },
-        home: MainHomePage(key: _mainHomePageKey),
+        home: MainHomePage(
+          key: _mainHomePageKey,
+          startupCoordinator: _startupCoordinator,
+        ),
       ),
     );
     if (!_loggedAppBuildEnd) {
@@ -410,6 +449,7 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     }
     _bootstrapController.dispose();
+    _startupCoordinator.removeListener(_handleStartupCoordinatorChanged);
     _startupCoordinator.dispose();
     _desktopWindowManager.unbindMethodHandler();
     unawaited(_desktopQuickInputController.unregisterHotKey());

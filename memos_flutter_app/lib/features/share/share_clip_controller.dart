@@ -1,0 +1,80 @@
+import 'package:flutter/foundation.dart';
+
+import 'share_capture_engine.dart';
+import 'share_capture_formatter.dart';
+import 'share_clip_models.dart';
+import 'share_handler.dart';
+
+class ShareClipController extends ChangeNotifier {
+  ShareClipController({
+    required SharePayload payload,
+    required ShareCaptureEngine engine,
+    ShareCaptureRequest? request,
+  }) : _payload = payload,
+       _engine = engine,
+       _request = request ?? buildShareCaptureRequest(payload)!,
+       _state = ShareClipViewState.loading(
+         linkOnlyRequest: buildLinkOnlyComposeRequest(payload),
+       );
+
+  final SharePayload _payload;
+  final ShareCaptureEngine _engine;
+  final ShareCaptureRequest _request;
+
+  ShareClipViewState _state;
+
+  ShareClipViewState get state => _state;
+
+  Future<void> start() => _capture();
+
+  Future<void> retry() => _capture();
+
+  ShareComposeRequest useLinkOnly() => _state.linkOnlyRequest;
+
+  ShareComposeRequest? saveArticle() {
+    final result = _state.result;
+    if (result == null || !result.isSuccess) return null;
+    final request = buildShareComposeRequestFromCapture(
+      result: result,
+      payload: _payload,
+    );
+    _state = _state.copyWith(phase: ShareClipPhase.composing);
+    notifyListeners();
+    return request;
+  }
+
+  Future<void> _capture() async {
+    _state = ShareClipViewState.loading(
+      linkOnlyRequest: _state.linkOnlyRequest,
+    );
+    notifyListeners();
+    final result = await _engine.capture(
+      _request,
+      onStageChanged: (stage) {
+        _state = _state.copyWith(stage: stage);
+        notifyListeners();
+      },
+    );
+    if (result.isSuccess) {
+      final previewText = buildShareCaptureMemoText(
+        result: result,
+        payload: _payload,
+      );
+      _state = _state.copyWith(
+        phase: ShareClipPhase.success,
+        stage: ShareCaptureStage.buildingPreview,
+        result: result,
+        previewText: previewText,
+      );
+      notifyListeners();
+      return;
+    }
+
+    _state = _state.copyWith(
+      phase: ShareClipPhase.failure,
+      result: result,
+      clearPreviewText: true,
+    );
+    notifyListeners();
+  }
+}
