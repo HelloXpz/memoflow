@@ -28,9 +28,6 @@ class MemoToolbarSettingsScreen extends ConsumerWidget {
     final backgroundColor = isDark
         ? MemoFlowPalette.backgroundDark
         : MemoFlowPalette.backgroundLight;
-    final cardColor = isDark
-        ? MemoFlowPalette.cardDark
-        : MemoFlowPalette.cardLight;
     final textColor = isDark
         ? MemoFlowPalette.textDark
         : MemoFlowPalette.textLight;
@@ -125,8 +122,6 @@ class MemoToolbarSettingsScreen extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
             children: [
               _SectionCard(
-                cardColor: cardColor,
-                isDark: isDark,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -137,11 +132,6 @@ class MemoToolbarSettingsScreen extends ConsumerWidget {
                         fontWeight: FontWeight.w700,
                         color: textColor,
                       ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      toolbarStrings.toolboxDescription,
-                      style: TextStyle(color: mutedTextColor),
                     ),
                     const SizedBox(height: 14),
                     _ToolboxPanel(
@@ -162,8 +152,6 @@ class MemoToolbarSettingsScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 12),
               _SectionCard(
-                cardColor: cardColor,
-                isDark: isDark,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -287,33 +275,14 @@ class _ToolbarDraggable extends StatelessWidget {
 }
 
 class _SectionCard extends StatelessWidget {
-  const _SectionCard({
-    required this.cardColor,
-    required this.isDark,
-    required this.child,
-  });
+  const _SectionCard({required this.child});
 
-  final Color cardColor;
-  final bool isDark;
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: isDark
-            ? null
-            : [
-                BoxShadow(
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
-                  color: Colors.black.withValues(alpha: 0.06),
-                ),
-              ],
-      ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: child,
     );
   }
@@ -353,49 +322,64 @@ class _ToolboxPanel extends StatelessWidget {
         final isActive = candidateData.isNotEmpty;
         return AnimatedContainer(
           duration: const Duration(milliseconds: 140),
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.symmetric(vertical: 4),
           decoration: BoxDecoration(
             color: isActive
                 ? MemoFlowPalette.primary.withValues(alpha: isDark ? 0.18 : 0.1)
-                : textColor.withValues(alpha: isDark ? 0.04 : 0.03),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: isActive
-                  ? MemoFlowPalette.primary.withValues(alpha: 0.45)
-                  : borderColor,
-            ),
+                : Colors.transparent,
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Wrap(
-                spacing: 14,
-                runSpacing: 14,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              const crossAxisSpacing = 12.0;
+              const minTileWidth = 68.0;
+              final crossAxisCount =
+                  ((constraints.maxWidth + crossAxisSpacing) /
+                          (minTileWidth + crossAxisSpacing))
+                      .floor()
+                      .clamp(3, 6);
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _ToolboxCreateTile(
-                    key: const ValueKey('memo-toolbar-create-custom'),
-                    textColor: textColor,
-                    mutedTextColor: mutedTextColor,
-                    onTap: onCreateCustom,
-                  ),
-                  for (final item in items)
-                    _ToolboxActionTile(
-                      preferences: preferences,
-                      item: item,
-                      textColor: textColor,
-                      mutedTextColor: mutedTextColor,
-                      onAdd: () => onAdd(item),
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: items.length + 1,
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      crossAxisSpacing: crossAxisSpacing,
+                      mainAxisSpacing: 14,
+                      childAspectRatio: 0.82,
                     ),
+                    itemBuilder: (context, index) {
+                      if (index == 0) {
+                        return _ToolboxCreateTile(
+                          key: const ValueKey('memo-toolbar-create-custom'),
+                          textColor: textColor,
+                          mutedTextColor: mutedTextColor,
+                          onTap: onCreateCustom,
+                        );
+                      }
+                      final item = items[index - 1];
+                      return _ToolboxActionTile(
+                        preferences: preferences,
+                        item: item,
+                        textColor: textColor,
+                        mutedTextColor: mutedTextColor,
+                        onAdd: () => onAdd(item),
+                      );
+                    },
+                  ),
+                  if (items.isEmpty) ...[
+                    const SizedBox(height: 14),
+                    Text(
+                      toolbarStrings.toolboxEmpty,
+                      style: TextStyle(color: mutedTextColor),
+                    ),
+                  ],
                 ],
-              ),
-              if (items.isEmpty) ...[
-                const SizedBox(height: 14),
-                Text(
-                  toolbarStrings.toolboxEmpty,
-                  style: TextStyle(color: mutedTextColor),
-                ),
-              ],
-            ],
+              );
+            },
           ),
         );
       },
@@ -421,46 +405,39 @@ class _ToolboxCreateTile extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
-      child: SizedBox(
-        width: 72,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                _ToolActionVisual(
-                  icon: Icons.add_rounded,
-                  iconColor: textColor,
-                  backgroundColor: textColor.withValues(alpha: 0.05),
-                  borderColor: textColor.withValues(alpha: 0.14),
-                  dashedBorder: true,
-                ),
-                Positioned(
-                  top: -6,
-                  right: -6,
-                  child: _ActionBadgeButton(
-                    icon: Icons.add,
-                    color: const Color(0xFF2EAF61),
-                    onTap: onTap,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              toolbarStrings.createCustomButton,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12,
-                height: 1.25,
-                color: mutedTextColor,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              _ToolActionVisual(
+                icon: Icons.add_rounded,
+                iconColor: textColor,
+                backgroundColor: textColor.withValues(alpha: 0.05),
+                borderColor: textColor.withValues(alpha: 0.14),
+                dashedBorder: true,
               ),
-            ),
-          ],
-        ),
+              Positioned(
+                top: -6,
+                right: -6,
+                child: _ActionBadgeButton(
+                  icon: Icons.add,
+                  color: const Color(0xFF2EAF61),
+                  onTap: onTap,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            toolbarStrings.createCustomButton,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12, height: 1.25, color: mutedTextColor),
+          ),
+        ],
       ),
     );
   }
@@ -496,44 +473,37 @@ class _ToolboxActionTile extends StatelessWidget {
       data: item,
       feedback: Material(color: Colors.transparent, child: visual),
       childWhenDragging: Opacity(opacity: 0.35, child: visual),
-      child: SizedBox(
-        width: 72,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Tooltip(
-                  message: item.resolveLabel(context, preferences),
-                  child: visual,
-                ),
-                Positioned(
-                  top: -6,
-                  right: -6,
-                  child: _ActionBadgeButton(
-                    key: ValueKey<String>('memo-toolbar-add-$keySuffix'),
-                    icon: Icons.add,
-                    color: const Color(0xFF2EAF61),
-                    onTap: onAdd,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              item.resolveLabel(context, preferences),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12,
-                height: 1.25,
-                color: mutedTextColor,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Tooltip(
+                message: item.resolveLabel(context, preferences),
+                child: visual,
               ),
-            ),
-          ],
-        ),
+              Positioned(
+                top: -6,
+                right: -6,
+                child: _ActionBadgeButton(
+                  key: ValueKey<String>('memo-toolbar-add-$keySuffix'),
+                  icon: Icons.add,
+                  color: const Color(0xFF2EAF61),
+                  onTap: onAdd,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            item.resolveLabel(context, preferences),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12, height: 1.25, color: mutedTextColor),
+          ),
+        ],
       ),
     );
   }

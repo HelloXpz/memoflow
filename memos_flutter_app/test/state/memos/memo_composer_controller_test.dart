@@ -83,31 +83,189 @@ void main() {
       expect(controller.text, '==hello==');
     });
 
-    test('applies template content and list/code block commands', () {
+    test('inline formatting toggles can unwrap when applied again', () {
+      final controller = MemoComposerController(initialText: '**hello**');
+      addTearDown(controller.dispose);
+
+      controller.textController.selection = const TextSelection(
+        baseOffset: 2,
+        extentOffset: 7,
+      );
+      controller.toggleBold();
+      expect(controller.text, 'hello');
+
+      controller.replaceText('<u>hello</u>');
+      controller.textController.selection = const TextSelection.collapsed(
+        offset: 5,
+      );
+      controller.toggleUnderline();
+      expect(controller.text, 'hello');
+
+      controller.replaceText('==hello==');
+      controller.textController.selection = const TextSelection(
+        baseOffset: 2,
+        extentOffset: 7,
+      );
+      controller.toggleHighlight();
+      expect(controller.text, 'hello');
+    });
+
+    test('inline formatting toggles unwrap empty wrappers on second tap', () {
+      final controller = MemoComposerController();
+      addTearDown(controller.dispose);
+
+      controller.toggleHighlight();
+      expect(controller.text, '====');
+      expect(
+        controller.textController.selection,
+        const TextSelection.collapsed(offset: 2),
+      );
+      controller.toggleHighlight();
+      expect(controller.text, '');
+
+      controller.toggleBold();
+      expect(controller.text, '****');
+      expect(
+        controller.textController.selection,
+        const TextSelection.collapsed(offset: 2),
+      );
+      controller.toggleBold();
+      expect(controller.text, '');
+    });
+
+    test('legacy list wrappers toggle paragraph styles', () {
       final controller = MemoComposerController(initialText: 'seed');
       addTearDown(controller.dispose);
 
       controller.applyTemplateContent('templated body');
       expect(controller.text, 'templated body');
 
-      controller.textController.selection = TextSelection.collapsed(
-        offset: controller.text.length,
-      );
+      controller.textController.selection = TextSelection.collapsed(offset: 5);
       controller.insertUnorderedListMarker();
-      expect(controller.text, 'templated body- ');
+      expect(controller.text, '- templated body');
 
+      controller.replaceText('templated body');
+      controller.textController.selection = const TextSelection.collapsed(
+        offset: 5,
+      );
       controller.insertOrderedListMarker();
-      expect(controller.text, 'templated body- 1. ');
+      expect(controller.text, '1. templated body');
 
+      controller.replaceText('templated body');
+      controller.textController.selection = const TextSelection.collapsed(
+        offset: 5,
+      );
       controller.insertTaskCheckbox();
-      expect(controller.text, 'templated body- 1. - [ ] ');
+      expect(controller.text, '- [ ] templated body');
+    });
+
+    test('inserts markdown snippets with expected cursor placement', () {
+      final controller = MemoComposerController();
+      addTearDown(controller.dispose);
 
       controller.insertCodeBlock();
-      expect(controller.text, 'templated body- 1. - [ ] ```\n\n```');
+      expect(controller.text, '```\n\n```');
       expect(
         controller.textController.selection,
-        const TextSelection.collapsed(offset: 29),
+        const TextSelection.collapsed(offset: 4),
       );
+
+      controller.replaceText('');
+      controller.insertInlineMath();
+      expect(controller.text, '\$\$'.replaceAll('\\', ''));
+      expect(
+        controller.textController.selection,
+        const TextSelection.collapsed(offset: 1),
+      );
+
+      controller.replaceText('');
+      controller.insertBlockMath();
+      expect(controller.text, '\$\$\n\n\$\$'.replaceAll('\\', ''));
+      expect(
+        controller.textController.selection,
+        const TextSelection.collapsed(offset: 3),
+      );
+
+      controller.replaceText('');
+      controller.insertTableTemplate();
+      expect(
+        controller.text,
+        '| Column 1 | Column 2 |\n| --- | --- |\n| Value 1 | Value 2 |',
+      );
+      expect(
+        controller.textController.selection,
+        const TextSelection.collapsed(offset: 2),
+      );
+    });
+
+    test('cuts current paragraph only after clipboard succeeds', () async {
+      final binding = TestDefaultBinaryMessengerBinding.instance;
+      addTearDown(
+        () => binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
+
+      String? copiedText;
+      binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.setData') {
+            copiedText = (call.arguments as Map)['text'] as String;
+          }
+          return null;
+        },
+      );
+
+      final controller = MemoComposerController(initialText: 'first\n\nsecond');
+      addTearDown(controller.dispose);
+
+      controller.textController.selection = const TextSelection.collapsed(
+        offset: 2,
+      );
+
+      final result = await controller.cutCurrentParagraphs();
+
+      expect(result, isTrue);
+      expect(copiedText, 'first');
+      expect(controller.text, 'second');
+      expect(
+        controller.textController.selection,
+        const TextSelection.collapsed(offset: 0),
+      );
+    });
+
+    test('keeps text untouched when clipboard cut fails', () async {
+      final binding = TestDefaultBinaryMessengerBinding.instance;
+      addTearDown(
+        () => binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
+
+      binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.setData') {
+            throw PlatformException(code: 'clipboard-error');
+          }
+          return null;
+        },
+      );
+
+      final controller = MemoComposerController(initialText: 'first\n\nsecond');
+      addTearDown(controller.dispose);
+
+      controller.textController.selection = const TextSelection.collapsed(
+        offset: 2,
+      );
+
+      final result = await controller.cutCurrentParagraphs();
+
+      expect(result, isFalse);
+      expect(controller.text, 'first\n\nsecond');
     });
 
     test('navigates and applies tag autocomplete suggestions', () {

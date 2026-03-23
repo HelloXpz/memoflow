@@ -117,4 +117,37 @@ void main() {
 
     expect(find.byTooltip('H1'), findsOneWidget);
   });
+
+  testWidgets('renders labels for newly added markdown actions', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _buildToolbar(
+        preferences: MemoToolbarPreferences.defaults,
+        actions: [
+          MemoComposeToolbarActionSpec.builtin(id: MemoToolbarActionId.italic),
+          MemoComposeToolbarActionSpec.builtin(
+            id: MemoToolbarActionId.strikethrough,
+          ),
+          MemoComposeToolbarActionSpec.builtin(id: MemoToolbarActionId.quote),
+          MemoComposeToolbarActionSpec.builtin(
+            id: MemoToolbarActionId.heading1,
+          ),
+          MemoComposeToolbarActionSpec.builtin(
+            id: MemoToolbarActionId.inlineMath,
+          ),
+          MemoComposeToolbarActionSpec.builtin(
+            id: MemoToolbarActionId.blockMath,
+          ),
+        ],
+      ),
+    );
+
+    expect(find.byTooltip('Italic'), findsOneWidget);
+    expect(find.byTooltip('Strikethrough'), findsOneWidget);
+    expect(find.byTooltip('Quote'), findsOneWidget);
+    expect(find.byTooltip('Heading 1'), findsOneWidget);
+    expect(find.byTooltip('Inline Math'), findsOneWidget);
+    expect(find.byTooltip('Block Math'), findsOneWidget);
+  });
 }

@@ -157,7 +157,7 @@ void main() {
     final prefs = container.read(appPreferencesProvider).memoToolbarPreferences;
     final visibleTop = prefs.visibleActionsForRow(MemoToolbarRow.top);
     expect(visibleTop.first, MemoToolbarActionId.bold);
-    expect(visibleTop[1], MemoToolbarActionId.list);
+    expect(visibleTop.last, MemoToolbarActionId.list);
     expect(prefs.hiddenActions.contains(MemoToolbarActionId.list), isFalse);
   });
 
@@ -177,6 +177,32 @@ void main() {
     expect(prefs.hiddenActions, MemoToolbarActionId.values.toSet());
     expect(
       find.byKey(const ValueKey('memo-toolbar-toolbox-bold')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('shows new defaults and toolbox-hidden markdown actions', (
+    tester,
+  ) async {
+    final container = _createContainer();
+    addTearDown(container.dispose);
+
+    await _pumpToolbarSettingsScreen(tester, container: container);
+
+    expect(
+      find.byKey(const ValueKey('memo-toolbar-editor-italic')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('memo-toolbar-editor-heading1')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('memo-toolbar-toolbox-divider')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('memo-toolbar-toolbox-cutParagraph')),
       findsOneWidget,
     );
   });

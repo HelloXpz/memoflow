@@ -26,6 +26,7 @@ import '../../application/desktop/desktop_tray_controller.dart';
 import '../../application/desktop/desktop_exit_coordinator.dart';
 import '../../core/drawer_navigation.dart';
 import '../../core/location_launcher.dart';
+import '../../core/markdown_editing.dart';
 import '../../core/memo_template_renderer.dart';
 import '../../core/memoflow_palette.dart';
 import '../../core/platform_layout.dart';
@@ -1587,24 +1588,112 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
   }
 
   void _toggleInlineHighlight() {
-    final value = _inlineComposeController.value;
-    final selection = value.selection;
-    const prefix = '==';
-    const suffix = '==';
-    if (!selection.isValid || selection.isCollapsed) {
-      _insertInlineComposeText('$prefix$suffix', caretOffset: prefix.length);
+    _inlineComposeController.value = wrapMarkdownSelection(
+      _inlineComposeController.value,
+      prefix: '==',
+      suffix: '==',
+    );
+  }
+
+  void _toggleInlineUnorderedList() {
+    _inlineComposeController.value = toggleBlockStyle(
+      _inlineComposeController.value,
+      MarkdownBlockStyle.unorderedList,
+    );
+  }
+
+  void _toggleInlineOrderedList() {
+    _inlineComposeController.value = toggleBlockStyle(
+      _inlineComposeController.value,
+      MarkdownBlockStyle.orderedList,
+    );
+  }
+
+  void _toggleInlineTaskList() {
+    _inlineComposeController.value = toggleBlockStyle(
+      _inlineComposeController.value,
+      MarkdownBlockStyle.taskList,
+    );
+  }
+
+  void _toggleInlineQuote() {
+    _inlineComposeController.value = toggleBlockStyle(
+      _inlineComposeController.value,
+      MarkdownBlockStyle.quote,
+    );
+  }
+
+  void _toggleInlineHeading1() {
+    _inlineComposeController.value = toggleBlockStyle(
+      _inlineComposeController.value,
+      MarkdownBlockStyle.heading1,
+    );
+  }
+
+  void _toggleInlineHeading2() {
+    _inlineComposeController.value = toggleBlockStyle(
+      _inlineComposeController.value,
+      MarkdownBlockStyle.heading2,
+    );
+  }
+
+  void _toggleInlineHeading3() {
+    _inlineComposeController.value = toggleBlockStyle(
+      _inlineComposeController.value,
+      MarkdownBlockStyle.heading3,
+    );
+  }
+
+  void _insertInlineDivider() {
+    _inlineComposeController.value = insertBlockSnippet(
+      _inlineComposeController.value,
+      '---',
+      caretOffset: 3,
+    );
+  }
+
+  void _insertInlineCodeBlock() {
+    _inlineComposeController.value = insertBlockSnippet(
+      _inlineComposeController.value,
+      '```\n\n```',
+      caretOffset: 4,
+    );
+  }
+
+  void _insertInlineMath() {
+    _inlineComposeController.value = insertInlineSnippet(
+      _inlineComposeController.value,
+      r'$$',
+      caretOffset: 1,
+    );
+  }
+
+  void _insertInlineBlockMath() {
+    const blockMath = '\$\$\n\n\$\$';
+    _inlineComposeController.value = insertBlockSnippet(
+      _inlineComposeController.value,
+      blockMath,
+      caretOffset: 3,
+    );
+  }
+
+  void _insertInlineTableTemplate() {
+    _inlineComposeController.value = insertBlockSnippet(
+      _inlineComposeController.value,
+      '| Column 1 | Column 2 |\n| --- | --- |\n| Value 1 | Value 2 |',
+      caretOffset: 2,
+    );
+  }
+
+  Future<void> _cutInlineParagraphs() async {
+    final result = cutParagraphs(_inlineComposeController.value);
+    if (result == null) return;
+    try {
+      await Clipboard.setData(ClipboardData(text: result.copiedText));
+    } catch (_) {
       return;
     }
-    final selected = value.text.substring(selection.start, selection.end);
-    final wrapped = '$prefix$selected$suffix';
-    _inlineComposeController.value = value.copyWith(
-      text: value.text.replaceRange(selection.start, selection.end, wrapped),
-      selection: TextSelection(
-        baseOffset: selection.start,
-        extentOffset: selection.start + wrapped.length,
-      ),
-      composing: TextRange.empty,
-    );
+    _inlineComposeController.value = result.value;
   }
 
   bool _handleDesktopShortcuts(KeyEvent event) {
@@ -1758,7 +1847,7 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
           pressedKeys: pressed,
           action: DesktopShortcutAction.unorderedList,
         );
-        _insertInlineComposeText('- ');
+        _toggleInlineUnorderedList();
         return true;
       }
       if (matches(DesktopShortcutAction.orderedList)) {
@@ -1768,7 +1857,7 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
           pressedKeys: pressed,
           action: DesktopShortcutAction.orderedList,
         );
-        _insertInlineComposeText('1. ');
+        _toggleInlineOrderedList();
         return true;
       }
       if (matches(DesktopShortcutAction.undo)) {
@@ -3018,16 +3107,10 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
   }
 
   void _insertInlineComposeText(String text, {int? caretOffset}) {
-    final value = _inlineComposeController.value;
-    final selection = value.selection;
-    final start = selection.start < 0 ? value.text.length : selection.start;
-    final end = selection.end < 0 ? value.text.length : selection.end;
-    final newText = value.text.replaceRange(start, end, text);
-    final caret = start + (caretOffset ?? text.length);
-    _inlineComposeController.value = value.copyWith(
-      text: newText,
-      selection: TextSelection.collapsed(offset: caret),
-      composing: TextRange.empty,
+    _inlineComposeController.value = insertInlineSnippet(
+      _inlineComposeController.value,
+      text,
+      caretOffset: caretOffset,
     );
   }
 
@@ -3111,52 +3194,42 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
   }
 
   void _toggleInlineBold() {
-    final value = _inlineComposeController.value;
-    final selection = value.selection;
-    if (!selection.isValid) {
-      _insertInlineComposeText('****');
-      _inlineComposeController.selection = const TextSelection.collapsed(
-        offset: 2,
-      );
-      return;
-    }
-    if (selection.isCollapsed) {
-      _insertInlineComposeText('****');
-      _inlineComposeController.selection = TextSelection.collapsed(
-        offset: selection.start + 2,
-      );
-      return;
-    }
-    final selected = value.text.substring(selection.start, selection.end);
-    final wrapped = '**$selected**';
-    _inlineComposeController.value = value.copyWith(
-      text: value.text.replaceRange(selection.start, selection.end, wrapped),
-      selection: TextSelection(
-        baseOffset: selection.start,
-        extentOffset: selection.start + wrapped.length,
-      ),
-      composing: TextRange.empty,
+    _inlineComposeController.value = wrapMarkdownSelection(
+      _inlineComposeController.value,
+      prefix: '**',
+      suffix: '**',
+    );
+  }
+
+  void _toggleInlineItalic() {
+    _inlineComposeController.value = wrapMarkdownSelection(
+      _inlineComposeController.value,
+      prefix: '*',
+      suffix: '*',
+    );
+  }
+
+  void _toggleInlineStrikethrough() {
+    _inlineComposeController.value = wrapMarkdownSelection(
+      _inlineComposeController.value,
+      prefix: '~~',
+      suffix: '~~',
+    );
+  }
+
+  void _toggleInlineCode() {
+    _inlineComposeController.value = wrapMarkdownSelection(
+      _inlineComposeController.value,
+      prefix: '`',
+      suffix: '`',
     );
   }
 
   void _toggleInlineUnderline() {
-    final value = _inlineComposeController.value;
-    final selection = value.selection;
-    const prefix = '<u>';
-    const suffix = '</u>';
-    if (!selection.isValid || selection.isCollapsed) {
-      _insertInlineComposeText('$prefix$suffix', caretOffset: prefix.length);
-      return;
-    }
-    final selected = value.text.substring(selection.start, selection.end);
-    final wrapped = '$prefix$selected$suffix';
-    _inlineComposeController.value = value.copyWith(
-      text: value.text.replaceRange(selection.start, selection.end, wrapped),
-      selection: TextSelection(
-        baseOffset: selection.start,
-        extentOffset: selection.start + wrapped.length,
-      ),
-      composing: TextRange.empty,
+    _inlineComposeController.value = wrapMarkdownSelection(
+      _inlineComposeController.value,
+      prefix: '<u>',
+      suffix: '</u>',
     );
   }
 
@@ -3311,14 +3384,94 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
         onPressed: _toggleInlineBold,
       ),
       MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.italic,
+        enabled: !_inlineComposeBusy,
+        onPressed: _toggleInlineItalic,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.strikethrough,
+        enabled: !_inlineComposeBusy,
+        onPressed: _toggleInlineStrikethrough,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.inlineCode,
+        enabled: !_inlineComposeBusy,
+        onPressed: _toggleInlineCode,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
         id: MemoToolbarActionId.list,
         enabled: !_inlineComposeBusy,
-        onPressed: () => _insertInlineComposeText('- '),
+        onPressed: _toggleInlineUnorderedList,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.orderedList,
+        enabled: !_inlineComposeBusy,
+        onPressed: _toggleInlineOrderedList,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.taskList,
+        enabled: !_inlineComposeBusy,
+        onPressed: _toggleInlineTaskList,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.quote,
+        enabled: !_inlineComposeBusy,
+        onPressed: _toggleInlineQuote,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.heading1,
+        enabled: !_inlineComposeBusy,
+        onPressed: _toggleInlineHeading1,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.heading2,
+        enabled: !_inlineComposeBusy,
+        onPressed: _toggleInlineHeading2,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.heading3,
+        enabled: !_inlineComposeBusy,
+        onPressed: _toggleInlineHeading3,
       ),
       MemoComposeToolbarActionSpec.builtin(
         id: MemoToolbarActionId.underline,
         enabled: !_inlineComposeBusy,
         onPressed: _toggleInlineUnderline,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.highlight,
+        enabled: !_inlineComposeBusy,
+        onPressed: _toggleInlineHighlight,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.divider,
+        enabled: !_inlineComposeBusy,
+        onPressed: _insertInlineDivider,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.codeBlock,
+        enabled: !_inlineComposeBusy,
+        onPressed: _insertInlineCodeBlock,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.inlineMath,
+        enabled: !_inlineComposeBusy,
+        onPressed: _insertInlineMath,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.blockMath,
+        enabled: !_inlineComposeBusy,
+        onPressed: _insertInlineBlockMath,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.table,
+        enabled: !_inlineComposeBusy,
+        onPressed: _insertInlineTableTemplate,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.cutParagraph,
+        enabled: !_inlineComposeBusy,
+        onPressed: () => unawaited(_cutInlineParagraphs()),
       ),
       MemoComposeToolbarActionSpec.builtin(
         id: MemoToolbarActionId.undo,
@@ -3566,10 +3719,10 @@ class _MemosListScreenState extends ConsumerState<MemosListScreen>
 
     switch (action) {
       case MemoComposeTodoShortcutAction.checkbox:
-        _insertInlineComposeText('- [ ] ');
+        _toggleInlineTaskList();
         break;
       case MemoComposeTodoShortcutAction.codeBlock:
-        _insertInlineComposeText('```\n\n```', caretOffset: 4);
+        _insertInlineCodeBlock();
         break;
     }
   }

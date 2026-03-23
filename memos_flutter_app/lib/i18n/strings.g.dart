@@ -4,9 +4,9 @@
 /// To regenerate, run: `dart run slang`
 ///
 /// Locales: 5
-/// Strings: 7630 (1526 per locale)
+/// Strings: 7695 (1539 per locale)
 ///
-/// Built on 2026-03-23 at 03:00 UTC
+/// Built on 2026-03-23 at 09:26 UTC
 
 // coverage:ignore-file
 // ignore_for_file: type=lint
@@ -2193,7 +2193,20 @@ class _StringsStringsSettingsPreferencesEditorToolbarActionsEn {
 	final Translations _root; // ignore: unused_field
 
 	// Translations
+	String get italic => 'Italic';
+	String get strikethrough => 'Strikethrough';
+	String get inlineCode => 'Inline Code';
 	String get bulletedList => 'Bulleted List';
+	String get taskList => 'Task List';
+	String get quote => 'Quote';
+	String get heading1 => 'Heading 1';
+	String get heading2 => 'Heading 2';
+	String get heading3 => 'Heading 3';
+	String get divider => 'Divider';
+	String get inlineMath => 'Inline Math';
+	String get blockMath => 'Block Math';
+	String get table => 'Table';
+	String get cutParagraph => 'Cut Paragraph';
 	String get gallery => 'Gallery';
 }
 
@@ -4225,7 +4238,20 @@ class _StringsStringsSettingsPreferencesEditorToolbarActionsDe extends _StringsS
 	@override final _StringsDe _root; // ignore: unused_field
 
 	// Translations
+	@override String get italic => 'Kursiv';
+	@override String get strikethrough => 'Durchgestrichen';
+	@override String get inlineCode => 'Inline-Code';
 	@override String get bulletedList => 'Aufzaehlungsliste';
+	@override String get taskList => 'Aufgabenliste';
+	@override String get quote => 'Zitat';
+	@override String get heading1 => 'Ueberschrift 1';
+	@override String get heading2 => 'Ueberschrift 2';
+	@override String get heading3 => 'Ueberschrift 3';
+	@override String get divider => 'Trennlinie';
+	@override String get inlineMath => 'Inline-Mathematik';
+	@override String get blockMath => 'Block-Mathematik';
+	@override String get table => 'Tabelle';
+	@override String get cutParagraph => 'Absatz ausschneiden';
 	@override String get gallery => 'Galerie';
 }
 
@@ -6257,7 +6283,20 @@ class _StringsStringsSettingsPreferencesEditorToolbarActionsJa extends _StringsS
 	@override final _StringsJa _root; // ignore: unused_field
 
 	// Translations
-	@override String get bulletedList => '箇条書きリスト';
+	@override String get italic => '斜体';
+	@override String get strikethrough => '取り消し線';
+	@override String get inlineCode => 'インラインコード';
+	@override String get bulletedList => '箇条書き';
+	@override String get taskList => 'タスクリスト';
+	@override String get quote => '引用';
+	@override String get heading1 => '見出し 1';
+	@override String get heading2 => '見出し 2';
+	@override String get heading3 => '見出し 3';
+	@override String get divider => '区切り線';
+	@override String get inlineMath => 'インライン数式';
+	@override String get blockMath => '数式ブロック';
+	@override String get table => 'テーブル';
+	@override String get cutParagraph => '段落を切り取り';
 	@override String get gallery => 'ギャラリー';
 }
 
@@ -8329,7 +8368,20 @@ class _StringsStringsSettingsPreferencesEditorToolbarActionsZhHans extends _Stri
 	@override final _StringsZhHans _root; // ignore: unused_field
 
 	// Translations
-	@override String get bulletedList => '项目符号列表';
+	@override String get italic => '斜体';
+	@override String get strikethrough => '删除线';
+	@override String get inlineCode => '行内代码';
+	@override String get bulletedList => '无序列表';
+	@override String get taskList => '任务列表';
+	@override String get quote => '引用';
+	@override String get heading1 => '一级标题';
+	@override String get heading2 => '二级标题';
+	@override String get heading3 => '三级标题';
+	@override String get divider => '分割线';
+	@override String get inlineMath => '行内公式';
+	@override String get blockMath => '块级公式';
+	@override String get table => '表格';
+	@override String get cutParagraph => '剪切段落';
 	@override String get gallery => '图库';
 }
 
@@ -10361,7 +10413,20 @@ class _StringsStringsSettingsPreferencesEditorToolbarActionsZhHantTw extends _St
 	@override final _StringsZhHantTw _root; // ignore: unused_field
 
 	// Translations
-	@override String get bulletedList => '項目符號清單';
+	@override String get italic => '斜體';
+	@override String get strikethrough => '刪除線';
+	@override String get inlineCode => '行內程式碼';
+	@override String get bulletedList => '無序列表';
+	@override String get taskList => '任務清單';
+	@override String get quote => '引用';
+	@override String get heading1 => '一級標題';
+	@override String get heading2 => '二級標題';
+	@override String get heading3 => '三級標題';
+	@override String get divider => '分隔線';
+	@override String get inlineMath => '行內公式';
+	@override String get blockMath => '區塊公式';
+	@override String get table => '表格';
+	@override String get cutParagraph => '剪下段落';
 	@override String get gallery => '圖庫';
 }
 
@@ -10496,7 +10561,20 @@ extension on Translations {
 			case 'strings.settings.preferences.editorToolbar.customIcons.divider': return 'Divider';
 			case 'strings.settings.preferences.editorToolbar.customIcons.table': return 'Table';
 			case 'strings.settings.preferences.editorToolbar.customIcons.note': return 'Note';
+			case 'strings.settings.preferences.editorToolbar.actions.italic': return 'Italic';
+			case 'strings.settings.preferences.editorToolbar.actions.strikethrough': return 'Strikethrough';
+			case 'strings.settings.preferences.editorToolbar.actions.inlineCode': return 'Inline Code';
 			case 'strings.settings.preferences.editorToolbar.actions.bulletedList': return 'Bulleted List';
+			case 'strings.settings.preferences.editorToolbar.actions.taskList': return 'Task List';
+			case 'strings.settings.preferences.editorToolbar.actions.quote': return 'Quote';
+			case 'strings.settings.preferences.editorToolbar.actions.heading1': return 'Heading 1';
+			case 'strings.settings.preferences.editorToolbar.actions.heading2': return 'Heading 2';
+			case 'strings.settings.preferences.editorToolbar.actions.heading3': return 'Heading 3';
+			case 'strings.settings.preferences.editorToolbar.actions.divider': return 'Divider';
+			case 'strings.settings.preferences.editorToolbar.actions.inlineMath': return 'Inline Math';
+			case 'strings.settings.preferences.editorToolbar.actions.blockMath': return 'Block Math';
+			case 'strings.settings.preferences.editorToolbar.actions.table': return 'Table';
+			case 'strings.settings.preferences.editorToolbar.actions.cutParagraph': return 'Cut Paragraph';
 			case 'strings.settings.preferences.editorToolbar.actions.gallery': return 'Gallery';
 			case 'strings.settings.preferences.appearance': return 'Appearance';
 			case 'strings.settings.preferences.themeColor': return 'Theme Color';
@@ -12048,7 +12126,20 @@ extension on _StringsDe {
 			case 'strings.settings.preferences.editorToolbar.customIcons.divider': return 'Trennlinie';
 			case 'strings.settings.preferences.editorToolbar.customIcons.table': return 'Tabelle';
 			case 'strings.settings.preferences.editorToolbar.customIcons.note': return 'Notiz';
+			case 'strings.settings.preferences.editorToolbar.actions.italic': return 'Kursiv';
+			case 'strings.settings.preferences.editorToolbar.actions.strikethrough': return 'Durchgestrichen';
+			case 'strings.settings.preferences.editorToolbar.actions.inlineCode': return 'Inline-Code';
 			case 'strings.settings.preferences.editorToolbar.actions.bulletedList': return 'Aufzaehlungsliste';
+			case 'strings.settings.preferences.editorToolbar.actions.taskList': return 'Aufgabenliste';
+			case 'strings.settings.preferences.editorToolbar.actions.quote': return 'Zitat';
+			case 'strings.settings.preferences.editorToolbar.actions.heading1': return 'Ueberschrift 1';
+			case 'strings.settings.preferences.editorToolbar.actions.heading2': return 'Ueberschrift 2';
+			case 'strings.settings.preferences.editorToolbar.actions.heading3': return 'Ueberschrift 3';
+			case 'strings.settings.preferences.editorToolbar.actions.divider': return 'Trennlinie';
+			case 'strings.settings.preferences.editorToolbar.actions.inlineMath': return 'Inline-Mathematik';
+			case 'strings.settings.preferences.editorToolbar.actions.blockMath': return 'Block-Mathematik';
+			case 'strings.settings.preferences.editorToolbar.actions.table': return 'Tabelle';
+			case 'strings.settings.preferences.editorToolbar.actions.cutParagraph': return 'Absatz ausschneiden';
 			case 'strings.settings.preferences.editorToolbar.actions.gallery': return 'Galerie';
 			case 'strings.settings.preferences.appearance': return 'Darstellung';
 			case 'strings.settings.preferences.themeColor': return 'Themenfarbe';
@@ -13570,7 +13661,20 @@ extension on _StringsJa {
 			case 'strings.settings.preferences.editorToolbar.customIcons.divider': return 'Divider';
 			case 'strings.settings.preferences.editorToolbar.customIcons.table': return 'Table';
 			case 'strings.settings.preferences.editorToolbar.customIcons.note': return 'Note';
-			case 'strings.settings.preferences.editorToolbar.actions.bulletedList': return '箇条書きリスト';
+			case 'strings.settings.preferences.editorToolbar.actions.italic': return '斜体';
+			case 'strings.settings.preferences.editorToolbar.actions.strikethrough': return '取り消し線';
+			case 'strings.settings.preferences.editorToolbar.actions.inlineCode': return 'インラインコード';
+			case 'strings.settings.preferences.editorToolbar.actions.bulletedList': return '箇条書き';
+			case 'strings.settings.preferences.editorToolbar.actions.taskList': return 'タスクリスト';
+			case 'strings.settings.preferences.editorToolbar.actions.quote': return '引用';
+			case 'strings.settings.preferences.editorToolbar.actions.heading1': return '見出し 1';
+			case 'strings.settings.preferences.editorToolbar.actions.heading2': return '見出し 2';
+			case 'strings.settings.preferences.editorToolbar.actions.heading3': return '見出し 3';
+			case 'strings.settings.preferences.editorToolbar.actions.divider': return '区切り線';
+			case 'strings.settings.preferences.editorToolbar.actions.inlineMath': return 'インライン数式';
+			case 'strings.settings.preferences.editorToolbar.actions.blockMath': return '数式ブロック';
+			case 'strings.settings.preferences.editorToolbar.actions.table': return 'テーブル';
+			case 'strings.settings.preferences.editorToolbar.actions.cutParagraph': return '段落を切り取り';
 			case 'strings.settings.preferences.editorToolbar.actions.gallery': return 'ギャラリー';
 			case 'strings.settings.preferences.appearance': return '外観';
 			case 'strings.settings.preferences.themeColor': return 'テーマカラー';
@@ -15092,7 +15196,20 @@ extension on _StringsZhHans {
 			case 'strings.settings.preferences.editorToolbar.customIcons.divider': return '分隔线';
 			case 'strings.settings.preferences.editorToolbar.customIcons.table': return '表格';
 			case 'strings.settings.preferences.editorToolbar.customIcons.note': return '笔记';
-			case 'strings.settings.preferences.editorToolbar.actions.bulletedList': return '项目符号列表';
+			case 'strings.settings.preferences.editorToolbar.actions.italic': return '斜体';
+			case 'strings.settings.preferences.editorToolbar.actions.strikethrough': return '删除线';
+			case 'strings.settings.preferences.editorToolbar.actions.inlineCode': return '行内代码';
+			case 'strings.settings.preferences.editorToolbar.actions.bulletedList': return '无序列表';
+			case 'strings.settings.preferences.editorToolbar.actions.taskList': return '任务列表';
+			case 'strings.settings.preferences.editorToolbar.actions.quote': return '引用';
+			case 'strings.settings.preferences.editorToolbar.actions.heading1': return '一级标题';
+			case 'strings.settings.preferences.editorToolbar.actions.heading2': return '二级标题';
+			case 'strings.settings.preferences.editorToolbar.actions.heading3': return '三级标题';
+			case 'strings.settings.preferences.editorToolbar.actions.divider': return '分割线';
+			case 'strings.settings.preferences.editorToolbar.actions.inlineMath': return '行内公式';
+			case 'strings.settings.preferences.editorToolbar.actions.blockMath': return '块级公式';
+			case 'strings.settings.preferences.editorToolbar.actions.table': return '表格';
+			case 'strings.settings.preferences.editorToolbar.actions.cutParagraph': return '剪切段落';
 			case 'strings.settings.preferences.editorToolbar.actions.gallery': return '图库';
 			case 'strings.settings.preferences.appearance': return '外观';
 			case 'strings.settings.preferences.themeColor': return '主题色';
@@ -16644,7 +16761,20 @@ extension on _StringsZhHantTw {
 			case 'strings.settings.preferences.editorToolbar.customIcons.divider': return '分隔線';
 			case 'strings.settings.preferences.editorToolbar.customIcons.table': return '表格';
 			case 'strings.settings.preferences.editorToolbar.customIcons.note': return '筆記';
-			case 'strings.settings.preferences.editorToolbar.actions.bulletedList': return '項目符號清單';
+			case 'strings.settings.preferences.editorToolbar.actions.italic': return '斜體';
+			case 'strings.settings.preferences.editorToolbar.actions.strikethrough': return '刪除線';
+			case 'strings.settings.preferences.editorToolbar.actions.inlineCode': return '行內程式碼';
+			case 'strings.settings.preferences.editorToolbar.actions.bulletedList': return '無序列表';
+			case 'strings.settings.preferences.editorToolbar.actions.taskList': return '任務清單';
+			case 'strings.settings.preferences.editorToolbar.actions.quote': return '引用';
+			case 'strings.settings.preferences.editorToolbar.actions.heading1': return '一級標題';
+			case 'strings.settings.preferences.editorToolbar.actions.heading2': return '二級標題';
+			case 'strings.settings.preferences.editorToolbar.actions.heading3': return '三級標題';
+			case 'strings.settings.preferences.editorToolbar.actions.divider': return '分隔線';
+			case 'strings.settings.preferences.editorToolbar.actions.inlineMath': return '行內公式';
+			case 'strings.settings.preferences.editorToolbar.actions.blockMath': return '區塊公式';
+			case 'strings.settings.preferences.editorToolbar.actions.table': return '表格';
+			case 'strings.settings.preferences.editorToolbar.actions.cutParagraph': return '剪下段落';
 			case 'strings.settings.preferences.editorToolbar.actions.gallery': return '圖庫';
 			case 'strings.settings.preferences.appearance': return '外觀';
 			case 'strings.settings.preferences.themeColor': return '主題色';

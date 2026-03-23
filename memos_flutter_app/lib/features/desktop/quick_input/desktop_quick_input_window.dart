@@ -15,6 +15,7 @@ import '../../../core/app_localization.dart';
 import '../../../core/app_theme.dart';
 import '../../../core/desktop/shortcuts.dart';
 import '../../../core/desktop_quick_input_channel.dart';
+import '../../../core/markdown_editing.dart';
 import '../../../core/memo_template_renderer.dart';
 import '../../../core/memoflow_palette.dart';
 import '../../../core/tags.dart';
@@ -369,17 +370,10 @@ class _DesktopQuickInputWindowScreenState
   }
 
   void _insertText(String value, {int? caretOffset}) {
-    final current = _controller.value;
-    final selection = current.selection;
-    final start = selection.isValid ? selection.start : current.text.length;
-    final end = selection.isValid ? selection.end : current.text.length;
-    final nextText = current.text.replaceRange(start, end, value);
-    _controller.value = current.copyWith(
-      text: nextText,
-      selection: TextSelection.collapsed(
-        offset: start + (caretOffset ?? value.length),
-      ),
-      composing: TextRange.empty,
+    _controller.value = insertInlineSnippet(
+      _controller.value,
+      value,
+      caretOffset: caretOffset,
     );
   }
 
@@ -392,41 +386,152 @@ class _DesktopQuickInputWindowScreenState
   }
 
   void _toggleBold() {
-    final value = _controller.value;
-    final selection = value.selection;
-    if (!selection.isValid || selection.isCollapsed) {
-      _insertText('****', caretOffset: 2);
-      return;
-    }
-    final selected = value.text.substring(selection.start, selection.end);
-    final wrapped = '**$selected**';
-    _controller.value = value.copyWith(
-      text: value.text.replaceRange(selection.start, selection.end, wrapped),
-      selection: TextSelection(
-        baseOffset: selection.start,
-        extentOffset: selection.start + wrapped.length,
-      ),
-      composing: TextRange.empty,
+    _controller.value = wrapMarkdownSelection(
+      _controller.value,
+      prefix: '**',
+      suffix: '**',
+    );
+  }
+
+  void _toggleItalic() {
+    _controller.value = wrapMarkdownSelection(
+      _controller.value,
+      prefix: '*',
+      suffix: '*',
+    );
+  }
+
+  void _toggleStrikethrough() {
+    _controller.value = wrapMarkdownSelection(
+      _controller.value,
+      prefix: '~~',
+      suffix: '~~',
+    );
+  }
+
+  void _toggleInlineCode() {
+    _controller.value = wrapMarkdownSelection(
+      _controller.value,
+      prefix: '`',
+      suffix: '`',
+    );
+  }
+
+  void _toggleUnderline() {
+    _controller.value = wrapMarkdownSelection(
+      _controller.value,
+      prefix: '<u>',
+      suffix: '</u>',
     );
   }
 
   void _toggleHighlight() {
-    final value = _controller.value;
-    final selection = value.selection;
-    if (!selection.isValid || selection.isCollapsed) {
-      _insertText('====', caretOffset: 2);
+    _controller.value = wrapMarkdownSelection(
+      _controller.value,
+      prefix: '==',
+      suffix: '==',
+    );
+  }
+
+  void _toggleUnorderedList() {
+    _controller.value = toggleBlockStyle(
+      _controller.value,
+      MarkdownBlockStyle.unorderedList,
+    );
+  }
+
+  void _toggleOrderedList() {
+    _controller.value = toggleBlockStyle(
+      _controller.value,
+      MarkdownBlockStyle.orderedList,
+    );
+  }
+
+  void _toggleTaskList() {
+    _controller.value = toggleBlockStyle(
+      _controller.value,
+      MarkdownBlockStyle.taskList,
+    );
+  }
+
+  void _toggleQuote() {
+    _controller.value = toggleBlockStyle(
+      _controller.value,
+      MarkdownBlockStyle.quote,
+    );
+  }
+
+  void _toggleHeading1() {
+    _controller.value = toggleBlockStyle(
+      _controller.value,
+      MarkdownBlockStyle.heading1,
+    );
+  }
+
+  void _toggleHeading2() {
+    _controller.value = toggleBlockStyle(
+      _controller.value,
+      MarkdownBlockStyle.heading2,
+    );
+  }
+
+  void _toggleHeading3() {
+    _controller.value = toggleBlockStyle(
+      _controller.value,
+      MarkdownBlockStyle.heading3,
+    );
+  }
+
+  void _insertDivider() {
+    _controller.value = insertBlockSnippet(
+      _controller.value,
+      '---',
+      caretOffset: 3,
+    );
+  }
+
+  void _insertCodeBlock() {
+    _controller.value = insertBlockSnippet(
+      _controller.value,
+      '```\n\n```',
+      caretOffset: 4,
+    );
+  }
+
+  void _insertInlineMath() {
+    _controller.value = insertInlineSnippet(
+      _controller.value,
+      r'$$',
+      caretOffset: 1,
+    );
+  }
+
+  void _insertBlockMath() {
+    const blockMath = '\$\$\n\n\$\$';
+    _controller.value = insertBlockSnippet(
+      _controller.value,
+      blockMath,
+      caretOffset: 3,
+    );
+  }
+
+  void _insertTableTemplate() {
+    _controller.value = insertBlockSnippet(
+      _controller.value,
+      '| Column 1 | Column 2 |\n| --- | --- |\n| Value 1 | Value 2 |',
+      caretOffset: 2,
+    );
+  }
+
+  Future<void> _cutParagraph() async {
+    final result = cutParagraphs(_controller.value);
+    if (result == null) return;
+    try {
+      await Clipboard.setData(ClipboardData(text: result.copiedText));
+    } catch (_) {
       return;
     }
-    final selected = value.text.substring(selection.start, selection.end);
-    final wrapped = '==$selected==';
-    _controller.value = value.copyWith(
-      text: value.text.replaceRange(selection.start, selection.end, wrapped),
-      selection: TextSelection(
-        baseOffset: selection.start,
-        extentOffset: selection.start + wrapped.length,
-      ),
-      composing: TextRange.empty,
-    );
+    _controller.value = result.value;
   }
 
   Widget _buildComposeToolbar({
@@ -445,14 +550,94 @@ class _DesktopQuickInputWindowScreenState
         onPressed: _toggleBold,
       ),
       MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.italic,
+        enabled: !_submitting,
+        onPressed: _toggleItalic,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.strikethrough,
+        enabled: !_submitting,
+        onPressed: _toggleStrikethrough,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.inlineCode,
+        enabled: !_submitting,
+        onPressed: _toggleInlineCode,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
         id: MemoToolbarActionId.list,
         enabled: !_submitting,
-        onPressed: () => _insertText('- '),
+        onPressed: _toggleUnorderedList,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.orderedList,
+        enabled: !_submitting,
+        onPressed: _toggleOrderedList,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.taskList,
+        enabled: !_submitting,
+        onPressed: _toggleTaskList,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.quote,
+        enabled: !_submitting,
+        onPressed: _toggleQuote,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.heading1,
+        enabled: !_submitting,
+        onPressed: _toggleHeading1,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.heading2,
+        enabled: !_submitting,
+        onPressed: _toggleHeading2,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.heading3,
+        enabled: !_submitting,
+        onPressed: _toggleHeading3,
       ),
       MemoComposeToolbarActionSpec.builtin(
         id: MemoToolbarActionId.underline,
         enabled: !_submitting,
+        onPressed: _toggleUnderline,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.highlight,
+        enabled: !_submitting,
         onPressed: _toggleHighlight,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.divider,
+        enabled: !_submitting,
+        onPressed: _insertDivider,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.codeBlock,
+        enabled: !_submitting,
+        onPressed: _insertCodeBlock,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.inlineMath,
+        enabled: !_submitting,
+        onPressed: _insertInlineMath,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.blockMath,
+        enabled: !_submitting,
+        onPressed: _insertBlockMath,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.table,
+        enabled: !_submitting,
+        onPressed: _insertTableTemplate,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.cutParagraph,
+        enabled: !_submitting,
+        onPressed: () => unawaited(_cutParagraph()),
       ),
       MemoComposeToolbarActionSpec.builtin(
         id: MemoToolbarActionId.undo,
@@ -712,8 +897,7 @@ class _DesktopQuickInputWindowScreenState
         _toggleBold();
         return true;
       }
-      if (matches(DesktopShortcutAction.highlight) ||
-          matches(DesktopShortcutAction.underline)) {
+      if (matches(DesktopShortcutAction.highlight)) {
         ref
             .read(logManagerProvider)
             .info(
@@ -723,6 +907,16 @@ class _DesktopQuickInputWindowScreenState
         _toggleHighlight();
         return true;
       }
+      if (matches(DesktopShortcutAction.underline)) {
+        ref
+            .read(logManagerProvider)
+            .info(
+              'Desktop quick input shortcut matched',
+              context: {'action': DesktopShortcutAction.underline.name},
+            );
+        _toggleUnderline();
+        return true;
+      }
       if (matches(DesktopShortcutAction.unorderedList)) {
         ref
             .read(logManagerProvider)
@@ -730,7 +924,7 @@ class _DesktopQuickInputWindowScreenState
               'Desktop quick input shortcut matched',
               context: {'action': DesktopShortcutAction.unorderedList.name},
             );
-        _insertText('- ');
+        _toggleUnorderedList();
         return true;
       }
       if (matches(DesktopShortcutAction.orderedList)) {
@@ -740,7 +934,7 @@ class _DesktopQuickInputWindowScreenState
               'Desktop quick input shortcut matched',
               context: {'action': DesktopShortcutAction.orderedList.name},
             );
-        _insertText('1. ');
+        _toggleOrderedList();
         return true;
       }
     }
@@ -818,10 +1012,10 @@ class _DesktopQuickInputWindowScreenState
     if (!mounted || action == null) return;
     switch (action) {
       case MemoComposeTodoShortcutAction.checkbox:
-        _insertText('- [ ] ');
+        _toggleTaskList();
         break;
       case MemoComposeTodoShortcutAction.codeBlock:
-        _insertText('```\n\n```', caretOffset: 4);
+        _insertCodeBlock();
         break;
     }
   }

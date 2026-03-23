@@ -921,14 +921,94 @@ class _MemoEditorScreenState extends ConsumerState<MemoEditorScreen> {
         onPressed: _toggleBold,
       ),
       MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.italic,
+        enabled: !_saving,
+        onPressed: _composer.toggleItalic,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.strikethrough,
+        enabled: !_saving,
+        onPressed: _composer.toggleStrikethrough,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.inlineCode,
+        enabled: !_saving,
+        onPressed: _composer.toggleInlineCode,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
         id: MemoToolbarActionId.list,
         enabled: !_saving,
-        onPressed: _composer.insertUnorderedListMarker,
+        onPressed: _composer.toggleUnorderedList,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.orderedList,
+        enabled: !_saving,
+        onPressed: _composer.toggleOrderedList,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.taskList,
+        enabled: !_saving,
+        onPressed: _composer.toggleTaskList,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.quote,
+        enabled: !_saving,
+        onPressed: _composer.toggleQuote,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.heading1,
+        enabled: !_saving,
+        onPressed: _composer.toggleHeading1,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.heading2,
+        enabled: !_saving,
+        onPressed: _composer.toggleHeading2,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.heading3,
+        enabled: !_saving,
+        onPressed: _composer.toggleHeading3,
       ),
       MemoComposeToolbarActionSpec.builtin(
         id: MemoToolbarActionId.underline,
         enabled: !_saving,
         onPressed: _toggleUnderline,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.highlight,
+        enabled: !_saving,
+        onPressed: _composer.toggleHighlight,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.divider,
+        enabled: !_saving,
+        onPressed: _composer.insertDivider,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.codeBlock,
+        enabled: !_saving,
+        onPressed: _composer.insertCodeBlock,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.inlineMath,
+        enabled: !_saving,
+        onPressed: _composer.insertInlineMath,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.blockMath,
+        enabled: !_saving,
+        onPressed: _composer.insertBlockMath,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.table,
+        enabled: !_saving,
+        onPressed: _composer.insertTableTemplate,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.cutParagraph,
+        enabled: !_saving,
+        onPressed: () => unawaited(_composer.cutCurrentParagraphs()),
       ),
       MemoComposeToolbarActionSpec.builtin(
         id: MemoToolbarActionId.undo,

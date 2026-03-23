@@ -4,8 +4,24 @@ enum MemoToolbarRow { top, bottom }
 
 enum MemoToolbarActionId {
   bold,
+  italic,
+  strikethrough,
+  inlineCode,
   list,
+  orderedList,
+  taskList,
+  quote,
+  heading1,
+  heading2,
+  heading3,
   underline,
+  highlight,
+  divider,
+  codeBlock,
+  inlineMath,
+  blockMath,
+  table,
+  cutParagraph,
   undo,
   redo,
   tag,
@@ -19,6 +35,41 @@ enum MemoToolbarActionId {
 }
 
 const kMemoToolbarDefaultCustomIconKey = 'hammer';
+
+const kMemoToolbarLegacyBuiltinActions = <MemoToolbarActionId>{
+  MemoToolbarActionId.bold,
+  MemoToolbarActionId.list,
+  MemoToolbarActionId.underline,
+  MemoToolbarActionId.undo,
+  MemoToolbarActionId.redo,
+  MemoToolbarActionId.tag,
+  MemoToolbarActionId.template,
+  MemoToolbarActionId.attachment,
+  MemoToolbarActionId.gallery,
+  MemoToolbarActionId.todo,
+  MemoToolbarActionId.link,
+  MemoToolbarActionId.camera,
+  MemoToolbarActionId.location,
+};
+
+const kMemoToolbarMigratedHiddenActions = <MemoToolbarActionId>{
+  MemoToolbarActionId.italic,
+  MemoToolbarActionId.strikethrough,
+  MemoToolbarActionId.inlineCode,
+  MemoToolbarActionId.orderedList,
+  MemoToolbarActionId.taskList,
+  MemoToolbarActionId.quote,
+  MemoToolbarActionId.heading1,
+  MemoToolbarActionId.heading2,
+  MemoToolbarActionId.heading3,
+  MemoToolbarActionId.highlight,
+  MemoToolbarActionId.divider,
+  MemoToolbarActionId.codeBlock,
+  MemoToolbarActionId.inlineMath,
+  MemoToolbarActionId.blockMath,
+  MemoToolbarActionId.table,
+  MemoToolbarActionId.cutParagraph,
+};
 
 const kMemoToolbarLegacyCustomIconKeyById = <String, String>{
   'heading1': 'hammer',
@@ -204,31 +255,70 @@ class MemoToolbarCustomButton {
 
 const kMemoToolbarDefaultTopRow = <MemoToolbarActionId>[
   MemoToolbarActionId.bold,
+  MemoToolbarActionId.italic,
+  MemoToolbarActionId.strikethrough,
+  MemoToolbarActionId.inlineCode,
   MemoToolbarActionId.list,
+  MemoToolbarActionId.orderedList,
+  MemoToolbarActionId.taskList,
+  MemoToolbarActionId.quote,
   MemoToolbarActionId.underline,
+  MemoToolbarActionId.highlight,
   MemoToolbarActionId.undo,
   MemoToolbarActionId.redo,
 ];
 
 const kMemoToolbarDefaultBottomRow = <MemoToolbarActionId>[
+  MemoToolbarActionId.divider,
+  MemoToolbarActionId.table,
+  MemoToolbarActionId.cutParagraph,
+  MemoToolbarActionId.todo,
+  MemoToolbarActionId.heading1,
+  MemoToolbarActionId.heading2,
+  MemoToolbarActionId.heading3,
+  MemoToolbarActionId.codeBlock,
+  MemoToolbarActionId.inlineMath,
+  MemoToolbarActionId.blockMath,
   MemoToolbarActionId.tag,
   MemoToolbarActionId.template,
   MemoToolbarActionId.attachment,
   MemoToolbarActionId.gallery,
-  MemoToolbarActionId.todo,
   MemoToolbarActionId.link,
   MemoToolbarActionId.camera,
   MemoToolbarActionId.location,
 ];
 
+const kMemoToolbarDefaultHiddenActions = <MemoToolbarActionId>{
+  MemoToolbarActionId.divider,
+  MemoToolbarActionId.table,
+  MemoToolbarActionId.cutParagraph,
+  MemoToolbarActionId.todo,
+};
+
 extension MemoToolbarActionIdX on MemoToolbarActionId {
   MemoToolbarRow get defaultRow {
     return switch (this) {
       MemoToolbarActionId.bold ||
+      MemoToolbarActionId.italic ||
+      MemoToolbarActionId.strikethrough ||
+      MemoToolbarActionId.inlineCode ||
       MemoToolbarActionId.list ||
+      MemoToolbarActionId.orderedList ||
+      MemoToolbarActionId.taskList ||
+      MemoToolbarActionId.quote ||
       MemoToolbarActionId.underline ||
+      MemoToolbarActionId.highlight ||
       MemoToolbarActionId.undo ||
       MemoToolbarActionId.redo => MemoToolbarRow.top,
+      MemoToolbarActionId.divider ||
+      MemoToolbarActionId.table ||
+      MemoToolbarActionId.cutParagraph ||
+      MemoToolbarActionId.heading1 ||
+      MemoToolbarActionId.heading2 ||
+      MemoToolbarActionId.heading3 ||
+      MemoToolbarActionId.codeBlock ||
+      MemoToolbarActionId.inlineMath ||
+      MemoToolbarActionId.blockMath ||
       MemoToolbarActionId.tag ||
       MemoToolbarActionId.template ||
       MemoToolbarActionId.attachment ||
@@ -261,7 +351,9 @@ class MemoToolbarPreferences {
     bottomRowItems: kMemoToolbarDefaultBottomRow
         .map((action) => action.itemId)
         .toList(growable: false),
-    hiddenItemIds: const <MemoToolbarItemId>{},
+    hiddenItemIds: kMemoToolbarDefaultHiddenActions
+        .map((action) => action.itemId)
+        .toSet(),
     customButtons: const <MemoToolbarCustomButton>[],
   );
 
@@ -317,12 +409,31 @@ class MemoToolbarPreferences {
           .toList(growable: false);
     }
 
-    return MemoToolbarPreferences(
-      topRowItems: parseRow('topRow'),
-      bottomRowItems: parseRow('bottomRow'),
-      hiddenItemIds: parseHidden(),
-      customButtons: parseCustomButtons(),
+    final topRowItems = parseRow('topRow');
+    final bottomRowItems = parseRow('bottomRow');
+    final hiddenItemIds = parseHidden();
+    final customButtons = parseCustomButtons();
+    final explicitlyStoredItems = <MemoToolbarItemId>{
+      ...topRowItems,
+      ...bottomRowItems,
+      ...hiddenItemIds,
+    };
+
+    var normalized = MemoToolbarPreferences(
+      topRowItems: topRowItems,
+      bottomRowItems: bottomRowItems,
+      hiddenItemIds: hiddenItemIds,
+      customButtons: customButtons,
     ).normalized();
+
+    for (final action in kMemoToolbarMigratedHiddenActions) {
+      final item = action.itemId;
+      if (!explicitlyStoredItems.contains(item)) {
+        normalized = normalized.setHidden(action, true);
+      }
+    }
+
+    return normalized;
   }
 
   Map<String, dynamic> toJson() => {

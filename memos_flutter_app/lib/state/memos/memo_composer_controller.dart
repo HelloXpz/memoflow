@@ -125,16 +125,10 @@ class MemoComposerController extends ChangeNotifier {
   }
 
   void insertText(String text, {int? caretOffset}) {
-    final value = textController.value;
-    final selection = value.selection;
-    final start = selection.start < 0 ? value.text.length : selection.start;
-    final end = selection.end < 0 ? value.text.length : selection.end;
-    final newText = value.text.replaceRange(start, end, text);
-    final caret = start + (caretOffset ?? text.length);
-    textController.value = value.copyWith(
-      text: newText,
-      selection: TextSelection.collapsed(offset: caret),
-      composing: TextRange.empty,
+    textController.value = insertInlineSnippet(
+      textController.value,
+      text,
+      caretOffset: caretOffset,
     );
   }
 
@@ -154,65 +148,167 @@ class MemoComposerController extends ChangeNotifier {
   }
 
   void insertUnorderedListMarker() {
-    insertText('- ');
+    toggleUnorderedList();
   }
 
   void insertOrderedListMarker() {
-    insertText('1. ');
+    toggleOrderedList();
   }
 
   void insertTaskCheckbox() {
-    insertText('- [ ] ');
+    toggleTaskList();
   }
 
   void insertCodeBlock() {
-    insertText('```\n\n```', caretOffset: 4);
+    textController.value = insertBlockSnippet(
+      textController.value,
+      '```\n\n```',
+      caretOffset: 4,
+    );
   }
 
   void toggleBold() {
-    final value = textController.value;
-    final selection = value.selection;
-    if (!selection.isValid || selection.isCollapsed) {
-      insertText('****', caretOffset: 2);
-      return;
-    }
-    final selected = value.text.substring(selection.start, selection.end);
-    final wrapped = '**$selected**';
-    textController.value = value.copyWith(
-      text: value.text.replaceRange(selection.start, selection.end, wrapped),
-      selection: TextSelection(
-        baseOffset: selection.start,
-        extentOffset: selection.start + wrapped.length,
-      ),
-      composing: TextRange.empty,
+    textController.value = wrapMarkdownSelection(
+      textController.value,
+      prefix: '**',
+      suffix: '**',
+    );
+  }
+
+  void toggleItalic() {
+    textController.value = wrapMarkdownSelection(
+      textController.value,
+      prefix: '*',
+      suffix: '*',
+    );
+  }
+
+  void toggleStrikethrough() {
+    textController.value = wrapMarkdownSelection(
+      textController.value,
+      prefix: '~~',
+      suffix: '~~',
+    );
+  }
+
+  void toggleInlineCode() {
+    textController.value = wrapMarkdownSelection(
+      textController.value,
+      prefix: '`',
+      suffix: '`',
     );
   }
 
   void toggleUnderline() {
-    _wrapSelection(prefix: '<u>', suffix: '</u>');
+    textController.value = wrapMarkdownSelection(
+      textController.value,
+      prefix: '<u>',
+      suffix: '</u>',
+    );
   }
 
   void toggleHighlight() {
-    _wrapSelection(prefix: '==', suffix: '==');
+    textController.value = wrapMarkdownSelection(
+      textController.value,
+      prefix: '==',
+      suffix: '==',
+    );
   }
 
-  void _wrapSelection({required String prefix, required String suffix}) {
-    final value = textController.value;
-    final selection = value.selection;
-    if (!selection.isValid || selection.isCollapsed) {
-      insertText('$prefix$suffix', caretOffset: prefix.length);
-      return;
-    }
-    final selected = value.text.substring(selection.start, selection.end);
-    final wrapped = '$prefix$selected$suffix';
-    textController.value = value.copyWith(
-      text: value.text.replaceRange(selection.start, selection.end, wrapped),
-      selection: TextSelection(
-        baseOffset: selection.start,
-        extentOffset: selection.start + wrapped.length,
-      ),
-      composing: TextRange.empty,
+  void toggleUnorderedList() {
+    textController.value = toggleBlockStyle(
+      textController.value,
+      MarkdownBlockStyle.unorderedList,
     );
+  }
+
+  void toggleOrderedList() {
+    textController.value = toggleBlockStyle(
+      textController.value,
+      MarkdownBlockStyle.orderedList,
+    );
+  }
+
+  void toggleTaskList() {
+    textController.value = toggleBlockStyle(
+      textController.value,
+      MarkdownBlockStyle.taskList,
+    );
+  }
+
+  void toggleHeading1() {
+    textController.value = toggleBlockStyle(
+      textController.value,
+      MarkdownBlockStyle.heading1,
+    );
+  }
+
+  void toggleHeading2() {
+    textController.value = toggleBlockStyle(
+      textController.value,
+      MarkdownBlockStyle.heading2,
+    );
+  }
+
+  void toggleHeading3() {
+    textController.value = toggleBlockStyle(
+      textController.value,
+      MarkdownBlockStyle.heading3,
+    );
+  }
+
+  void toggleQuote() {
+    textController.value = toggleBlockStyle(
+      textController.value,
+      MarkdownBlockStyle.quote,
+    );
+  }
+
+  void insertDivider() {
+    textController.value = insertBlockSnippet(
+      textController.value,
+      '---',
+      caretOffset: 3,
+    );
+  }
+
+  void insertInlineMath() {
+    textController.value = insertInlineSnippet(
+      textController.value,
+      r'$$',
+      caretOffset: 1,
+    );
+  }
+
+  void insertBlockMath() {
+    const blockMath = '\$\$\n\n\$\$';
+    textController.value = insertBlockSnippet(
+      textController.value,
+      blockMath,
+      caretOffset: 3,
+    );
+  }
+
+  void insertTableTemplate() {
+    const table =
+        '| Column 1 | Column 2 |\n| --- | --- |\n| Value 1 | Value 2 |';
+    textController.value = insertBlockSnippet(
+      textController.value,
+      table,
+      caretOffset: 2,
+    );
+  }
+
+  Future<bool> cutCurrentParagraphs() async {
+    final result = cutParagraphs(textController.value);
+    if (result == null) return false;
+    try {
+      await Clipboard.setData(ClipboardData(text: result.copiedText));
+    } catch (_) {
+      return false;
+    }
+    textController.value = result.value;
+    return true;
   }
 
   ActiveTagQuery? get activeTagQuery =>

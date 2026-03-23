@@ -17,7 +17,11 @@ void main() {
 
     expect(parsed.topRow.first, MemoToolbarActionId.bold);
     expect(parsed.bottomRow.first, MemoToolbarActionId.tag);
-    expect(parsed.hiddenActions, {MemoToolbarActionId.tag});
+    expect(parsed.hiddenActions, contains(MemoToolbarActionId.tag));
+    expect(
+      parsed.hiddenActions,
+      containsAll(kMemoToolbarMigratedHiddenActions),
+    );
 
     final allActions = <MemoToolbarActionId>{
       ...parsed.topRow,
@@ -29,6 +33,70 @@ void main() {
       MemoToolbarActionId.values.length,
     );
   });
+
+  test('uses new default layout for fresh installs', () {
+    final parsed = MemoToolbarPreferences.fromJson(null);
+
+    expect(
+      parsed.visibleActionsForRow(MemoToolbarRow.top).take(6),
+      <MemoToolbarActionId>[
+        MemoToolbarActionId.bold,
+        MemoToolbarActionId.italic,
+        MemoToolbarActionId.strikethrough,
+        MemoToolbarActionId.inlineCode,
+        MemoToolbarActionId.list,
+        MemoToolbarActionId.orderedList,
+      ],
+    );
+    expect(
+      parsed.visibleActionsForRow(MemoToolbarRow.bottom),
+      containsAll(<MemoToolbarActionId>[
+        MemoToolbarActionId.heading1,
+        MemoToolbarActionId.heading2,
+        MemoToolbarActionId.heading3,
+        MemoToolbarActionId.codeBlock,
+        MemoToolbarActionId.inlineMath,
+        MemoToolbarActionId.blockMath,
+      ]),
+    );
+    expect(parsed.hiddenActions, containsAll(kMemoToolbarDefaultHiddenActions));
+  });
+
+  test(
+    'migrates newly added builtins into hidden toolbox for legacy users',
+    () {
+      final parsed = MemoToolbarPreferences.fromJson({
+        'topRow': ['bold', 'list', 'underline'],
+        'bottomRow': ['tag', 'template', 'attachment'],
+        'hiddenActions': ['gallery'],
+      });
+
+      expect(
+        parsed.visibleActionsForRow(MemoToolbarRow.top).take(3).toList(),
+        <MemoToolbarActionId>[
+          MemoToolbarActionId.bold,
+          MemoToolbarActionId.list,
+          MemoToolbarActionId.underline,
+        ],
+      );
+      expect(
+        parsed.visibleActionsForRow(MemoToolbarRow.bottom),
+        containsAll(<MemoToolbarActionId>[
+          MemoToolbarActionId.tag,
+          MemoToolbarActionId.template,
+          MemoToolbarActionId.attachment,
+        ]),
+      );
+      expect(
+        parsed.hiddenActions,
+        containsAll(kMemoToolbarMigratedHiddenActions),
+      );
+      expect(
+        parsed.hiddenActions.contains(MemoToolbarActionId.gallery),
+        isTrue,
+      );
+    },
+  );
 
   test('round-trips json and keeps restored builtin actions in prior row', () {
     final moved = MemoToolbarPreferences.defaults.moveAction(
@@ -57,9 +125,9 @@ void main() {
         row: MemoToolbarRow.top,
         visibleIndex: 1,
       ),
-      2,
+      1,
     );
-    expect(prefs.hiddenActionsInOrder(), [MemoToolbarActionId.list]);
+    expect(prefs.hiddenActionsInOrder().first, MemoToolbarActionId.list);
   });
 
   test('round-trips custom buttons and keeps hidden custom order', () {

@@ -97,7 +97,8 @@ class _DeferredShareVideoTask {
       _DeferredShareVideoPhase.awaitingCompression => 0.72,
       _DeferredShareVideoPhase.compressing =>
         0.72 + progress.clamp(0, 1) * 0.28,
-      _DeferredShareVideoPhase.completed || _DeferredShareVideoPhase.removed => 1,
+      _DeferredShareVideoPhase.completed ||
+      _DeferredShareVideoPhase.removed => 1,
     };
   }
 }
@@ -118,7 +119,8 @@ class NoteInputSheet extends ConsumerStatefulWidget {
   final String? initialText;
   final TextSelection? initialSelection;
   final List<String> initialAttachmentPaths;
-  final List<ShareDeferredVideoAttachmentRequest> initialDeferredVideoAttachments;
+  final List<ShareDeferredVideoAttachmentRequest>
+  initialDeferredVideoAttachments;
   final bool ignoreDraft;
   final bool autoFocus;
   final ShareVideoDownloadService? shareVideoDownloadService;
@@ -186,9 +188,9 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
   bool get _hasPendingDeferredShareVideoTasks =>
       _deferredShareVideoTasks.any((task) => task.isPending);
   double? get _deferredShareVideoProgress {
-    final active = _deferredShareVideoTasks.where((task) => task.isPending).toList(
-      growable: false,
-    );
+    final active = _deferredShareVideoTasks
+        .where((task) => task.isPending)
+        .toList(growable: false);
     if (active.isEmpty) return null;
     final total = active.fold<double>(
       0,
@@ -196,6 +198,7 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
     );
     return (total / active.length).clamp(0, 1);
   }
+
   final _tagMenuKey = GlobalKey();
   final _templateMenuKey = GlobalKey();
   final _todoMenuKey = GlobalKey();
@@ -773,11 +776,11 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
       return true;
     }
     if (matches(DesktopShortcutAction.unorderedList)) {
-      _composer.insertUnorderedListMarker();
+      _composer.toggleUnorderedList();
       return true;
     }
     if (matches(DesktopShortcutAction.orderedList)) {
-      _composer.insertOrderedListMarker();
+      _composer.toggleOrderedList();
       return true;
     }
     if (matches(DesktopShortcutAction.undo)) {
@@ -1038,14 +1041,94 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
         onPressed: _toggleBold,
       ),
       MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.italic,
+        enabled: !_busy,
+        onPressed: _composer.toggleItalic,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.strikethrough,
+        enabled: !_busy,
+        onPressed: _composer.toggleStrikethrough,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.inlineCode,
+        enabled: !_busy,
+        onPressed: _composer.toggleInlineCode,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
         id: MemoToolbarActionId.list,
         enabled: !_busy,
-        onPressed: _composer.insertUnorderedListMarker,
+        onPressed: _composer.toggleUnorderedList,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.orderedList,
+        enabled: !_busy,
+        onPressed: _composer.toggleOrderedList,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.taskList,
+        enabled: !_busy,
+        onPressed: _composer.toggleTaskList,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.quote,
+        enabled: !_busy,
+        onPressed: _composer.toggleQuote,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.heading1,
+        enabled: !_busy,
+        onPressed: _composer.toggleHeading1,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.heading2,
+        enabled: !_busy,
+        onPressed: _composer.toggleHeading2,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.heading3,
+        enabled: !_busy,
+        onPressed: _composer.toggleHeading3,
       ),
       MemoComposeToolbarActionSpec.builtin(
         id: MemoToolbarActionId.underline,
         enabled: !_busy,
         onPressed: _toggleUnderline,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.highlight,
+        enabled: !_busy,
+        onPressed: _toggleHighlight,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.divider,
+        enabled: !_busy,
+        onPressed: _composer.insertDivider,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.codeBlock,
+        enabled: !_busy,
+        onPressed: _composer.insertCodeBlock,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.inlineMath,
+        enabled: !_busy,
+        onPressed: _composer.insertInlineMath,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.blockMath,
+        enabled: !_busy,
+        onPressed: _composer.insertBlockMath,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.table,
+        enabled: !_busy,
+        onPressed: _composer.insertTableTemplate,
+      ),
+      MemoComposeToolbarActionSpec.builtin(
+        id: MemoToolbarActionId.cutParagraph,
+        enabled: !_busy,
+        onPressed: () => unawaited(_composer.cutCurrentParagraphs()),
       ),
       MemoComposeToolbarActionSpec.builtin(
         id: MemoToolbarActionId.undo,
@@ -1605,7 +1688,8 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
                 ),
               ],
               for (var i = 0; i < _pendingAttachments.length; i++) ...[
-                if (i > 0 || deferredTasks.isNotEmpty) const SizedBox(width: 10),
+                if (i > 0 || deferredTasks.isNotEmpty)
+                  const SizedBox(width: 10),
                 _buildAttachmentTile(
                   _pendingAttachments[i],
                   isDark: isDark,
@@ -2364,9 +2448,9 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
                                         !_busy && !hasPendingDeferred;
                                     final buttonColor = buttonEnabled
                                         ? MemoFlowPalette.primary
-                                        : Theme.of(context)
-                                              .colorScheme
-                                              .surfaceContainerHighest;
+                                        : Theme.of(
+                                            context,
+                                          ).colorScheme.surfaceContainerHighest;
                                     final buttonShadowColor = buttonEnabled
                                         ? MemoFlowPalette.primary.withValues(
                                             alpha: isDark ? 0.3 : 0.4,
@@ -2376,9 +2460,13 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
                                           );
 
                                     return GestureDetector(
-                                      onTap: buttonEnabled ? _submitOrVoice : null,
+                                      onTap: buttonEnabled
+                                          ? _submitOrVoice
+                                          : null,
                                       child: AnimatedScale(
-                                        duration: const Duration(milliseconds: 120),
+                                        duration: const Duration(
+                                          milliseconds: 120,
+                                        ),
                                         scale: _busy ? 0.98 : 1.0,
                                         child: SizedBox(
                                           width: 64,
@@ -2391,13 +2479,19 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
                                                 SizedBox(
                                                   width: 64,
                                                   height: 64,
-                                                  child: CircularProgressIndicator(
-                                                    value: deferredProgress,
-                                                    strokeWidth: 3,
-                                                    color: MemoFlowPalette.primary,
-                                                    backgroundColor: MemoFlowPalette.primary
-                                                        .withValues(alpha: 0.18),
-                                                  ),
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                        value: deferredProgress,
+                                                        strokeWidth: 3,
+                                                        color: MemoFlowPalette
+                                                            .primary,
+                                                        backgroundColor:
+                                                            MemoFlowPalette
+                                                                .primary
+                                                                .withValues(
+                                                                  alpha: 0.18,
+                                                                ),
+                                                      ),
                                                 ),
                                               Container(
                                                 width: 56,
@@ -2409,7 +2503,10 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
                                                     BoxShadow(
                                                       color: buttonShadowColor,
                                                       blurRadius: 16,
-                                                      offset: const Offset(0, 8),
+                                                      offset: const Offset(
+                                                        0,
+                                                        8,
+                                                      ),
                                                     ),
                                                   ],
                                                 ),
@@ -2420,61 +2517,64 @@ class _NoteInputSheetState extends ConsumerState<NoteInputSheet> {
                                                           child:
                                                               CircularProgressIndicator(
                                                                 strokeWidth: 2,
-                                                                color: Colors.white,
+                                                                color: Colors
+                                                                    .white,
                                                               ),
                                                         )
                                                       : ValueListenableBuilder<
                                                           TextEditingValue
                                                         >(
-                                                          valueListenable: _controller,
-                                                          builder:
-                                                              (context, value, _) {
-                                                                final hasText = value
-                                                                    .text
+                                                          valueListenable:
+                                                              _controller,
+                                                          builder: (context, value, _) {
+                                                            final hasText =
+                                                                value.text
                                                                     .trim()
                                                                     .isNotEmpty;
-                                                                final hasAttachments =
-                                                                    _pendingAttachments
-                                                                        .isNotEmpty ||
-                                                                    _visibleDeferredShareVideoTasks
-                                                                        .isNotEmpty;
-                                                                final showSend =
-                                                                    hasText ||
-                                                                    hasAttachments;
-                                                                return AnimatedSwitcher(
-                                                                  duration:
-                                                                      const Duration(
-                                                                        milliseconds:
-                                                                            160,
-                                                                      ),
-                                                                  transitionBuilder:
-                                                                      (
-                                                                        child,
-                                                                        animation,
-                                                                      ) {
-                                                                        return ScaleTransition(
-                                                                          scale:
-                                                                              animation,
-                                                                          child:
-                                                                              child,
-                                                                        );
-                                                                      },
-                                                                  child: Icon(
-                                                                    showSend
-                                                                        ? Icons.send_rounded
-                                                                        : Icons.graphic_eq,
-                                                                    key:
-                                                                        ValueKey<bool>(
-                                                                          showSend,
-                                                                        ),
-                                                                    color:
-                                                                        Colors.white,
-                                                                    size: showSend
-                                                                        ? 24
-                                                                        : 28,
+                                                            final hasAttachments =
+                                                                _pendingAttachments
+                                                                    .isNotEmpty ||
+                                                                _visibleDeferredShareVideoTasks
+                                                                    .isNotEmpty;
+                                                            final showSend =
+                                                                hasText ||
+                                                                hasAttachments;
+                                                            return AnimatedSwitcher(
+                                                              duration:
+                                                                  const Duration(
+                                                                    milliseconds:
+                                                                        160,
                                                                   ),
-                                                                );
-                                                              },
+                                                              transitionBuilder:
+                                                                  (
+                                                                    child,
+                                                                    animation,
+                                                                  ) {
+                                                                    return ScaleTransition(
+                                                                      scale:
+                                                                          animation,
+                                                                      child:
+                                                                          child,
+                                                                    );
+                                                                  },
+                                                              child: Icon(
+                                                                showSend
+                                                                    ? Icons
+                                                                          .send_rounded
+                                                                    : Icons
+                                                                          .graphic_eq,
+                                                                key:
+                                                                    ValueKey<
+                                                                      bool
+                                                                    >(showSend),
+                                                                color: Colors
+                                                                    .white,
+                                                                size: showSend
+                                                                    ? 24
+                                                                    : 28,
+                                                              ),
+                                                            );
+                                                          },
                                                         ),
                                                 ),
                                               ),

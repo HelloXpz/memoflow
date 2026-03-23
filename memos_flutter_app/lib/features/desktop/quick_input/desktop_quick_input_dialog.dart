@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/markdown_editing.dart';
 import '../../../core/memo_template_renderer.dart';
 import '../../../data/models/memo_template_settings.dart';
 import '../../../state/settings/location_settings_provider.dart';
@@ -65,47 +67,108 @@ class _DesktopQuickInputDialogState
 
   bool get _canSubmit => _controller.text.trim().isNotEmpty;
 
+  void _setControllerValue(TextEditingValue value) {
+    setState(() {
+      _controller.value = value;
+    });
+  }
+
   void _insertText(String value, {int? caretOffset}) {
-    final current = _controller.value;
-    final selection = current.selection;
-    final start = selection.isValid ? selection.start : current.text.length;
-    final end = selection.isValid ? selection.end : current.text.length;
-    final nextText = current.text.replaceRange(start, end, value);
-    final cursor = start + (caretOffset ?? value.length);
-    _controller.value = current.copyWith(
-      text: nextText,
-      selection: TextSelection.collapsed(offset: cursor),
-      composing: TextRange.empty,
+    _setControllerValue(
+      insertInlineSnippet(_controller.value, value, caretOffset: caretOffset),
     );
   }
 
   void _replaceText(String value) {
-    _controller.value = _controller.value.copyWith(
-      text: value,
-      selection: TextSelection.collapsed(offset: value.length),
-      composing: TextRange.empty,
+    _setControllerValue(
+      _controller.value.copyWith(
+        text: value,
+        selection: TextSelection.collapsed(offset: value.length),
+        composing: TextRange.empty,
+      ),
     );
   }
 
-  void _toggleBold() {
-    final value = _controller.value;
-    final selection = value.selection;
-    const prefix = '**';
-    const suffix = '**';
-    if (!selection.isValid || selection.isCollapsed) {
-      _insertText('$prefix$suffix', caretOffset: prefix.length);
+  void _wrapSelection(String prefix, String suffix) {
+    _setControllerValue(
+      wrapMarkdownSelection(_controller.value, prefix: prefix, suffix: suffix),
+    );
+  }
+
+  void _toggleBold() => _wrapSelection('**', '**');
+
+  void _toggleItalic() => _wrapSelection('*', '*');
+
+  void _toggleStrikethrough() => _wrapSelection('~~', '~~');
+
+  void _toggleInlineCode() => _wrapSelection('`', '`');
+
+  void _toggleUnderline() => _wrapSelection('<u>', '</u>');
+
+  void _toggleHighlight() => _wrapSelection('==', '==');
+
+  void _toggleBlockStyle(MarkdownBlockStyle style) {
+    _setControllerValue(toggleBlockStyle(_controller.value, style));
+  }
+
+  void _toggleUnorderedList() =>
+      _toggleBlockStyle(MarkdownBlockStyle.unorderedList);
+
+  void _toggleOrderedList() =>
+      _toggleBlockStyle(MarkdownBlockStyle.orderedList);
+
+  void _toggleTaskList() => _toggleBlockStyle(MarkdownBlockStyle.taskList);
+
+  void _toggleQuote() => _toggleBlockStyle(MarkdownBlockStyle.quote);
+
+  void _toggleHeading1() => _toggleBlockStyle(MarkdownBlockStyle.heading1);
+
+  void _toggleHeading2() => _toggleBlockStyle(MarkdownBlockStyle.heading2);
+
+  void _toggleHeading3() => _toggleBlockStyle(MarkdownBlockStyle.heading3);
+
+  void _insertDivider() {
+    _setControllerValue(
+      insertBlockSnippet(_controller.value, '---', caretOffset: 3),
+    );
+  }
+
+  void _insertCodeBlock() {
+    _setControllerValue(
+      insertBlockSnippet(_controller.value, '```\n\n```', caretOffset: 4),
+    );
+  }
+
+  void _insertInlineMath() {
+    _setControllerValue(
+      insertInlineSnippet(_controller.value, r'$$', caretOffset: 1),
+    );
+  }
+
+  void _insertBlockMath() {
+    const blockMath = '\$\$\n\n\$\$';
+    _setControllerValue(
+      insertBlockSnippet(_controller.value, blockMath, caretOffset: 3),
+    );
+  }
+
+  void _insertTableTemplate() {
+    const table =
+        '| Column 1 | Column 2 |\n| --- | --- |\n| Value 1 | Value 2 |';
+    _setControllerValue(
+      insertBlockSnippet(_controller.value, table, caretOffset: 2),
+    );
+  }
+
+  Future<void> _cutParagraphs() async {
+    final result = cutParagraphs(_controller.value);
+    if (result == null) return;
+    try {
+      await Clipboard.setData(ClipboardData(text: result.copiedText));
+    } catch (_) {
       return;
     }
-    final selected = value.text.substring(selection.start, selection.end);
-    final wrapped = '$prefix$selected$suffix';
-    _controller.value = value.copyWith(
-      text: value.text.replaceRange(selection.start, selection.end, wrapped),
-      selection: TextSelection(
-        baseOffset: selection.start,
-        extentOffset: selection.start + wrapped.length,
-      ),
-      composing: TextRange.empty,
-    );
+    _setControllerValue(result.value);
   }
 
   void _submit() {
@@ -171,6 +234,20 @@ class _DesktopQuickInputDialogState
     );
     if (!mounted) return;
     _replaceText(rendered);
+  }
+
+  Widget _buildToolbarRow(List<Widget> children) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          for (var i = 0; i < children.length; i++) ...[
+            children[i],
+            if (i != children.length - 1) const SizedBox(width: 2),
+          ],
+        ],
+      ),
+    );
   }
 
   @override
@@ -255,47 +332,240 @@ class _DesktopQuickInputDialogState
               Padding(
                 padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
                 child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    _ToolbarButton(
-                      tooltip: context.t.strings.legacy.msg_tag,
-                      onTap: () => _insertText('#'),
-                      icon: Icons.tag_outlined,
-                    ),
-                    _ToolbarButton(
-                      buttonKey: _templateMenuKey,
-                      tooltip: context.t.strings.legacy.msg_template,
-                      onTap: () => _openTemplateMenuFromKey(
-                        _templateMenuKey,
-                        availableTemplates,
+                    Expanded(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildToolbarRow([
+                            _ToolbarButton(
+                              tooltip: context.t.strings.legacy.msg_bold,
+                              onTap: _toggleBold,
+                              icon: Icons.format_bold,
+                            ),
+                            _ToolbarButton(
+                              tooltip: context
+                                  .t
+                                  .strings
+                                  .settings
+                                  .preferences
+                                  .editorToolbar
+                                  .actions
+                                  .italic,
+                              onTap: _toggleItalic,
+                              icon: Icons.format_italic,
+                            ),
+                            _ToolbarButton(
+                              tooltip: context
+                                  .t
+                                  .strings
+                                  .settings
+                                  .preferences
+                                  .editorToolbar
+                                  .actions
+                                  .strikethrough,
+                              onTap: _toggleStrikethrough,
+                              icon: Icons.format_strikethrough,
+                            ),
+                            _ToolbarButton(
+                              tooltip: context
+                                  .t
+                                  .strings
+                                  .settings
+                                  .preferences
+                                  .editorToolbar
+                                  .actions
+                                  .inlineCode,
+                              onTap: _toggleInlineCode,
+                              icon: Icons.code,
+                            ),
+                            _ToolbarButton(
+                              tooltip: context.t.strings.legacy.msg_underline,
+                              onTap: _toggleUnderline,
+                              icon: Icons.format_underlined,
+                            ),
+                            _ToolbarButton(
+                              tooltip: context.t.strings.legacy.msg_highlight,
+                              onTap: _toggleHighlight,
+                              icon: Icons.highlight_alt,
+                            ),
+                            _ToolbarButton(
+                              tooltip: context
+                                  .t
+                                  .strings
+                                  .settings
+                                  .preferences
+                                  .editorToolbar
+                                  .actions
+                                  .bulletedList,
+                              onTap: _toggleUnorderedList,
+                              icon: Icons.format_list_bulleted,
+                            ),
+                            _ToolbarButton(
+                              tooltip:
+                                  context.t.strings.legacy.msg_ordered_list,
+                              onTap: _toggleOrderedList,
+                              icon: Icons.format_list_numbered,
+                            ),
+                            _ToolbarButton(
+                              tooltip: context
+                                  .t
+                                  .strings
+                                  .settings
+                                  .preferences
+                                  .editorToolbar
+                                  .actions
+                                  .taskList,
+                              onTap: _toggleTaskList,
+                              icon: Icons.check_box_outlined,
+                            ),
+                            _ToolbarButton(
+                              tooltip: context
+                                  .t
+                                  .strings
+                                  .settings
+                                  .preferences
+                                  .editorToolbar
+                                  .actions
+                                  .quote,
+                              onTap: _toggleQuote,
+                              icon: Icons.format_quote,
+                            ),
+                          ]),
+                          const SizedBox(height: 6),
+                          _buildToolbarRow([
+                            _ToolbarButton(
+                              tooltip: context
+                                  .t
+                                  .strings
+                                  .settings
+                                  .preferences
+                                  .editorToolbar
+                                  .actions
+                                  .heading1,
+                              onTap: _toggleHeading1,
+                              icon: Icons.looks_one_outlined,
+                            ),
+                            _ToolbarButton(
+                              tooltip: context
+                                  .t
+                                  .strings
+                                  .settings
+                                  .preferences
+                                  .editorToolbar
+                                  .actions
+                                  .heading2,
+                              onTap: _toggleHeading2,
+                              icon: Icons.looks_two_outlined,
+                            ),
+                            _ToolbarButton(
+                              tooltip: context
+                                  .t
+                                  .strings
+                                  .settings
+                                  .preferences
+                                  .editorToolbar
+                                  .actions
+                                  .heading3,
+                              onTap: _toggleHeading3,
+                              icon: Icons.looks_3_outlined,
+                            ),
+                            _ToolbarButton(
+                              tooltip: context
+                                  .t
+                                  .strings
+                                  .settings
+                                  .preferences
+                                  .editorToolbar
+                                  .actions
+                                  .divider,
+                              onTap: _insertDivider,
+                              icon: Icons.horizontal_rule,
+                            ),
+                            _ToolbarButton(
+                              tooltip: context.t.strings.legacy.msg_code_block,
+                              onTap: _insertCodeBlock,
+                              icon: Icons.data_object,
+                            ),
+                            _ToolbarButton(
+                              tooltip: context
+                                  .t
+                                  .strings
+                                  .settings
+                                  .preferences
+                                  .editorToolbar
+                                  .actions
+                                  .inlineMath,
+                              onTap: _insertInlineMath,
+                              icon: Icons.functions,
+                            ),
+                            _ToolbarButton(
+                              tooltip: context
+                                  .t
+                                  .strings
+                                  .settings
+                                  .preferences
+                                  .editorToolbar
+                                  .actions
+                                  .blockMath,
+                              onTap: _insertBlockMath,
+                              icon: Icons.calculate_outlined,
+                            ),
+                            _ToolbarButton(
+                              tooltip: context
+                                  .t
+                                  .strings
+                                  .settings
+                                  .preferences
+                                  .editorToolbar
+                                  .actions
+                                  .table,
+                              onTap: _insertTableTemplate,
+                              icon: Icons.table_chart_outlined,
+                            ),
+                            _ToolbarButton(
+                              tooltip: context
+                                  .t
+                                  .strings
+                                  .settings
+                                  .preferences
+                                  .editorToolbar
+                                  .actions
+                                  .cutParagraph,
+                              onTap: _cutParagraphs,
+                              icon: Icons.content_cut,
+                            ),
+                            _ToolbarButton(
+                              tooltip: context.t.strings.legacy.msg_tag,
+                              onTap: () => _insertText('#'),
+                              icon: Icons.tag_outlined,
+                            ),
+                            _ToolbarButton(
+                              buttonKey: _templateMenuKey,
+                              tooltip: context.t.strings.legacy.msg_template,
+                              onTap: () => _openTemplateMenuFromKey(
+                                _templateMenuKey,
+                                availableTemplates,
+                              ),
+                              icon: Icons.description_outlined,
+                            ),
+                            _ToolbarButton(
+                              tooltip: context.t.strings.legacy.msg_image,
+                              onTap: widget.onImagePressed,
+                              icon: Icons.image_outlined,
+                            ),
+                            _ToolbarButton(
+                              tooltip: context.t.strings.legacy.msg_link,
+                              onTap: () => _insertText('@'),
+                              icon: Icons.alternate_email_rounded,
+                            ),
+                          ]),
+                        ],
                       ),
-                      icon: Icons.description_outlined,
                     ),
-                    _ToolbarButton(
-                      tooltip: context.t.strings.legacy.msg_image,
-                      onTap: widget.onImagePressed,
-                      icon: Icons.image_outlined,
-                    ),
-                    _ToolbarButton(
-                      tooltip: context.t.strings.legacy.msg_bold,
-                      onTap: _toggleBold,
-                      icon: Icons.text_fields,
-                    ),
-                    _ToolbarButton(
-                      tooltip: context.t.strings.legacy.msg_unordered_list,
-                      onTap: () => _insertText('- '),
-                      icon: Icons.format_list_bulleted,
-                    ),
-                    _ToolbarButton(
-                      tooltip: context.t.strings.legacy.msg_ordered_list,
-                      onTap: () => _insertText('1. '),
-                      icon: Icons.format_list_numbered,
-                    ),
-                    _ToolbarButton(
-                      tooltip: context.t.strings.legacy.msg_link,
-                      onTap: () => _insertText('@'),
-                      icon: Icons.alternate_email_rounded,
-                    ),
-                    const Spacer(),
+                    const SizedBox(width: 12),
                     FilledButton(
                       onPressed: _canSubmit ? _submit : null,
                       style: FilledButton.styleFrom(
