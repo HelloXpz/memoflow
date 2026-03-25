@@ -6,15 +6,9 @@ on:
       - "v*"
   workflow_dispatch:
     inputs:
-      logLevel:
-        description: 'Log level'
+      tag:
+        description: 'Release tag'
         required: true
-        default: 'warning'
-        type: choice
-        options:
-        - info
-        - warning
-        - debug
     
 
 jobs:
