@@ -97,8 +97,10 @@ jobs:
       - name: Create release and upload APK
         uses: ncipollo/release-action@v1
         with:
-          artifacts: "memos_flutter_app/dist/apk/MemoFlow_v*.apk"
+          artifacts: "release/*.apk"
           token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ github.event.inputs.tag }}
+          name: MemoFlow ${{ github.event.inputs.tag }}
           allowUpdates: true
           replacesArtifacts: true
           generateReleaseNotes: true
